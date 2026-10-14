@@ -166,3 +166,6 @@ If you need a frozen file or another stream's file changed, write `change-reques
 3. **Deviations** from this brief, with reasons.
 4. **Change requests filed** (file names and one line each), or "none".
 5. **PENDING** items (anything blocked on credentials or another stream).
+
+## Coordinator note (Hobby plan)
+Vercel Hobby only allows crons that run at most once a day, so `/api/cron/insights` runs daily at 12:00 UTC (vercel.json). The handler must generate a report for every user whose current ISO week has no READY report yet. Do not rely on an hourly "Monday 05:00 local" check.
