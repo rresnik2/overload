@@ -28,7 +28,9 @@
     "auth:generate": "DATABASE_URL=${DATABASE_URL:-postgresql://u:p@localhost:5432/db} BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-generate-only-placeholder-secret} auth generate --config src/server/auth/auth.ts --output prisma/auth.generated.prisma --yes",
     "ownership:check": "tsx scripts/ownership-check.ts",
     "test:integration": "vitest run --project integration",
-    "test:analytics-coverage": "vitest run --project unit --project dom --coverage --coverage.include=\"src/lib/analytics/**\" --coverage.exclude=\"**/*.test.ts\" --coverage.thresholds.lines=95 --coverage.thresholds.functions=95 --coverage.thresholds.branches=90"
+    "test:analytics-coverage": "vitest run --project unit --project dom --coverage --coverage.include=\"src/lib/analytics/**\" --coverage.exclude=\"**/*.test.ts\" --coverage.thresholds.lines=95 --coverage.thresholds.functions=95 --coverage.thresholds.branches=90",
+    "docs:sync": "tsx scripts/docs-sync.ts",
+    "docs:check": "tsx scripts/docs-sync.ts --check"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.134.0",
