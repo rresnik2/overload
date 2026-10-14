@@ -22,7 +22,7 @@ function createClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set (copy .env.example to .env.local)");
   }
-  const pool = new Pool({ connectionString, max: 10 });
+  const pool = new Pool({ connectionString, max: Number(process.env.DATABASE_POOL_MAX ?? 10) });
   attachDatabasePool(pool);
   return new PrismaClient({
     adapter: new PrismaPg(pool),

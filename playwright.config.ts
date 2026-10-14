@@ -25,6 +25,8 @@ export default defineConfig({
     : {
         command: prod ? `pnpm build && pnpm start -p ${port}` : `pnpm dev -p ${port}`,
         url: baseURL,
+        // Auth origin checks need BETTER_AUTH_URL to match the port this worktree serves on.
+        env: { BETTER_AUTH_URL: baseURL, NEXT_PUBLIC_APP_URL: baseURL },
         reuseExistingServer: !process.env.CI,
         timeout: 240_000,
       },

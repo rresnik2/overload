@@ -20,6 +20,9 @@ const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOO
 export const auth = betterAuth({
   baseURL,
   secret,
+  // Dev worktrees run on ports 3000-3005; accept any of them as an origin (production: only the configured origin).
+  trustedOrigins:
+    process.env.NODE_ENV === "production" ? [baseURL] : [baseURL, ...[3000, 3001, 3002, 3003, 3004, 3005].map((p) => `http://localhost:${p}`)],
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,
