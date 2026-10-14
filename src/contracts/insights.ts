@@ -1,12 +1,10 @@
 // InsightFacts (input to the narrative) and InsightNarrative (Claude's structured output). FROZEN after Phase 0.
 // Builders/consumers: D builds facts (buildWeeklyFacts), G persists + narrates, F/Wave 3 render cards.
 import { z } from "zod";
-import { INSIGHT_RULE_IDS, INSIGHT_SEVERITIES } from "./analytics";
-import { localDateSchema, isoDateTimeSchema } from "./entities";
+import { INSIGHT_RULE_IDS, INSIGHT_SEVERITIES, type AnalyticsInput } from "./analytics";
+import { localDateSchema, type IsoDateTime } from "./entities";
 import {
   experienceLevelSchema,
-  insightStatusSchema,
-  insightTriggerSchema,
   modalitySchema,
   muscleSchema,
   prTypeSchema,
@@ -14,6 +12,8 @@ import {
   standardLiftSchema,
   trainingGoalSchema,
   weightUnitSchema,
+  type InsightStatus,
+  type InsightTrigger,
 } from "./enums";
 
 export const INSIGHT_FACTS_VERSION = 1;
@@ -187,8 +187,8 @@ export function collectFactIds(facts: InsightFacts): Set<string> {
 export interface InsightReportRow {
   id: string;
   weekStart: string;
-  status: z.infer<typeof insightStatusSchema>;
-  trigger: z.infer<typeof insightTriggerSchema>;
+  status: InsightStatus;
+  trigger: InsightTrigger;
   factsVersion: number;
   facts: InsightFacts;
   factsHash: string;
@@ -199,11 +199,8 @@ export interface InsightReportRow {
   outputTokens: number | null;
   error: string | null;
   onDemandCount: number;
-  generatedAt: z.infer<typeof isoDateTimeSchema> | null;
+  generatedAt: IsoDateTime | null;
 }
 
 /** Signature of the pure facts builder (src/lib/analytics/facts.ts, stream D). */
-export type BuildWeeklyFacts = (
-  input: import("./analytics").AnalyticsInput,
-  opts: { weekStart: string },
-) => InsightFacts;
+export type BuildWeeklyFacts = (input: AnalyticsInput, opts: { weekStart: string }) => InsightFacts;

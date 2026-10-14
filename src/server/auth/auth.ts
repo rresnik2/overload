@@ -10,11 +10,16 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/server/db";
 
 const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+// `next build` evaluates this module without runtime secrets; Better Auth refuses a missing secret in production,
+// so give the BUILD phase (only) a throwaway value. At runtime a missing BETTER_AUTH_SECRET still fails loudly.
+const secret =
+  process.env.BETTER_AUTH_SECRET ??
+  (process.env.NEXT_PHASE === "phase-production-build" ? "build-phase-placeholder-secret-not-used-at-runtime" : undefined);
 const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 
 export const auth = betterAuth({
   baseURL,
-  secret: process.env.BETTER_AUTH_SECRET,
+  secret,
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,

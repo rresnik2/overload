@@ -5,8 +5,7 @@
 //   estimate1RM  (src/lib/analytics/e1rm.ts)    effectiveLoadKg  (src/lib/analytics/load.ts)
 // Everything else is a stub that throws `not implemented: <name>` until stream D delivers it; D must NOT change a
 // signature (file a change request instead). The evidence behind every number is in docs/research.md.
-import type { LocalDateString } from "./entities";
-import type { ExerciseMuscleEntry } from "./entities";
+import type { ExerciseMuscleEntry, LocalDateString } from "./entities";
 import type {
   BodyFatMethod,
   E1rmFormula,

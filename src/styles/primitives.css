@@ -1,0 +1,118 @@
+/* Styles for the four Phase 0 primitives (src/components/primitives/*). Props are frozen (CONTRACTS.md); stream B may restyle. */
+
+.hard-card {
+  background-color: var(--color-base-100);
+  color: var(--color-base-content);
+  border: 1px solid var(--color-base-content);
+  border-radius: 0;
+  box-shadow: var(--shadow-hard);
+  transition:
+    transform 120ms var(--ease-out),
+    box-shadow 120ms var(--ease-out);
+}
+.hard-card--padded {
+  padding: 1.25rem;
+}
+/* Press: the card moves toward its shadow and the shadow shrinks to 4px. */
+.hard-card--interactive {
+  cursor: pointer;
+}
+.hard-card--interactive:active {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-hard-pressed);
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--color-vermilion);
+  margin-bottom: 1rem;
+}
+.section-header__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  line-height: 1.1;
+  margin: 0;
+}
+.section-header__index,
+.section-header__slash {
+  color: var(--color-vermilion);
+}
+.section-header__actions {
+  font-size: 0.9rem;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.page-header__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(2.25rem, 1.6rem + 3vw, 3.75rem);
+  line-height: 1;
+  margin: 0;
+}
+.meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5ch;
+  font-size: 0.95rem;
+  margin: 0 0 0.35rem;
+}
+.meta-line__slash {
+  color: var(--color-vermilion);
+}
+.page-header__description {
+  margin: 0.5rem 0 0;
+  max-width: 60ch;
+  opacity: 0.8;
+}
+.page-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--color-base-content);
+  border-radius: 0;
+}
+.empty-state__icon {
+  color: var(--color-vermilion);
+}
+.empty-state__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.75rem;
+  line-height: 1.15;
+  margin: 0;
+}
+.empty-state__description {
+  margin: 0;
+  max-width: 44ch;
+  opacity: 0.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hard-card {
+    transition: none;
+  }
+}

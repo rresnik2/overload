@@ -1,0 +1,169 @@
+/* Overload design tokens. Owner: stream B ("final tokens"); Phase 0 ships the plan's exact values.
+   Source: reece-resnik.vercel.app computed styles (docs/PLAN.md "Design system").
+   daisyUI 5 with its built-in themes OFF; the two custom themes below are the only ones. */
+@plugin "daisyui" {
+  themes: false;
+}
+
+/* overload-paper: the light theme (also the default when the OS is light). */
+@plugin "daisyui/theme" {
+  name: "overload-paper";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #f4f2ed; /* paper */
+  --color-base-200: #eae7df;
+  --color-base-300: #dcd8ce;
+  --color-base-content: #141414; /* ink */
+
+  /* Filled buttons: vermilion-deep. Paper text on #C8321F = 4.77:1 (AA). */
+  --color-primary: #c8321f;
+  --color-primary-content: #f4f2ed;
+  /* PROVISIONAL (stream B finalizes and validates with the dataviz skill): slate blue = cable, ochre = bodyweight. */
+  --color-secondary: #35566f;
+  --color-secondary-content: #f4f2ed;
+  --color-accent: #8a5a00;
+  --color-accent-content: #f4f2ed;
+  --color-neutral: #141414; /* ink buttons and tooltips */
+  --color-neutral-content: #f4f2ed;
+
+  --color-info: #2f5d8a;
+  --color-info-content: #f4f2ed;
+  --color-success: #2f6b3f;
+  --color-success-content: #f4f2ed;
+  --color-warning: #8a5a00;
+  --color-warning-content: #f4f2ed;
+  --color-error: #b3261e;
+  --color-error-content: #f4f2ed;
+
+  /* Brand vermilion: borders, hard shadows, display type, icons. 3.7:1 on paper: NEVER small body text. */
+  --color-vermilion: #e4402b;
+
+  /* Square everywhere, flat surfaces. */
+  --radius-selector: 0;
+  --radius-field: 0;
+  --radius-box: 0;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* overload-ink: the dark theme (default when the OS is dark; the gym default once installed). */
+@plugin "daisyui/theme" {
+  name: "overload-ink";
+  default: false;
+  prefersdark: true;
+  color-scheme: dark;
+
+  --color-base-100: #1c1b19;
+  --color-base-200: #232220;
+  --color-base-300: #2e2c29;
+  --color-base-content: #edeae3;
+
+  --color-primary: #f26a55; /* ink text on #F26A55 = 6.1:1 */
+  --color-primary-content: #141414;
+  --color-secondary: #8fb0cc;
+  --color-secondary-content: #141414;
+  --color-accent: #e0a94a;
+  --color-accent-content: #141414;
+  --color-neutral: #edeae3;
+  --color-neutral-content: #141414;
+
+  --color-info: #8fb8e8;
+  --color-info-content: #141414;
+  --color-success: #8ccb98;
+  --color-success-content: #141414;
+  --color-warning: #e8b84f;
+  --color-warning-content: #141414;
+  --color-error: #ff8f85;
+  --color-error-content: #141414;
+
+  --color-vermilion: #f26a55;
+
+  --radius-selector: 0;
+  --radius-field: 0;
+  --radius-box: 0;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 0;
+}
+
+/* Tailwind theme: utilities like text-vermilion / border-vermilion / font-display / font-body read these.
+   The colour defaults to the paper value; each daisyUI theme block above overrides it on <html data-theme=...>. */
+@theme {
+  --color-vermilion: #e4402b;
+  --color-ink: #141414;
+  --color-paper: #f4f2ed;
+
+  --font-display: var(--font-instrument), "Iowan Old Style", "Times New Roman", serif;
+  --font-body: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  /* Set inputs: if the body face ever lacks tnum, fall back to this (see CONTRACTS.md "Fonts"). */
+  --font-numeric: var(--font-newsreader), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  --shadow-hard: 6px 6px 0 var(--color-vermilion);
+  --shadow-hard-pressed: 4px 4px 0 var(--color-vermilion);
+
+  /* Motion: the portfolio's view-transition page slides. Disabled for reduced motion (motion.css, stream B). */
+  --page-out: 0.18s;
+  --page-in: 0.36s;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --tap-target: 44px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-body);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    background-color: var(--color-base-100);
+    color: var(--color-base-content);
+  }
+
+  /* Every number: tabular + lining figures. */
+  body {
+    font-family: var(--font-body);
+    font-variant-numeric: lining-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Instrument Serif has regular + italic only: never bold. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 400;
+  }
+
+  /* iOS zooms into any input under 16px. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-vermilion);
+    outline-offset: 2px;
+  }
+}
+
+/* Numbers in stats, tables, set rows: tabular + lining. */
+@utility num {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+@utility font-numeric {
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums lining-nums;
+}
