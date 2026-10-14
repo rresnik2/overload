@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Placeholders so `next build` can evaluate route modules. No real secret is ever used in CI.
+  BETTER_AUTH_SECRET: ci-build-only-secret-not-a-real-secret
+  BETTER_AUTH_URL: http://localhost:3000
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable Corepack (pnpm version comes from package.json "packageManager")
+        run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Unit tests (vitest)
+        run: pnpm test
+      - name: Ownership check (pull requests from stream branches)
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          # Branches are named <stream>/<topic> or stream/<stream>/<topic> (e.g. e1/sync-engine). Other branches skip the check.
+          STREAM=$(echo "$HEAD_REF" | sed -E 's#^stream/##; s#^([A-Za-z0-9]+)[-/].*#\1#' | tr '[:lower:]' '[:upper:]')
+          case "$STREAM" in
+            A|B|C|D|E1|E2|F|G|W3)
+              git fetch origin "$BASE_REF"
+              pnpm ownership:check --stream="$STREAM" --base="origin/$BASE_REF" ;;
+            *) echo "::notice::branch '$HEAD_REF' is not a stream branch; skipping ownership check" ;;
+          esac
+      - name: Build
+        run: pnpm build
+
+  database:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: overload
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/overload
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/overload
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migrations to an empty database
+        run: pnpm db:deploy
+      - name: Schema drift check (migrations vs prisma/schema.prisma; exits non-zero on any difference)
+        run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+      - name: Seed
+        run: pnpm db:seed
+      - name: Integration tests (real Postgres)
+        run: pnpm test:integration

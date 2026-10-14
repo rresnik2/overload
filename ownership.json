@@ -1,0 +1,175 @@
+{
+  "$comment": "Path ownership for parallel streams. `pnpm ownership:check --stream=X` fails when a branch changes anything outside stream X's `owns` globs (minus `exclude`), `shared`, or touches a `frozen` path. Globs use picomatch (dot files included). Matching tests colocated inside an owned path is automatic. FROZEN: change via change-requests/ only.",
+  "shared": ["change-requests/{stream}-*.md"],
+  "frozen": [
+    "package.json",
+    "pnpm-lock.yaml",
+    "pnpm-workspace.yaml",
+    ".gitignore",
+    ".env.example",
+    ".github/**",
+    "tsconfig.json",
+    "next.config.ts",
+    "postcss.config.mjs",
+    "eslint.config.mjs",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "prisma.config.ts",
+    "vercel.json",
+    "ownership.json",
+    "CLAUDE.md",
+    "CONTRACTS.md",
+    "docs/**",
+    "scripts/**",
+    "prisma/schema.prisma",
+    "prisma/migrations/**",
+    "prisma/data/**",
+    "prisma/seed/index.ts",
+    "src/contracts/**",
+    "src/app/layout.tsx",
+    "src/styles/globals.css",
+    "src/lib/units.*",
+    "src/lib/dates.*",
+    "src/lib/ids.*",
+    "src/lib/catalog-images.ts",
+    "src/server/db.ts",
+    "src/server/env.ts",
+    "src/server/auth/session.*",
+    "src/server/auth/ctx.ts",
+    "src/server/mappers/**",
+    "src/server/queries/facts.*",
+    "src/server/__tests__/**",
+    "src/test/**",
+    "src/app/api/health/**",
+    "e2e/smoke.spec.ts"
+  ],
+  "streams": {
+    "A": {
+      "name": "Auth, Profile, Onboarding",
+      "owns": [
+        "src/app/(auth)/**",
+        "src/app/(onboarding)/**",
+        "src/app/(app)/settings/*.tsx",
+        "src/app/(app)/settings/profile/**",
+        "src/app/(app)/settings/security/**",
+        "src/app/(app)/settings/account/**",
+        "src/app/api/auth/**",
+        "src/proxy.ts",
+        "src/server/auth/auth.ts",
+        "src/server/email/**",
+        "src/server/profile/**",
+        "src/server/actions/profile.ts",
+        "src/client/auth/**",
+        "src/components/auth/**",
+        "src/components/profile/**",
+        "src/styles/auth.css",
+        "e2e/auth.spec.ts",
+        "e2e/helpers/mailbox.ts"
+      ]
+    },
+    "B": {
+      "name": "Design system, Shell, PWA",
+      "owns": [
+        "src/styles/theme.css",
+        "src/styles/shell.css",
+        "src/styles/motion.css",
+        "src/styles/primitives.css",
+        "src/components/ui/**",
+        "src/components/shell/**",
+        "src/components/primitives/**",
+        "src/app/(marketing)/*.tsx",
+        "src/app/(app)/layout.tsx",
+        "src/app/manifest.ts",
+        "src/app/sw.ts",
+        "src/app/serwist/**",
+        "src/app/~offline/**",
+        "src/app/styleguide/**",
+        "src/app/not-found.tsx",
+        "src/app/error.tsx",
+        "src/lib/theme.*",
+        "public/**",
+        "scripts-b/**",
+        "e2e/shell.spec.ts"
+      ]
+    },
+    "C": {
+      "name": "Exercise catalog",
+      "owns": [
+        "prisma/seed/catalog.*",
+        "prisma/seed/classify.*",
+        "prisma/seed/overrides.json",
+        "prisma/seed/starter-exercises.*",
+        "src/app/api/catalog/**",
+        "src/app/(app)/exercises/**",
+        "src/components/exercises/**",
+        "src/server/catalog/**",
+        "src/styles/catalog.css",
+        "e2e/catalog.spec.ts"
+      ],
+      "exclude": ["src/app/(app)/exercises/new/**", "src/app/(app)/exercises/\\[id\\]/edit/**"]
+    },
+    "D": {
+      "name": "Analytics core and fixtures",
+      "owns": ["src/lib/analytics/**", "src/lib/fixtures/**", "prisma/seed/fixtures.*"]
+    },
+    "E1": {
+      "name": "Sync engine",
+      "owns": [
+        "src/lib/sync/**",
+        "src/server/sync/**",
+        "src/server/prs/**",
+        "src/client/sync/**",
+        "src/client/db/**",
+        "src/client/repo/**",
+        "src/app/api/sync/**",
+        "e2e/sync.spec.ts"
+      ]
+    },
+    "E2": {
+      "name": "Workout logging",
+      "owns": [
+        "src/app/(workout)/**",
+        "src/app/(app)/history/**",
+        "src/app/(app)/templates/**",
+        "src/app/(app)/settings/machines/**",
+        "src/app/(app)/exercises/new/**",
+        "src/app/(app)/exercises/\\[id\\]/edit/**",
+        "src/components/workout/**",
+        "src/components/templates/**",
+        "src/styles/workout.css",
+        "e2e/logging-offline.spec.ts"
+      ]
+    },
+    "F": {
+      "name": "Progress and Body",
+      "owns": [
+        "src/app/(app)/progress/**",
+        "src/components/charts/**",
+        "src/components/progress/**",
+        "src/components/body/**",
+        "src/server/queries/progress.*",
+        "src/server/queries/body.*",
+        "src/server/queries/prs.*",
+        "src/server/actions/body.*",
+        "src/styles/progress.css",
+        "e2e/progress.spec.ts"
+      ]
+    },
+    "G": {
+      "name": "Insights and Learn",
+      "owns": [
+        "src/app/(app)/insights/**",
+        "src/app/(marketing)/learn/**",
+        "src/app/api/cron/insights/**",
+        "src/components/insights/**",
+        "src/components/learn/**",
+        "src/server/insights/**",
+        "src/server/actions/insights.*",
+        "src/styles/insights.css",
+        "e2e/insights.spec.ts"
+      ]
+    }
+  },
+  "integration": ["src/app/(app)/today/**", "e2e/journeys/**", "e2e/isolation/**"],
+  "unrestricted": ["W3"]
+}
