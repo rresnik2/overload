@@ -1041,6 +1041,43 @@ Dev-server ports (`pnpm dev -p <port>`; `PORT` is also written by `pnpm db:branc
 
 Every variable is documented in `.env.example` (no real values anywhere). `vercel.json` schedules `/api/cron/insights` hourly (the handler picks the users whose local time is Monday 05:00, using `zonedTimeToUtc`).
 
+## 12a. Server-originated writes and the PWA flag
+
+Rows written **outside** `/api/sync` (onboarding's first `BodyMetric` in stream A, the body form in stream F) must still carry valid sync metadata or other devices would never pull them. Use `src/server/sync-meta.ts` (frozen): bump `SyncState.version` in the SAME transaction as the write and stamp every written field with the server HLC.
+
+<!-- sig: src/server/sync-meta.ts#serverHlc!,bumpSyncVersion!,syncMixin! -->
+```ts
+// from src/server/sync-meta.ts
+/** HLC string in the frozen format (see src/contracts/sync.ts). nodeId "server" marks server-originated writes. */
+export function serverHlc(nowMs: number = Date.now(), counter = 0): string;
+
+/** Next per-user version (creates the SyncState row on first use). Call inside prisma.$transaction. */
+export async function bumpSyncVersion(tx: Prisma.TransactionClient, ctx: UserCtx): Promise<number>;
+
+/** The sync mixin columns for a server-written row: `{ hlc, fieldHlc, version }` (deletedAt/createdAt/updatedAt are defaults). */
+export function syncMixin(version: number, writtenFields: readonly string[], nowMs: number = Date.now());
+```
+
+Typical use: `prisma.$transaction(async (tx) => { const version = await bumpSyncVersion(tx, ctx); await tx.bodyMetric.create({ data: { id: newId(), userId: ctx.id, ...fields, ...syncMixin(version, Object.keys(fields)) } }); })` with `fields` validated by `bodyMetricFieldsSchema`.
+
+PWA coordination (`src/lib/pwa.ts`, frozen): E2 calls `setWorkoutActive(true/false)` around a workout; B's shell posts `SKIP_WAITING` to a waiting service worker only when `isWorkoutActive()` is false.
+
+<!-- sig: src/lib/pwa.ts#ACTIVE_WORKOUT_STORAGE_KEY,setWorkoutActive!,isWorkoutActive! -->
+```ts
+// from src/lib/pwa.ts
+// PWA coordination flag between the workout screen (stream E2) and the service-worker update flow (stream B). PURE.
+// While a workout is in progress E2 calls setWorkoutActive(true); B's shell only posts SKIP_WAITING to a waiting
+// service worker when isWorkoutActive() is false ("a service-worker update never activates in the middle of a workout").
+export const ACTIVE_WORKOUT_STORAGE_KEY = "overload-active-workout";
+
+export function setWorkoutActive(active: boolean): void;
+
+/** True while a workout is active. A flag older than `maxAgeMs` (default 12 h) is treated as stale (crashed tab). */
+export function isWorkoutActive(maxAgeMs = 12 * 60 * 60 * 1000): boolean;
+```
+
+Scheduled jobs (`vercel.json`): `/api/cron/insights` hourly (stream G) and `/api/sync/gc` daily 04:00 (stream E1: tombstone cleanup past `TOMBSTONE_TTL_DAYS`, advancing `SyncState.gcFloorVersion`). Both require `Authorization: Bearer ${CRON_SECRET}`.
+
 ## 12. Phase 0 decisions worth knowing
 
 * `SyncDeadLetter` table added (the plan mentions a dead-letter queue but Appendix A has no table).

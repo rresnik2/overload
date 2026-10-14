@@ -85,3 +85,15 @@ describe("facts queries (real Postgres)", () => {
     expect(await prisma.exerciseMuscle.count({ where: { exercise: { userId: id } } })).toBe(0);
   });
 });
+
+describe("server-originated writes (sync-meta)", () => {
+  it("bumpSyncVersion increments per user inside a transaction", async () => {
+    const { bumpSyncVersion } = await import("@/server/sync-meta");
+    const ctx = mintUserCtx(userA);
+    const v1 = await prisma.$transaction((tx) => bumpSyncVersion(tx, ctx));
+    const v2 = await prisma.$transaction((tx) => bumpSyncVersion(tx, ctx));
+    expect(v2).toBe(v1 + 1);
+    const other = await prisma.$transaction((tx) => bumpSyncVersion(tx, mintUserCtx(userB)));
+    expect(other).toBeGreaterThanOrEqual(1);
+  });
+});

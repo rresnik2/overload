@@ -1,6 +1,6 @@
 # CLAUDE.md: Overload repo rules
 
-Overload is a multi-user fitness web app (Next 16, React 19, TypeScript 6, Tailwind 4 + daisyUI 5, Prisma 7, Better Auth, Dexie offline sync, Vercel + Neon). The plan is `docs/PLAN.md`; the evidence behind insights is `docs/research.md`; the frozen interfaces are `CONTRACTS.md`. Every session also reads its brief: `docs/agents/<stream>.md`.
+Overload is a multi-user fitness web app (Next 16, React 19, TypeScript 6, Tailwind 4 + daisyUI 5, Prisma 7, Better Auth, Dexie offline sync, Vercel + Neon). The plan is `docs/PLAN.md`; the evidence behind insights is `docs/research.md`; the frozen interfaces are `CONTRACTS.md`. Every session also reads its brief: `docs/agents/<stream>.md`. `AGENTS.md` (written by `next dev`) points at the Next 16 docs shipped in `node_modules/next/dist/docs/`: consult them before using Next APIs from memory (this is Next 16: `proxy.ts`, async `headers()`/`params`, Turbopack).
 
 ## Hard rules
 
