@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next / build
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# generated
+src/generated/
+prisma/auth.generated.prisma
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# env (secrets live in .env.local; never commit)
+.env
+.env.*
+!.env.example
+
+# misc
+.DS_Store
+.vercel/
+.neon
+*.log
