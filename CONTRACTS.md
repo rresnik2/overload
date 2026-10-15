@@ -840,7 +840,7 @@ export interface InsightCard {
   subject?: { seriesKey?: string; exerciseId?: string; muscle?: Muscle };
 }
 
-/** Run all ten rules (each may emit 0..n cards). Deterministic: same input -> same cards in the same order. */
+/** Run all eleven rules (each may emit 0..n cards). Deterministic: same input -> same cards in the same order. */
 export type RunInsightRules = (input: AnalyticsInput) => InsightCard[];
 
 /** One rule: a pure function from the shared input to cards. Rules are exported individually for unit tests. */
