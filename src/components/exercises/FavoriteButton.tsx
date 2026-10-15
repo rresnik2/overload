@@ -1,7 +1,8 @@
 "use client";
 import clsx from "clsx";
 import { Star } from "lucide-react";
-import { repo, useLive } from "@/client/repo";
+import { repo } from "@/client/repo";
+import { useFavoriteIds } from "@/client/repo/use-favorite-ids";
 import { syncNow } from "@/client/sync";
 import { RepoError } from "@/contracts/repo";
 
@@ -38,8 +39,8 @@ async function toggleFavorite(exerciseId: string): Promise<void> {
 }
 
 export function FavoriteButton({ exerciseId, name, initial = false, className }: FavoriteButtonProps) {
-  const live = useLive(() => repo.favorites.isFavorite(exerciseId), [exerciseId]);
-  const pressed = live ?? initial;
+  const favoriteIds = useFavoriteIds(); // one shared live query for every star on the page
+  const pressed = favoriteIds ? favoriteIds.has(exerciseId) : initial;
   return (
     <button
       type="button"

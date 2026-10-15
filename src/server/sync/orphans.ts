@@ -2,6 +2,7 @@ import "server-only";
 // Orphan rule: children of a tombstoned parent are tombstoned by the server.
 // Ownership chains only (references are not ownership: deleting a custom exercise or a machine profile never erases history):
 //   template -> templateExercise        workout -> workoutExercise -> workoutSet
+// plus a custom exercise's favorites (a star is not history: it goes with the exercise, and the FK is NoAction so GC needs it tombstoned first).
 // Runs after the batch's own writes, in both directions:
 //   A. a parent tombstoned in this batch takes its (still alive) children with it;
 //   B. a child written in this batch under an already tombstoned parent is tombstoned (e.g. a set logged offline into a
@@ -58,9 +59,15 @@ export async function applyOrphanRule(batch: Batch): Promise<void> {
 
   // B (templateExercise, workoutExercise): children written under an already dead parent.
   await tombstoneUnderDeadParent(batch, "templateExercise", "template", "templateId");
+  await tombstoneUnderDeadParent(batch, "exerciseFavorite", "exercise", "exerciseId");
   const deadWeIds = new Set(await tombstoneUnderDeadParent(batch, "workoutExercise", "workout", "workoutId"));
 
   // A: parents tombstoned in this batch take their live children.
+  const deadExercises = batch.touchedOf("exercise").filter(isDead).map((t) => t.id);
+  if (deadExercises.length > 0) {
+    const stars = await ADAPTERS.exerciseFavorite.delegate(tx).findMany({ where: { userId: ctx.id, exerciseId: { in: deadExercises }, deletedAt: null } });
+    await tombstone(batch, "exerciseFavorite", stars);
+  }
   const deadTemplates = batch.touchedOf("template").filter(isDead).map((t) => t.id);
   if (deadTemplates.length > 0) {
     const children = await ADAPTERS.templateExercise

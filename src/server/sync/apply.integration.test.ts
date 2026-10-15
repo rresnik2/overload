@@ -466,6 +466,24 @@ describe("exerciseFavorite", () => {
     expect(await prisma.exerciseFavorite.count({ where: { id: favoriteId(userC, ghost) } })).toBe(0);
   });
 
+  it("deleting a custom exercise tombstones its favorites (version bump), also one written later by a device that missed the delete", async () => {
+    const dev = new FakeDevice(ctxC, "devCorphan");
+    const custom = newId();
+    const starred = favoriteId(userC, custom);
+    await dev.push([dev.mutation("exercise", custom, exerciseFields({ slug: `orph-${suffix}`, name: "Orphan Press" })), dev.mutation("exerciseFavorite", starred, { exerciseId: custom, position: "c0" })], 0);
+    const before = await prisma.exerciseFavorite.findUniqueOrThrow({ where: { id: starred } });
+    const del = await dev.push([dev.mutation("exercise", custom, { deletedAt: new Date().toISOString() })], 0);
+    const row = rowOf(del, "exerciseFavorite", starred);
+    expect(row.deletedAt).toBeTruthy();
+    expect(row.version).toBeGreaterThan(before.version); // other devices pull the tombstone
+
+    // another device, offline during the delete, restores the star: the exercise is dead, so the star is tombstoned again
+    const late = new FakeDevice(ctxC, "devClate");
+    const res = await late.push([late.mutation("exerciseFavorite", starred, { deletedAt: null })], 0);
+    expect(statuses(res)).toEqual(["applied"]);
+    expect((await prisma.exerciseFavorite.findUniqueOrThrow({ where: { id: starred } })).deletedAt).not.toBeNull();
+  });
+
   it("tombstone GC collects old unstarred favorites (and raises the floor) but never a live one", async () => {
     const dev = new FakeDevice(ctxC, "devCgc");
     const dead = catalogExerciseId("Barbell_Curl");
@@ -479,5 +497,18 @@ describe("exerciseFavorite", () => {
     expect(await prisma.exerciseFavorite.count({ where: { id: favoriteId(userC, dead) } })).toBe(0);
     expect(await prisma.exerciseFavorite.count({ where: { id: favoriteId(userC, live) } })).toBe(1);
     expect((await prisma.syncState.findUniqueOrThrow({ where: { userId: userC } })).gcFloorVersion).toBeGreaterThan(0);
+  });
+
+  it("GC collects a deleted custom exercise only after its favorites, never through the NO ACTION foreign key", async () => {
+    const dev = new FakeDevice(ctxC, "devCgc2");
+    const custom = newId();
+    const starred = favoriteId(userC, custom);
+    await dev.push([dev.mutation("exercise", custom, exerciseFields({ slug: `gc-${suffix}`, name: "Doomed Press" })), dev.mutation("exerciseFavorite", starred, { exerciseId: custom, position: "d0" })], 0);
+    await dev.push([dev.mutation("exercise", custom, { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
+    const later = new Date(Date.now() + 91 * 24 * 3600 * 1000);
+    const summary = await collectTombstones(later, 90);
+    expect(summary.deleted.exerciseFavorite).toBeGreaterThanOrEqual(1);
+    expect(await prisma.exerciseFavorite.count({ where: { id: starred } })).toBe(0);
+    expect(await prisma.exercise.count({ where: { id: custom } })).toBe(0); // collected in the same pass, after the favorite
   });
 });

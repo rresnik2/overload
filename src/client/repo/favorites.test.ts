@@ -106,14 +106,17 @@ describe("favorites", () => {
     expect((await repo.favorites.list()).map((e) => e.name)).toEqual(["Incline Dumbbell Press", "Cable Curl", "Barbell Squat"]);
   });
 
-  it("works for the user's own custom exercises, and hides a favorite whose exercise was deleted", async () => {
+  it("works for the user's own custom exercises, and deleting the exercise unstars it (a tombstone that syncs)", async () => {
     const { repo } = await withCatalog();
     const mine = await repo.exercises.create(exerciseInput({ slug: "mine", name: "Pause Bench" }));
     await repo.favorites.toggle(mine.id);
     expect((await repo.favorites.list()).map((e) => e.id)).toEqual([mine.id]);
     await repo.exercises.remove(mine.id);
-    expect(await repo.favorites.list()).toEqual([]); // the favorite row stays (it can come back), the list hides it
-    expect(await repo.favorites.isFavorite(mine.id)).toBe(true);
+    expect(await repo.favorites.list()).toEqual([]);
+    expect(await repo.favorites.isFavorite(mine.id)).toBe(false);
+    expect((await device.db.exerciseFavorite.get(favoriteId("user-1", mine.id)))?.deletedAt).toBeTruthy();
+    const tombstones = (await outbox()).filter((q) => q.entity === "exerciseFavorite" && "deletedAt" in q.fields && q.fields.deletedAt !== null);
+    expect(tombstones).toHaveLength(1);
   });
 
   it("an unusable position on an existing favorite never blocks starring another exercise", async () => {
@@ -172,5 +175,25 @@ describe("search ranks favorites first among equal matches", () => {
     expect((await repo.exercises.search({ text: "curl" })).map((e) => e.name)).toEqual(["Ccc Curl", "Aaa Curl", "Bbb Curl"]);
     // an empty query is unchanged behaviour: filters only, name order, no favorite boost
     expect((await repo.exercises.search({})).map((e) => e.name)).toEqual(["Aaa Curl", "Bbb Curl", "Ccc Curl"]);
+  });
+});
+
+describe("the search index is reused but never stale", () => {
+  it("sees a new, renamed and deleted custom exercise, and a replaced catalog", async () => {
+    const { repo, squat } = await withCatalog();
+    expect(await repo.exercises.search({ text: "pause" })).toEqual([]);
+    expect((await repo.exercises.search({ text: "squat" })).map((e) => e.name)).toEqual(["Barbell Squat"]); // builds and caches the index
+    const mine = await repo.exercises.create(exerciseInput({ slug: "pause-squat", name: "Pause Squat" }));
+    expect((await repo.exercises.search({ text: "pause" })).map((e) => e.name)).toEqual(["Pause Squat"]);
+    await repo.exercises.update(mine.id, { name: "Tempo Squat", slug: "tempo-squat" });
+    expect(await repo.exercises.search({ text: "pause" })).toEqual([]);
+    expect((await repo.exercises.search({ text: "tempo" })).map((e) => e.name)).toEqual(["Tempo Squat"]);
+    // filters apply after the shared ranking, and limit after the filters
+    expect((await repo.exercises.search({ text: "squat", customOnly: true })).map((e) => e.name)).toEqual(["Tempo Squat"]);
+    expect(await repo.exercises.search({ text: "squat", limit: 1 })).toHaveLength(1);
+    await repo.exercises.remove(mine.id);
+    expect(await repo.exercises.search({ text: "tempo" })).toEqual([]);
+    await repo.catalog.replace({ version: 2, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [{ ...squat, name: "Renamed Squat", updatedAt: "2026-10-15T00:00:00.000Z" }] });
+    expect((await repo.exercises.search({ text: "renamed" })).map((e) => e.name)).toEqual(["Renamed Squat"]);
   });
 });

@@ -15,7 +15,7 @@ import type {
 import { RepoError, type EntityRepo, type ExerciseSearch, type LastTimeEntry, type Repo } from "@/contracts/repo";
 import type { CatalogResponse } from "@/contracts/catalog";
 import { favoriteId, seriesKey } from "@/lib/ids";
-import { buildSearchIndex, searchExercises } from "@/lib/search/exercise-search";
+import { buildSearchIndex, searchExercises, type SearchIndex } from "@/lib/search/exercise-search";
 import { valuesEqual } from "@/lib/sync/merge";
 import { toLocalDate } from "@/lib/dates";
 import { tickHlc } from "@/client/db/clock";
@@ -48,6 +48,14 @@ const byPosition = <T extends { position: string }>(a: T, b: T): number => (a.po
 /** Position order; two devices that appended at the same time share a position, so fall back to creation time, then id. */
 const byFavoriteOrder = (a: ExerciseFavoriteRow, b: ExerciseFavoriteRow): number =>
   byPosition(a, b) || (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/** The search index over every exercise, rebuilt only when an exercise (or the catalog) changed: typing re-runs `search` per keystroke. */
+let indexCache: { key: string; index: SearchIndex } | null = null;
+function searchIndexFor(db: OverloadDb, all: readonly ExerciseRow[]): SearchIndex {
+  const key = `${db.name}|${all.map((e) => `${e.id}:${e.version}:${e.updatedAt}`).join(",")}`;
+  if (indexCache?.key !== key) indexCache = { key, index: buildSearchIndex(all) };
+  return indexCache.index;
+}
 
 /** A position after `last`. A position that is not a valid fractional key (any string passes the schema) must not make starring throw for good. */
 function appendPosition(last: string | undefined): string {
@@ -148,19 +156,21 @@ export function createRepo(getDb: GetDb): Repo {
       ...exercises,
       async search(query: ExerciseSearch) {
         const all = (await exercises.list()) as ExerciseRow[];
-        const matches = all.filter((e) => {
-          if (query.customOnly && !e.isCustom) return false;
-          if (query.modality && e.modality !== query.modality) return false;
-          if (query.equipment && e.equipment !== query.equipment) return false;
-          if (query.standardLift && e.standardLift !== query.standardLift) return false;
-          if (query.muscle && !e.muscles.some((m) => m.muscle === query.muscle)) return false;
-          return true;
-        });
         const text = query.text?.trim() ?? "";
         const favoriteIds = text ? await favoriteExerciseIds(getDb()) : undefined;
-        const byId = new Map(matches.map((e) => [e.id, e]));
-        const hits = searchExercises(buildSearchIndex(matches), text, { favoriteIds, limit: query.limit });
-        return hits.map((h) => byId.get(h.id) as ExerciseRow);
+        // Ranking depends on the exercise and the query only, so one index over every exercise serves any filter: rank, then filter.
+        const byId = new Map(all.map((e) => [e.id, e]));
+        const hits = searchExercises(searchIndexFor(getDb(), all), text, { favoriteIds });
+        const matches = hits.flatMap((h) => {
+          const e = byId.get(h.id) as ExerciseRow;
+          if (query.customOnly && !e.isCustom) return [];
+          if (query.modality && e.modality !== query.modality) return [];
+          if (query.equipment && e.equipment !== query.equipment) return [];
+          if (query.standardLift && e.standardLift !== query.standardLift) return [];
+          if (query.muscle && !e.muscles.some((m) => m.muscle === query.muscle)) return [];
+          return [e];
+        });
+        return query.limit !== undefined ? matches.slice(0, Math.max(0, query.limit)) : matches;
       },
       async bySlug(slug) {
         const all = (await exercises.list()) as ExerciseRow[];

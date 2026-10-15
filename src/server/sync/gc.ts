@@ -24,7 +24,7 @@ const GC_PLAN: { entity: EntityName; guard: Record<string, unknown> }[] = [
   { entity: "exerciseFavorite", guard: {} },
   { entity: "machineProfile", guard: { templateExercises: none, workoutExercises: none, workoutSets: none, personalRecords: none } },
   { entity: "bodyMetric", guard: {} },
-  { entity: "exercise", guard: { machineProfiles: none, templateExercises: none, workoutExercises: none, workoutSets: none, personalRecords: none } },
+  { entity: "exercise", guard: { machineProfiles: none, templateExercises: none, workoutExercises: none, workoutSets: none, personalRecords: none, favorites: none } },
 ];
 
 export interface GcSummary {

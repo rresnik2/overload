@@ -105,6 +105,22 @@ describe("FavoriteButton", () => {
     expect(await screen.findByRole("button", { name: "Remove Barbell Squat from favorites" })).toHaveAttribute("aria-pressed", "true");
   });
 
+  it("every star on the page shares one live query (a toggle re-reads once, not once per star)", async () => {
+    const ids = vi.spyOn(repo.favorites, "ids");
+    render(
+      <>
+        {EXERCISES.map((e) => (
+          <FavoriteButton key={e.id} exerciseId={e.id} name={e.name} />
+        ))}
+      </>,
+    );
+    await screen.findByRole("button", { name: "Add Barbell Squat to favorites" });
+    await waitFor(() => expect(ids).toHaveBeenCalledTimes(1));
+    await repo.favorites.toggle(id("Barbell_Squat"));
+    expect(await screen.findByRole("button", { name: "Remove Barbell Squat from favorites" })).toHaveAttribute("aria-pressed", "true");
+    expect(ids).toHaveBeenCalledTimes(2);
+  });
+
   it("paints the server-rendered state first (no active database yet)", () => {
     // no database activated here: `initial` is all the button knows
     render(<FavoriteButton exerciseId={id("Barbell_Squat")} name="Barbell Squat" initial />);

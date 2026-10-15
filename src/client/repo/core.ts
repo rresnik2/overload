@@ -185,6 +185,7 @@ export const tombstone = dx(async function tombstone(db: OverloadDb, entity: Ent
   await applyPatch(db, entity, row, { deletedAt: nowIso() });
   const children: [EntityName, string, string][] = [];
   if (entity === "template") children.push(["templateExercise", "templateId", row.id]);
+  if (entity === "exercise") children.push(["exerciseFavorite", "exerciseId", row.id]); // a star goes with its (custom) exercise
   if (entity === "workout") {
     children.push(["workoutExercise", "workoutId", row.id], ["workoutSet", "workoutId", row.id]);
   }
