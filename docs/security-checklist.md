@@ -11,8 +11,10 @@ Two suites prove it with two real users, A (the attacker) and B (the victim):
 
 | Surface | What A tries with B's ids | Covered by |
 |---|---|---|
-| `POST /api/sync` (route handler, `withUserRoute`) | update, tombstone and undelete of each of the 8 entities (exercise, machineProfile, bodyMetric, template, templateExercise, workout, workoutExercise, workoutSet) | logic: `sync: ... NOT_OWNER` (one test per entity); HTTP: `A's sync pushes against B's ids` |
-| sync references | creating children whose parent, exercise or machine profile is B's (9 combinations) | logic: `MISSING_REFERENCE for every child entity` |
+| `POST /api/sync` (route handler, `withUserRoute`) | update, tombstone and undelete of each of the 9 entities (exercise, machineProfile, bodyMetric, template, templateExercise, workout, workoutExercise, workoutSet, exerciseFavorite) | logic: `sync: ... NOT_OWNER` (one test per entity); HTTP: `A's sync pushes against B's ids` |
+| sync references | creating children whose parent, exercise or machine profile is B's (10 combinations, including starring B's custom exercise) | logic: `MISSING_REFERENCE for every child entity` |
+| sync favorite ids (`exerciseFavorite`) | a random id, an id in B's id space (`favoriteId(B, ...)`), B's actual favorite id, and re-pointing A's own favorite at another exercise: all rejected (`INVALID_SHAPE` for an id that is not `favoriteId(ctx.id, exerciseId)`, `NOT_OWNER` for B's row); starring B's custom exercise is `MISSING_REFERENCE`; A can star the catalog and A's own custom exercises | logic: `favorites: the deterministic id is checked...`; `src/server/sync/rules.test.ts`; `src/server/sync/apply.integration.test.ts` (exerciseFavorite) |
+| favorites reads (`listFavoriteExerciseIds`, favorites-only `listLibrary`, `pullChanges`, export) | B's stars in A's pull, A's favorite ids, A's `fav=1` library (also searched by B's secret exercise name) and A's export: none | logic: `favorites: ... B's stars are invisible to A`, `A's account export lists A's starred exercises only` |
 | sync id reuse | a full valid create that reuses B's id | logic: `a create that reuses B's id` |
 | sync forbidden fields | `userId`, `version`, `hlc`, `fieldHlc`, `effectiveLoadKg`, `e1rmKg`, `seriesKey`, `workoutId` in a mutation body: dead-lettered to the caller only | logic: `forbidden fields ...`; contracts tests (strict schemas) |
 | sync pull | A's cursor-0 pull must not contain B's rows | logic: `pull: A's cursor-0 pull`; HTTP: `A's sync pull, catalog and export` |
@@ -33,7 +35,7 @@ Two suites prove it with two real users, A (the attacker) and B (the victim):
 | Anonymous callers | `/api/sync`, `/api/catalog`, `/api/sync/gc`, `/api/cron/insights` answer 401; the export and every app page redirect to `/sign-in` | HTTP: `anonymous callers get 401...` |
 | Cron routes | `Authorization: Bearer ${CRON_SECRET}` required (timing-safe compare, minimum 16 characters); wrong secret is 401 | HTTP (above); `src/server/insights/*.test.ts` |
 | `/api/auth/test-mailbox` | 404 in production | `e2e/_support/db.ts` probe (production runs depend on it) |
-| Tombstone GC (`collectTombstones`) | per-user transactions, filters on each user's own rows | `src/server/sync/apply.integration.test.ts` (garbage collection) |
+| Tombstone GC (`collectTombstones`) | per-user transactions, filters on each user's own rows; old unstarred favorites are collected, live ones never | `src/server/sync/apply.integration.test.ts` (garbage collection, exerciseFavorite) |
 
 ## Review notes
 

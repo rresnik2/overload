@@ -2,7 +2,7 @@
 // export and Better Auth's own endpoints. Logic-level coverage of every query/action/sync path is src/server/isolation.integration.test.ts;
 // the full surface list is docs/security-checklist.md.
 import { expect, test } from "@playwright/test";
-import { newId } from "@/lib/ids";
+import { favoriteId, newId } from "@/lib/ids";
 import { testDb } from "../_support/db";
 import { newMember, mutation, origin, push, seedViaSync, type Ids, type Member } from "./_pair";
 
@@ -51,7 +51,7 @@ test("anonymous callers get 401 from every route handler and a redirect from eve
 
 test("A's sync pushes against B's ids are all NOT_OWNER and B's data is unchanged", async () => {
   const attack = Object.entries(ids).flatMap(([entity, id]) => [
-    mutation(entity, id, entity === "workoutSet" ? { reps: 99 } : entity === "bodyMetric" ? { weightKg: 99 } : entity === "workout" ? { notes: "hijacked" } : entity === "templateExercise" ? { workingSets: 9 } : entity === "workoutExercise" ? { notes: "hijacked" } : { name: "hijacked" }, "e2eatk"),
+    mutation(entity, id, entity === "workoutSet" ? { reps: 99 } : entity === "bodyMetric" ? { weightKg: 99 } : entity === "workout" ? { notes: "hijacked" } : entity === "templateExercise" ? { workingSets: 9 } : entity === "workoutExercise" ? { notes: "hijacked" } : entity === "exerciseFavorite" ? { position: "zz" } : { name: "hijacked" }, "e2eatk"),
     mutation(entity, id, { deletedAt: new Date().toISOString() }, "e2eatk"),
   ]);
   const res = await push(a.page, attack, 0, "e2eatk");
@@ -71,6 +71,26 @@ test("A's sync pushes against B's ids are all NOT_OWNER and B's data is unchange
   expect(rows.workoutSet?.[0]?.reps).toBe(5);
   expect(rows.workout?.[0]?.notes).toBe(secrets.workoutNotes);
   expect(rows.exercise?.[0]?.name).toBe(secrets.exercise);
+});
+
+test("favorites: A cannot star B's custom exercise or forge a favorite id over HTTP", async () => {
+  const catalogPress = "83a024cb-efa6-5b1b-8cef-e115a267bd5b"; // Barbell Squat (catalog)
+  const session = (await (await a.page.request.get("/api/auth/get-session")).json()) as { user: { id: string } };
+  const res = await push(
+    a.page,
+    [
+      mutation("exerciseFavorite", favoriteId(session.user.id, ids.exercise), { exerciseId: ids.exercise, position: "a0" }, "e2eatk"), // B's custom exercise
+      mutation("exerciseFavorite", newId(), { exerciseId: catalogPress, position: "a0" }, "e2eatk"), // a random id
+      mutation("exerciseFavorite", ids.exerciseFavorite, { exerciseId: catalogPress, position: "a0" }, "e2eatk"), // B's own favorite row
+      mutation("exerciseFavorite", favoriteId(session.user.id, catalogPress), { exerciseId: catalogPress, position: "a0" }, "e2eatk"), // legitimate
+    ],
+    0,
+    "e2eatk",
+  );
+  const body = res.body as { results: { status: string; reason?: string }[]; changes: Record<string, { id: string }[]> };
+  expect(body.results.map((r) => `${r.status}:${r.reason}`)).toEqual(["rejected:MISSING_REFERENCE", "rejected:INVALID_SHAPE", "rejected:NOT_OWNER", "applied:undefined"]);
+  expect(body.changes.exerciseFavorite?.map((f) => f.id)).toEqual([favoriteId(session.user.id, catalogPress)]);
+  expectNoSecrets(JSON.stringify(body.changes), "A's favorites pull");
 });
 
 test("A's sync pull, catalog and export carry none of B's data (and B's carry B's)", async () => {
@@ -98,7 +118,7 @@ test("A cannot open B's records by URL: exercise, progress series, workout and t
   await expect(a.page.getByText("Template not found")).toBeVisible({ timeout: 30_000 });
   expectNoSecrets(await a.page.content(), "A's template page", false);
   expect((await a.page.request.get("/insights/2026-10-05")).status()).toBe(404); // A has no report for that week (B's weeks are addressable only by their owner)
-  for (const path of ["/progress", "/progress/prs", "/progress/body", "/insights", "/exercises", "/today"]) {
+  for (const path of ["/progress", "/progress/prs", "/progress/body", "/insights", "/exercises", "/exercises?fav=1", `/exercises?fav=1&q=${encodeURIComponent(secrets.exercise)}`, `/exercises?q=${encodeURIComponent(secrets.exercise)}`, "/today"]) {
     const res = await a.page.request.get(path);
     expectNoSecrets(await res.text(), path);
   }

@@ -2,6 +2,7 @@
 //   PORT=3004 E2E_PROD=1 pnpm exec playwright test e2e/favorites.spec.ts --project=chromium --project=webkit-iphone
 // Star in the library -> fav=1 lists it -> start a workout: it sits under Favorites in the picker -> go offline, unstar it in the picker
 // -> go online -> the library no longer lists it under fav=1. And "incline db" finds Incline Dumbbell Press in the picker.
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { createUser } from "./_support/user";
 
@@ -99,3 +100,53 @@ test("the star works on the exercise detail page and survives a reload (aria-pre
   await page.reload();
   await expect(page.getByRole("button", { name: `Remove ${LEG_PRESS} from favorites`, exact: true })).toHaveAttribute("aria-pressed", "true");
 });
+
+// Accessibility: the star has an accessible name and a pressed state, and the screens that carry it have zero axe violations, in both themes.
+for (const theme of ["paper", "ink"] as const) {
+  test(`axe: the star button (name, pressed state, contrast) on library, detail and picker, ${theme} theme`, async ({ page }) => {
+    test.setTimeout(300_000);
+    await page.addInitScript((t) => localStorage.setItem("overload-theme", t), theme);
+    await createUser(page, { tag: `favaxe${theme}`, name: "Fav Axe" });
+    const audit = async (label: string) => {
+      await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", `overload-${theme}`);
+      await page.waitForTimeout(300); // let entry transitions finish: axe reads mid-fade colours otherwise
+      const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
+      expect(
+        results.violations.map((v) => ({ screen: label, id: v.id, impact: v.impact, nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5) })),
+        `axe on ${label} (${theme})`,
+      ).toEqual([]);
+    };
+
+    // library: one starred and one unstarred card
+    await page.goto("/exercises?q=press");
+    await expect(page.locator('.sync-pip[data-state="idle"]')).toBeVisible({ timeout: 60_000 });
+    const stars = page.locator(".favorite-button");
+    await expect(stars.first()).toBeVisible({ timeout: 60_000 });
+    for (const button of await stars.all()) {
+      const name = await button.getAttribute("aria-label");
+      expect(name, "every star has an accessible name").toMatch(/^(Add .+ to favorites|Remove .+ from favorites)$/);
+      expect(["true", "false"]).toContain(await button.getAttribute("aria-pressed"));
+      const box = await button.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+    }
+    await page.getByRole("button", { name: `Add ${LEG_PRESS} to favorites`, exact: true }).first().click();
+    await expect(page.getByRole("button", { name: `Remove ${LEG_PRESS} from favorites`, exact: true }).first()).toHaveAttribute("aria-pressed", "true");
+    await audit("/exercises (one starred)");
+    await page.getByRole("link", { name: "Favorites" }).click();
+    await expect(page).toHaveURL(/fav=1/);
+    await audit("/exercises?fav=1");
+
+    // detail
+    await page.goto("/exercises?q=leg+press");
+    await page.getByRole("link", { name: LEG_PRESS, exact: true }).first().click();
+    await expect(page.getByRole("heading", { name: LEG_PRESS, level: 1 })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: /to favorites$|from favorites$/ })).toBeVisible();
+    await audit("/exercises/[id]");
+
+    // picker, with a favorite pinned above the list
+    const picker = await startWorkoutAndOpenPicker(page);
+    await expect(picker.getByRole("region", { name: "Favorite exercises" })).toBeVisible();
+    await audit("workout picker");
+  });
+}
