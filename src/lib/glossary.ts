@@ -311,27 +311,27 @@ const entries = {
     learn: "choosing-a-goal",
   },
   goalHypertrophy: {
-    term: "Build muscle",
+    term: "Muscle-building goal",
     short: "Grow muscle size. Aim for about 10 to 20 hard sets per muscle a week, mostly 8 to 12 reps, with most sets stopping 0 to 3 reps short of your limit.",
     learn: "choosing-a-goal",
   },
   goalStrength: {
-    term: "Get stronger",
+    term: "Strength goal",
     short: "Lift heavier weights. Keep reps low (about 3 to 6) on your main lifts, rest 2 to 5 minutes, and train each lift at least twice a week.",
     learn: "choosing-a-goal",
   },
   goalGeneral: {
-    term: "General fitness",
+    term: "General-fitness goal",
     short: "Stay strong and capable without chasing one number. A wide, forgiving range of weekly sets works, and every other goal still applies a little.",
     learn: "choosing-a-goal",
   },
   goalFatLoss: {
-    term: "Lose weight (keep muscle)",
+    term: "Weight-loss goal",
     short: "Lose weight while keeping the muscle you have. Keep lifting heavy and keep your sets steady; food intake, not training, drives the weight loss.",
     learn: "choosing-a-goal",
   },
   experienceLevel: {
-    term: "Experience level",
+    term: "Training level",
     short: "How long you've trained seriously. Newer lifters progress faster, so it sets what Overload expects in forecasts and comparisons.",
   },
   sex: {
@@ -343,7 +343,7 @@ const entries = {
     short: "Used only for formulas like lean-mass index and for strength norms. They stay in your account.",
   },
   timezone: {
-    term: "Time zone",
+    term: "Workout dates",
     short: "Used to decide which day a workout belongs to, so a late-night session lands on the right date.",
   },
 } as const satisfies Record<string, GlossaryEntry>;
