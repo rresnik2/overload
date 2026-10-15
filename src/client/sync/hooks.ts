@@ -10,10 +10,10 @@ export function useSyncStatus(): SyncStatus {
 }
 
 /** Calls `callback` after every sync that pushed or pulled something (e.g. to show a PR toast). Stable identity not required. */
-export function useOnSynced(callback: (info: SyncedInfo) => void): void {
-  const latest = useRef(callback);
+export function useOnSynced(_callback: (info: SyncedInfo) => void): void {
+  const latest = useRef(_callback);
   useEffect(() => {
-    latest.current = callback;
+    latest.current = _callback;
   });
   useEffect(() => syncedListeners.subscribe((info) => latest.current(info)), []);
 }

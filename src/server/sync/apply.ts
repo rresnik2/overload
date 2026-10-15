@@ -44,9 +44,9 @@ export type MutationSlot =
  * Validate -> lock SyncState FOR UPDATE -> merge each mutation per field by HLC -> bump versions -> rebuild PRs -> pull changes.
  * `ctx` is the ONLY source of identity; the request body can never carry a userId.
  */
-export async function applyServerMutations(ctx: UserCtx, request: SyncRequest): Promise<SyncResponse> {
-  const { mutations, ...envelope } = request;
-  return applySyncSlots(ctx, envelope, mutations.map((mutation) => ({ kind: "ok" as const, mutation })));
+export async function applyServerMutations(_ctx: UserCtx, _request: SyncRequest): Promise<SyncResponse> {
+  const { mutations, ...envelope } = _request;
+  return applySyncSlots(_ctx, envelope, mutations.map((mutation) => ({ kind: "ok" as const, mutation })));
 }
 
 interface DeadLetter {

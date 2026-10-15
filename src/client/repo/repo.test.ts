@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { RepoError, type Repo } from "@/contracts/repo";
 import { catalogExerciseId } from "@/lib/ids";
 import { HLC_REGEX } from "@/contracts/sync";
-import { newDevice, exerciseInput, seedWorkout, workoutInput, type TestDevice } from "@/client/test-utils";
+import { newDevice, exerciseInput, seedWorkout, workoutInput, type TestDevice } from "@/client/repo/test-utils";
 import type { ExerciseRow } from "@/contracts/entities";
 import { activateUserDb, closeUserDb, resetAllDbs } from "@/client/db/active";
 import { createRepo } from "./repo";

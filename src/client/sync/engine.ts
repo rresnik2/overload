@@ -213,7 +213,7 @@ export function setActiveEngine(engine: Engine | null): void {
 }
 
 /** Run one sync cycle now (push outbox -> pull changes). navigator.locks keeps it to one at a time. */
-export async function syncNow(reason: SyncReason = "manual"): Promise<SyncResult> {
+export async function syncNow(_reason: SyncReason = "manual"): Promise<SyncResult> {
   if (!activeEngine) return { ok: true, pushed: 0, pulled: 0, rejected: 0, newPrs: [], skipped: true };
-  return activeEngine.syncNow(reason);
+  return activeEngine.syncNow(_reason);
 }
