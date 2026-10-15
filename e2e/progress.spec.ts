@@ -106,7 +106,14 @@ test.describe("progress (demo user)", () => {
     }
     await page.goto("/progress");
     await expect(page.getByTestId("weekly-sets").first()).toBeVisible(COLD);
-    for (const frame of await page.locator("figure.chart-frame").all()) {
+    // "This week" is legitimately empty early in a week (the demo history depends on today's date): an empty frame shows a
+    // status message instead of a plot. Every frame that does plot must have its table fallback and summary.
+    for (const frame of await page.locator('figure.chart-frame[data-chart-state="empty"]').all()) {
+      await expect(frame.getByRole("status")).not.toBeEmpty();
+    }
+    const plotted = page.locator('figure.chart-frame:not([data-chart-state="empty"])');
+    expect(await plotted.count()).toBeGreaterThan(0);
+    for (const frame of await plotted.all()) {
       await expect(frame.locator("details table")).toHaveCount(1);
       const describedBy = await frame.locator('[role="img"]').getAttribute("aria-describedby");
       await expect(page.locator(`[id="${describedBy}"]`)).not.toBeEmpty();
