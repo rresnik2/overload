@@ -36,6 +36,9 @@ describe("volume bands", () => {
     expect(volumeBand("STRENGTH")).toEqual({ low: 4, high: 10 });
     expect(volumeBand("GENERAL")).toEqual({ low: 4, high: 20 });
   });
+  it("keeps the hypertrophy band for weight loss (volume is not cut)", () => {
+    expect(volumeBand("FAT_LOSS")).toEqual(volumeBand("HYPERTROPHY"));
+  });
   it("status", () => {
     const band = { low: 10, high: 20 };
     expect(volumeStatus(0, band)).toBe("none");

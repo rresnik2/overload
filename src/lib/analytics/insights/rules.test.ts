@@ -258,6 +258,66 @@ describe("10. cut-strength-drop", () => {
   });
 });
 
+describe("10b. cut-strength-drop for a weight-loss goal", () => {
+  const weights = (from: number, perWeek: number) =>
+    Array.from({ length: 9 }, (_, i) => ({ ...bm(addDays(TODAY, -56 + 7 * i)), weightKg: from - perWeek * i }));
+  const falling = (key: typeof squat.id) => sessionsOf(key, 12, (i) => 140 - 2.5 * i, { everyDays: 5 });
+  it("treats the loss as expected context and softens the severity", () => {
+    const sets = [...falling(squat.id), ...falling(bench.id)];
+    const [card] = run("cut-strength-drop", makeInput({ today: TODAY, profile: makeProfile({ goal: "FAT_LOSS" }), sets, bodyMetrics: weights(90, 1) }));
+    expect(card).toMatchObject({ severity: "suggestion", title: "Strength is dipping while you lose weight" });
+    expect(card!.body).toContain("holding strength is the aim");
+  });
+});
+
+describe("11. weight-change-rate", () => {
+  /** A weigh-in every 3 days for 8 weeks, losing `pctPerWeek` percent of 90 kg per week. */
+  const daily = (pctPerWeek: number, over: { stopAfterDay?: number } = {}) =>
+    Array.from({ length: 19 }, (_, i) => 3 * i)
+      .filter((d) => d <= (over.stopAfterDay ?? 56))
+      .map((d) => ({ ...bm(addDays(TODAY, -56 + d)), weightKg: 90 * (1 - (pctPerWeek / 100) * (d / 7)) }));
+  const loseWeight = makeProfile({ goal: "FAT_LOSS" });
+  const rate = (profile: ReturnType<typeof makeProfile>, bodyMetrics: ReturnType<typeof daily>) => run("weight-change-rate", makeInput({ today: TODAY, profile, bodyMetrics }));
+
+  it("flags a loss faster than 1% a week, strongest for the weight-loss goal", () => {
+    const [card] = rate(loseWeight, daily(1.6));
+    expect(card).toMatchObject({ id: "insight:weight-change-rate", severity: "warning", citations: ["helms2014"] });
+    expect(card!.body).toContain("risks muscle and strength");
+    expect(card!.body).not.toMatch(/calorie|kcal/i);
+    const [other] = rate(makeProfile({ goal: "HYPERTROPHY" }), daily(1.6));
+    expect(other).toMatchObject({ severity: "suggestion" });
+  });
+  it("celebrates an on-target pace (0.5-1% a week) for the weight-loss goal only", () => {
+    const [card] = rate(loseWeight, daily(0.75));
+    expect(card).toMatchObject({ severity: "celebration" });
+    expect(card!.evidence.find((e) => e.label === "Bodyweight trend rate")!.value).toBeLessThan(0);
+    // another goal gets the neutral "falling" note instead
+    expect(rate(makeProfile({ goal: "STRENGTH" }), daily(0.75))[0]).toMatchObject({ severity: "info", title: "Your bodyweight trend is falling" });
+  });
+  it("flags a stall (under 0.25% a week for three weeks) for the weight-loss goal, not for other goals", () => {
+    const flat = daily(0);
+    const [card] = rate(loseWeight, flat);
+    expect(card).toMatchObject({ severity: "suggestion", title: expect.stringContaining("flat") });
+    expect(rate(makeProfile({ goal: "GENERAL" }), flat)).toEqual([]);
+    expect(rate(makeProfile({ goal: null }), daily(-0.8))).toEqual([]); // gaining is not this rule's business
+  });
+  it("is quiet for a slow-but-moving loss, sparse or stale weigh-ins, and no data", () => {
+    expect(rate(loseWeight, daily(0.35))).toEqual([]);
+    expect(rate(loseWeight, daily(1.6).filter((_, i) => i % 6 === 0))).toEqual([]); // too few weigh-ins in the window
+    expect(rate(loseWeight, daily(1.6, { stopAfterDay: 30 }))).toEqual([]); // last weigh-in is stale
+    expect(rate(loseWeight, [])).toEqual([]);
+  });
+});
+
+describe("8b. on-track-vs-population for a weight-loss goal", () => {
+  it("does not say 'slower than the curve' while the goal is to lose weight and keep strength", () => {
+    const sets = sessionsOf(row.id, 40, (i) => 100 - 1.5 * i, { everyDays: 3 });
+    const input = (goal: "FAT_LOSS" | "HYPERTROPHY") => makeInput({ today: TODAY, profile: makeProfile({ experience: "BEGINNER", goal }), sets });
+    expect(run("on-track-vs-population", input("FAT_LOSS"))).toEqual([]);
+    expect(run("on-track-vs-population", input("HYPERTROPHY"))).toHaveLength(1);
+  });
+});
+
 describe("planted fixture", () => {
   it("fires the cut rule only when strength is planted to drop during the cut", () => {
     expect(runInsightRules(generateLifterHistory()).some((c) => c.ruleId === "cut-strength-drop")).toBe(false);
