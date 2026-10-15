@@ -123,9 +123,8 @@ describe("PR properties", () => {
       workout: fc.constantFrom("w1", "w2", "w3"),
       minute: fc.integer({ min: 0, max: 59 }),
     })
-    .map((x, i) =>
+    .map((x) =>
       set({
-        id: `p${i}`,
         load: x.load,
         reps: x.reps,
         setType: x.setType,
