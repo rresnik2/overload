@@ -25,3 +25,7 @@ Wrong labels on a citation shown to users (insight cards link `CITATIONS` entrie
 ## Workaround
 
 `src/components/learn/sources.ts` is the verified list used by /learn. Insight cards render D's `CITATIONS` as they are.
+
+## Update: DOI links
+
+Following the coordinator's guidance, `src/components/learn/sources.ts` now links every source that has a DOI through `https://doi.org/<DOI>`; each DOI was resolved with content negotiation (Crossref / DataCite) and returns exactly the title shown. Two sources have no DOI and keep page links: the Biolayne summary of Robinson et al. (a practitioner summary) and the ACSM 2026 news release. Antonio & Gonyea 1993 is 10.1249/00005768-199312000-00004 and Mitter 2022 is 10.1080/17461391.2022.2089915 (the Birmingham repository link in `research.md` is the same paper). Unverifiable from a script and not used in /learn: Hodgdon & Beckett 1984 (dtic.mil maintenance page), Jaric 2002 (nsca.com 403; its primary paper was not looked up).
