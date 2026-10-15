@@ -104,10 +104,12 @@ test("sign up to insight: the full journey", async ({ page, context, request }) 
   await expect(page.getByRole("heading", { name: "Insights", level: 1 })).toBeVisible(COLD);
   const probe = await request.get("/api/cron/insights");
   if (probe.headers()["x-insights-fake-model"] === "1") {
+    // The review covers the previous ISO week, so what it says depends on today's date (a workout logged on a Monday is not in it).
+    // Assert only what is date-independent: a report is stored, and /today's card now links to it instead of inviting the first one.
     await page.getByRole("button", { name: "Write this week's review" }).click();
-    await expect(page.getByText("Review updated.")).toBeVisible(COLD);
+    await expect(page.getByText(/^Generated \d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC/)).toBeVisible(COLD);
     await page.goto("/today");
-    await expect(page.getByRole("region", { name: /^Latest insight/ }).or(page.locator("#latest-insight-title")).first()).toBeVisible(COLD);
+    await expect(page.getByRole("link", { name: "Read the full review" })).toBeVisible(COLD);
     await expect(page.getByText("Your first weekly review appears after a week of logged training.")).toHaveCount(0);
   } else {
     test.info().annotations.push({ type: "note", description: "fake insight model not enabled (INSIGHTS_E2E_FAKE=1): narrative step skipped" });
