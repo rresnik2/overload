@@ -1,15 +1,19 @@
 "use client";
-// Sync status hooks. STUBS (stream E1 implements; signatures frozen). Safe defaults in Phase 0.
+// Sync status hooks (signatures frozen in CONTRACTS.md).
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { SyncedInfo, SyncStatus } from "@/contracts/sync";
-
-const IDLE_STATUS: SyncStatus = { state: "idle", pendingCount: 0, lastSyncedAt: null, lastError: null, rejectedCount: 0 };
+import { IDLE_STATUS, statusStore, syncedListeners } from "./status";
 
 /** Live sync status for SyncPip and "N changes waiting" UI. */
 export function useSyncStatus(): SyncStatus {
-  return IDLE_STATUS;
+  return useSyncExternalStore(statusStore.subscribe, statusStore.get, () => IDLE_STATUS);
 }
 
 /** Calls `callback` after every sync that pushed or pulled something (e.g. to show a PR toast). Stable identity not required. */
 export function useOnSynced(_callback: (info: SyncedInfo) => void): void {
-  // no-op in Phase 0
+  const latest = useRef(_callback);
+  useEffect(() => {
+    latest.current = _callback;
+  });
+  useEffect(() => syncedListeners.subscribe((info) => latest.current(info)), []);
 }

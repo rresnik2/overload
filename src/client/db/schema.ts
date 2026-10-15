@@ -1,0 +1,121 @@
+// Dexie schema for the per-user client database `overload-<userId>`.
+//
+//   one table per synced entity (named exactly like the EntityName) + `catalog` (global read-only exercises)
+//   + `outbox` (mutations not yet acknowledged by the server) + `meta` (cursor, HLC state, deviceId, catalog etag, ...)
+//
+// Migrations: append a new entry to MIGRATIONS (never edit a released one). Dexie runs the `upgrade` of every version
+// the user's database has not seen, in order, inside the upgrade transaction.
+import Dexie, { type DexieOptions, type Table, type Transaction } from "dexie";
+import type {
+  BodyMetricRow,
+  EntityName,
+  ExerciseRow,
+  MachineProfileRow,
+  TemplateExerciseRow,
+  TemplateRow,
+  WorkoutExerciseRow,
+  WorkoutRow,
+  WorkoutSetRow,
+} from "@/contracts/entities";
+import type { Hlc } from "@/contracts/sync";
+
+export interface OutboxEntry {
+  /** Auto-increment: the order in which writes happened. */
+  seq?: number;
+  /** Idempotency key sent to the server. */
+  mutationId: string;
+  entity: EntityName;
+  id: string;
+  fields: Record<string, unknown>;
+  fieldHlc: Record<string, Hlc>;
+  createdAt: string;
+}
+
+export interface MetaEntry {
+  key: string;
+  value: unknown;
+}
+
+export const META_KEYS = {
+  cursor: "cursor",
+  hlc: "hlc",
+  deviceId: "deviceId",
+  catalogVersion: "catalogVersion",
+  catalogEtag: "catalogEtag",
+  lastSyncedAt: "lastSyncedAt",
+  rejectedCount: "rejectedCount",
+} as const;
+
+interface Migration {
+  version: number;
+  stores: Record<string, string>;
+  upgrade?: (tx: Transaction) => void | Promise<void>;
+}
+
+const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    stores: {
+      exercise: "id, slug, version",
+      catalog: "id, slug",
+      machineProfile: "id, exerciseId",
+      bodyMetric: "id, localDate, measuredAt",
+      template: "id",
+      templateExercise: "id, templateId",
+      workout: "id, localDate, startedAt",
+      workoutExercise: "id, workoutId, exerciseId",
+      workoutSet: "id, workoutExerciseId, workoutId, machineProfileId, exerciseId, seriesKey",
+      outbox: "++seq, mutationId, [entity+id]",
+      meta: "key",
+    },
+  },
+];
+
+export function dbNameFor(userId: string): string {
+  return `overload-${userId}`;
+}
+
+export class OverloadDb extends Dexie {
+  exercise!: Table<ExerciseRow, string>;
+  catalog!: Table<ExerciseRow, string>;
+  machineProfile!: Table<MachineProfileRow, string>;
+  bodyMetric!: Table<BodyMetricRow, string>;
+  template!: Table<TemplateRow, string>;
+  templateExercise!: Table<TemplateExerciseRow, string>;
+  workout!: Table<WorkoutRow, string>;
+  workoutExercise!: Table<WorkoutExerciseRow, string>;
+  workoutSet!: Table<WorkoutSetRow, string>;
+  outbox!: Table<OutboxEntry, number>;
+  meta!: Table<MetaEntry, string>;
+
+  /** `options` is a test seam (an isolated fake-indexeddb factory per simulated device). */
+  constructor(
+    readonly userId: string,
+    options?: DexieOptions,
+  ) {
+    super(dbNameFor(userId), options);
+    for (const m of MIGRATIONS) {
+      const version = this.version(m.version).stores(m.stores);
+      if (m.upgrade) version.upgrade(m.upgrade);
+    }
+  }
+
+  /** The table of a synced entity (exercise rows here are the user's CUSTOM exercises; catalog rows live in `catalog`). */
+  entityTable<E extends EntityName>(entity: E): Table<{ id: string } & Record<string, unknown>, string> {
+    return this.table(entity);
+  }
+
+  /** The tables that hold synced rows (everything except outbox and meta). */
+  get syncedTables(): Table[] {
+    return [this.exercise, this.machineProfile, this.bodyMetric, this.template, this.templateExercise, this.workout, this.workoutExercise, this.workoutSet] as Table[];
+  }
+}
+
+// Plain functions returning Dexie promises (see zone.ts): safe to call from inside any transaction.
+export function getMeta<T>(db: OverloadDb, key: string): Promise<T | undefined> {
+  return db.meta.get(key).then((entry) => entry?.value as T | undefined);
+}
+
+export function setMeta(db: OverloadDb, key: string, value: unknown): Promise<void> {
+  return db.meta.put({ key, value }).then(() => undefined);
+}
