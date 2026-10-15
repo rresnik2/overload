@@ -3,9 +3,9 @@
 Copied verbatim from `docs/PLAN.md` Appendix B in Phase 0. This is the evidence base for the analytics constants, the insight rules and the `/learn` articles. Items marked **[Contested]** or **[Verify]** must keep that label wherever they surface in the product. Stream G verifies every citation link before using it on `/learn`.
 
 **Hypertrophy vs. hyperplasia**
-- **Hypertrophy** means existing fibers get larger. The evidence for it is very strong: fiber cross-sectional area rises about 10–35% over 8–16 weeks (Jorgenson 2020).
+- **Hypertrophy** means existing fibers get larger. The evidence for it is very strong: loading grows existing fibers (Jorgenson 2020, a scoping review of structural adaptations; it does not give a percentage range, so none is quoted here).
 - **Hyperplasia** means new fibers form. In animals it only appears under extreme overload, and even there the findings are disputed (Antonio & Gonyea 1993).
-  - In humans there are no studies that count fibers before and after training.
+  - Human studies that estimate fiber number before and after training exist (the Gowda abstract below pooled eleven): on average no change, and any change is hard to detect.
   - Elite bodybuilders have about the same number of fibers as untrained people (MacDougall 1984).
   - A 2025 meta-analysis abstract found no significant change (Gowda).
   - **[Contested]** D'Antona argues that hyperplasia may contribute at elite levels.

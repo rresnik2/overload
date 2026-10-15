@@ -15,9 +15,10 @@ export interface Citation {
 const cite = (key: string, label: string, url: string): [string, Citation] => [key, { key, label, url }];
 
 /**
- * Registry referenced by InsightCard.citations. Every entry has a link in docs/research.md. Sources the brief only
- * names "from memory" (Haun 2019, Helms 2014, Schoenfeld 2016, Morton 2018, Reynolds 2006, LeSuer 1997, Schoenfeld 2019,
- * NSCA 2-for-2) are deliberately absent until a link is found: a card may not cite a key that is not in this registry.
+ * Registry referenced by InsightCard.citations. Every entry has a link in docs/research.md; papers link by DOI or PubMed
+ * (checked against the NCBI and OpenAlex records). Sources the brief only names "from memory" (Reynolds 2006, LeSuer 1997,
+ * Schoenfeld 2019, NSCA 2-for-2) are deliberately absent until a link is found: a card may not cite a key that is not in
+ * this registry.
  */
 export const CITATIONS: Record<string, Citation> = Object.fromEntries([
   cite("jorgenson2020", "Jorgenson 2020: muscle fiber hypertrophy with resistance training", "https://pmc.ncbi.nlm.nih.gov/articles/PMC7408414/"),
@@ -26,25 +27,25 @@ export const CITATIONS: Record<string, Citation> = Object.fromEntries([
   cite("gowda2025", "Gowda 2025 (abstract): hyperplasia meta-analysis", "https://rdw.rowan.edu/stratford_research_day/2025/may1/194"),
   cite("dantona", "D'Antona: a likely role for fibre hyperplasia in humans [Contested]", "https://www.physoc.org/magazine-articles/muscle-mass-at-the-top-a-likely-role-for-fibre-hyperplasia-in-humans/"),
   cite("roberts2020sarcoplasmic", "Roberts 2020: sarcoplasmic hypertrophy", "https://pmc.ncbi.nlm.nih.gov/articles/PMC7372125/"),
-  cite("schoenfeld2017volume", "Schoenfeld 2017: dose-response of weekly volume and muscle mass", "https://paulogentil.com/pdf/Dose-response%20relationship%20between%20weekly%20resistance%20training%20volume%20and%20increases%20in%20muscle%20mass%20-%20A%20systematic%20review%20and%20metaanalysis.pdf"),
+  cite("schoenfeld2017volume", "Schoenfeld 2017: dose-response of weekly volume and muscle mass", "https://pubmed.ncbi.nlm.nih.gov/27433992/"),
   cite("schoenfeld2017load", "Schoenfeld 2017: low- vs high-load training", "https://pubmed.ncbi.nlm.nih.gov/28834797/"),
-  cite("pelland2025", "Pelland 2025: volume and frequency meta-regression", "https://sponet.de/sponet/Record/4097139?lng=en"),
+  cite("pelland2025", "Pelland 2025: volume and frequency meta-regression", "https://pubmed.ncbi.nlm.nih.gov/41343037/"),
   cite("bazvalle2022", "Baz-Valle 2022: weekly sets and hypertrophy", "https://pmc.ncbi.nlm.nih.gov/articles/PMC8884877/"),
   cite("remmert2025", "Remmert 2025 (preprint, [Contested]): per-session set ceiling", "https://sportrxiv.org/index.php/server/preprint/view/537"),
   cite("robinson2024", "Robinson 2024: proximity to failure (summary)", "https://biolayne.com/reps/issue-32/the-failure-factor-the-relationship-between-proximity-to-failure-and-strength-and-hypertrophy/"),
   cite("refalo2023", "Refalo 2023: proximity to failure and hypertrophy", "https://openrepository.aut.ac.nz/items/78679612-6ff4-4d00-95d1-7920d072a760/full"),
-  cite("singer2024", "Singer 2024: rest intervals", "https://www.frontiersin.org/journals/sports-and-active-living/articles/10.3389/fspor.2024.1429789/text"),
-  cite("zourdos2016", "Zourdos 2016: RIR-based RPE scale", "https://pubmed.ncbi.nlm.nih.gov/30747900/"),
+  cite("singer2024", "Singer 2024: rest intervals", "https://doi.org/10.3389/fspor.2024.1429789"),
+  cite("zourdos2021", "Zourdos 2021: accuracy of RIR predictions", "https://pubmed.ncbi.nlm.nih.gov/30747900/"),
   cite("bell2023", "Bell 2023: deloading", "https://pmc.ncbi.nlm.nih.gov/articles/PMC10511399/"),
   cite("grgic2020", "Grgic 2020: 1RM test-retest reliability", "https://pmc.ncbi.nlm.nih.gov/articles/PMC7367986/"),
   cite("mitter2022", "Mitter 2022: load-repetition relationship", "https://research.birmingham.ac.uk/en/publications/modeling-the-relationship-between-load-and-repetitions-to-failure/"),
   cite("e1rmReview", "Review of e1RM formulas", "https://arxiv.org/pdf/2603.17495"),
   cite("dots", "DOTS points formula", "https://coachway.io/tools/dots-calculator/"),
   cite("ipfGl", "IPF GL points formula", "https://coachway.io/tools/ipf-gl-points-calculator/"),
-  cite("jaric2002", "Jaric 2002: allometric scaling of strength", "https://nsca.com/education/articles/kinetic-select/normalizing-fitness-data"),
+  cite("jaric2002", "NSCA excerpt (cites Jaric et al. 2005): allometric scaling of strength", "https://nsca.com/education/articles/kinetic-select/normalizing-fitness-data"),
   cite("steele2022", "Steele 2022: strength progression follows a linear-log curve", "https://www.strongerbyscience.com/?p=57447"),
   cite("latella2020", "Latella 2020: powerlifting strength progression", "https://pmc.ncbi.nlm.nih.gov/articles/PMC7448836/"),
-  cite("latella2023", "Latella 2023 (preprint): powerlifting progression", "https://www.sportrxiv.org/index.php/server/preprint/view/218"),
+  cite("latella2023", "Latella 2023 (published version of the 2022 preprint): powerlifting progression", "https://doi.org/10.1007/s40279-023-01962-6"),
   cite("swinton2021", "Swinton 2021 (preprint): average strength gain across training studies", "https://sportrxiv.org/index.php/server/preprint/view/11"),
   cite("miller1993", "Miller 1993: sex differences in strength and muscle fiber size", "https://pubmed.ncbi.nlm.nih.gov/8477683/"),
   cite("roberts2020sex", "Roberts, Nuckols & Krieger 2020: sex differences in training adaptations", "https://pubmed.ncbi.nlm.nih.gov/32218059/"),
@@ -53,9 +54,13 @@ export const CITATIONS: Record<string, Citation> = Object.fromEntries([
   cite("kouri1995", "Kouri 1995: FFMI ceiling [Contested] (via McDonald)", "https://bodyrecomposition.com/muscle-gain/another-look-at-the-ffmi/"),
   cite("harty2019", "Harty 2019: FFMI percentiles in women", "https://digitalcommons.lindenwood.edu/faculty-research-papers/121"),
   cite("hodgdon1984", "Hodgdon & Beckett 1984: US Navy tape body-fat method", "https://apps.dtic.mil/sti/pdfs/ADA143890.pdf"),
-  cite("deurenberg", "Deurenberg: BMI-based body fat (never used here)", "https://pmc.ncbi.nlm.nih.gov/articles/PMC8980724/"),
+  cite("deurenberg", "Deurenberg 1991: BMI-based body fat (never used here)", "https://doi.org/10.1079/BJN19910073"),
   cite("strengthlevel", "StrengthLevel methodology", "https://strengthlevel.com/about"),
   cite("haugen2023", "Haugen 2023: machines vs free weights", "https://pmc.ncbi.nlm.nih.gov/articles/PMC10426227/"),
+  cite("haun2019", "Haun 2019: sarcoplasmic hypertrophy after 6 weeks of high-volume training", "https://pubmed.ncbi.nlm.nih.gov/31166954/"),
+  cite("schoenfeld2016rest", "Schoenfeld 2016: longer rest intervals and strength/hypertrophy", "https://pubmed.ncbi.nlm.nih.gov/26605807/"),
+  cite("morton2018", "Morton 2018: protein supplementation and resistance training gains", "https://pubmed.ncbi.nlm.nih.gov/28698222/"),
+  cite("helms2014", "Helms 2014: natural bodybuilding contest preparation (nutrition)", "https://pubmed.ncbi.nlm.nih.gov/24864135/"),
   cite("acsm2026", "ACSM 2026 resistance-training position stand", "https://www.newswise.com/articles/acsm-unveils-landmark-2026-resistance-training-guidelines-first-update-in-17-years"),
 ]);
 
@@ -233,7 +238,7 @@ export const DISABLED_COEFFICIENTS = [
 // ───────────────────────────── insight rules ─────────────────────────────
 
 export const INSIGHT_WINDOW_WEEKS = 4;
-/** effort-check: median recorded RIR at or above this over the window (robinson2024, refalo2023, zourdos2016). */
+/** effort-check: median recorded RIR at or above this over the window (robinson2024, refalo2023, zourdos2021). */
 export const EFFORT_CHECK_MEDIAN_RIR = 4;
 export const EFFORT_CHECK_MIN_RECORDED_SETS = 15;
 /** volume-band: only muscles with at least this many direct (primary) hard sets in the week are judged. */
