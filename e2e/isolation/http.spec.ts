@@ -117,8 +117,15 @@ test("A cannot open B's records by URL: exercise, progress series, workout and t
   await a.page.goto(`/templates/${ids.template}`);
   await expect(a.page.getByText("Template not found")).toBeVisible({ timeout: 30_000 });
   expectNoSecrets(await a.page.content(), "A's template page", false);
+  // Searching for B's exact secret name finds nothing for A (the page echoes A's own query in the search box, so only the results are checked).
+  for (const path of [`/exercises?q=${encodeURIComponent(secrets.exercise)}`, `/exercises?fav=1&q=${encodeURIComponent(secrets.exercise)}`]) {
+    const res = await bodyOf(a.page, path);
+    expect(res.status, path).toBe(200);
+    expect(res.text, `${path} shows an exercise card`).not.toContain("exercise-card__name");
+    expect(res.text, `${path} leaks B's exercise id`).not.toContain(ids.exercise);
+  }
   expect((await a.page.request.get("/insights/2026-10-05")).status()).toBe(404); // A has no report for that week (B's weeks are addressable only by their owner)
-  for (const path of ["/progress", "/progress/prs", "/progress/body", "/insights", "/exercises", "/exercises?fav=1", `/exercises?fav=1&q=${encodeURIComponent(secrets.exercise)}`, `/exercises?q=${encodeURIComponent(secrets.exercise)}`, "/today"]) {
+  for (const path of ["/progress", "/progress/prs", "/progress/body", "/insights", "/exercises", "/exercises?fav=1", "/today"]) {
     const res = await a.page.request.get(path);
     expectNoSecrets(await res.text(), path);
   }

@@ -108,7 +108,7 @@ for (const theme of THEMES) {
       await expect(picker.locator(".exercise-card").first()).toBeVisible(COLD);
       await expectNoViolations(fresh, "/workout exercise picker", theme);
       await picker.getByPlaceholder("Search exercises").fill("barbell bench press");
-      await picker.getByRole("button", { name: /^Add Barbell Bench Press/ }).first().click();
+      await picker.getByRole("button", { name: /^Add Barbell Bench Press(?!.* to favorites)/ }).first().click(); // not the row's star ("Add <name> to favorites")
       await expect(fresh.getByRole("region", { name: /Barbell Bench Press/ })).toBeVisible(COLD);
       const block = fresh.getByRole("region", { name: /Barbell Bench Press/ });
       await block.getByRole("textbox", { name: /^Set 1 weight/ }).fill("60");
