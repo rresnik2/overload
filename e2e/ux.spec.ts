@@ -166,6 +166,8 @@ test.describe("templates are easy to reach and use", () => {
     await page.locator('summary[aria-label="Workout options"]').click();
     await page.getByRole("button", { name: "Discard workout" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
+    await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible(COLD);
+    await expect.poll(async () => page.evaluate(() => document.querySelectorAll(".wk-active").length)).toBe(0);
 
     // create
     await page.goto("/templates");
