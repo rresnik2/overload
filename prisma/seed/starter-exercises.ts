@@ -35,7 +35,7 @@ export const STARTER_LABELS: Record<string, Label> = {
   Dumbbell_Shoulder_Press: DB,
   Side_Lateral_Raise: DB,
   Dumbbell_Lunges: DB,
-  Goblet_Squat: { modality: "FREE_WEIGHT", equipment: "DUMBBELL", loadType: "TOTAL" }, // one dumbbell held: the entry IS the load
+  Goblet_Squat: { modality: "FREE_WEIGHT", equipment: "KETTLEBELL", loadType: "TOTAL" }, // the dataset files it under kettlebells; one implement held: the entry IS the load
   Pullups: { modality: "BODYWEIGHT", equipment: "BODYWEIGHT", loadType: "BODYWEIGHT_PLUS", bodyweightFactor: 1, standardLift: "PULL_UP" },
   "Chin-Up": { modality: "BODYWEIGHT", equipment: "BODYWEIGHT", loadType: "BODYWEIGHT_PLUS", bodyweightFactor: 1 },
   "Dips_-_Triceps_Version": { modality: "BODYWEIGHT", equipment: "BODYWEIGHT", loadType: "BODYWEIGHT_PLUS", bodyweightFactor: 1, standardLift: "DIP" },

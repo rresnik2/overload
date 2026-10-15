@@ -1,1 +1,308 @@
-/* Exercise library and detail pages. Owner: stream C. (Empty in Phase 0.) */
+/* Exercise library and detail pages. Owner: stream C. Square corners; vermilion only for borders, shadows and rules (never small text). */
+
+/* ── modality badge: machines and cables are filled, free weights outlined, so they never read alike in a list ── */
+.modality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35ch;
+  width: fit-content;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-base-content);
+  border-radius: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  background: transparent;
+  color: var(--color-base-content);
+}
+.modality-badge__slash {
+  color: var(--color-vermilion);
+}
+.modality-badge--machine,
+.modality-badge--cable {
+  background: var(--color-neutral);
+  color: var(--color-neutral-content);
+}
+.modality-badge--machine .modality-badge__slash,
+.modality-badge--cable .modality-badge__slash {
+  color: var(--color-neutral-content);
+}
+.modality-badge--bodyweight {
+  border-style: dashed;
+}
+.modality-badge--band,
+.modality-badge--other {
+  border-style: dotted;
+}
+
+/* ── muscle chips ── */
+.muscle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.muscle-chip {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--color-base-content);
+  border-radius: 0;
+  font-size: 0.8rem;
+  line-height: 1.3;
+}
+.muscle-chip--primary {
+  background: var(--color-base-200);
+  font-weight: 600;
+}
+.muscle-chip--secondary,
+.muscle-chip--more {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+/* ── list and card ── */
+.exercise-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0 6px 6px 0; /* room for the hard shadow */
+  list-style: none;
+}
+@media (min-width: 40rem) {
+  .exercise-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 64rem) {
+  .exercise-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.exercise-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.exercise-card__link {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  color: inherit;
+  text-decoration: none;
+}
+.exercise-card__link:focus-visible {
+  outline: 2px solid var(--color-vermilion);
+  outline-offset: 2px;
+}
+.exercise-card__photo {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-base-content);
+  background: var(--color-base-200);
+}
+.exercise-card__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.exercise-card__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem 1rem;
+}
+.exercise-card__name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.exercise-card__custom {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+.exercise-card__actions {
+  padding: 0 1rem 1rem;
+}
+
+/* ── filters ── */
+.exercise-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.exercise-tabs {
+  display: flex;
+  gap: 0.25rem 1.25rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-base-content);
+  -webkit-overflow-scrolling: touch;
+}
+.exercise-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.6rem 0.1rem;
+  min-height: 44px;
+  border-bottom: 4px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+}
+.exercise-tab:hover {
+  border-bottom-color: var(--color-base-300);
+}
+.exercise-tab--active {
+  border-bottom-color: var(--color-vermilion);
+  font-weight: 700;
+}
+.exercise-tab__count {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+.exercise-filter-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  align-items: end;
+}
+@media (min-width: 48rem) {
+  .exercise-filter-form {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+}
+.exercise-filter-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.exercise-filter-form__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.exercise-filter-form .input,
+.exercise-filter-form .select {
+  width: 100%;
+  font-size: 16px; /* iOS does not zoom on focus at 16px and above */
+  min-height: 44px;
+}
+.exercise-filter-form__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.exercise-filters__note {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.pagination {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.75rem;
+}
+.pagination > :first-child {
+  justify-self: start;
+}
+.pagination > :last-child {
+  justify-self: end;
+}
+.pagination__status {
+  font-size: 0.9rem;
+}
+.library-count {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* ── detail ── */
+.exercise-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+.exercise-detail__photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.exercise-detail__photos img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--color-base-content);
+  background: var(--color-base-200);
+}
+.exercise-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+}
+.exercise-facts dt {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+.exercise-facts dd {
+  margin: 0.2rem 0 0;
+}
+.exercise-detail__help {
+  margin: 1rem 0 0;
+  max-width: 64ch;
+  opacity: 0.85;
+}
+.exercise-detail__empty {
+  margin: 0;
+  opacity: 0.75;
+}
+.exercise-detail__steps {
+  margin: 0;
+  padding-left: 1.6rem;
+  list-style: decimal;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 68ch;
+}
+.series-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-base-content);
+}
+.series-list__item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-base-300);
+}
+.series-list__name {
+  font-weight: 600;
+}
+.series-list__meta {
+  opacity: 0.8;
+}
