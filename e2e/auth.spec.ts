@@ -4,6 +4,9 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
 import { linkTo, waitForEmail } from "./helpers/mailbox";
 
+// Multi-step flows against a dev server that compiles routes on first hit (WebKit is the slowest).
+test.describe.configure({ timeout: 90_000 });
+
 const uniqueEmail = (tag: string) => `${tag}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
 const newPassword = () => `pw-${Math.random().toString(36).slice(2)}-Aa1!`;
 
