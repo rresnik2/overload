@@ -190,5 +190,5 @@
     "e2e/favorites.spec.ts",
     "change-requests/applied/**"
   ],
-  "unrestricted": ["W3", "FAV"]
+  "unrestricted": ["W3", "FAV", "UX"]
 }
