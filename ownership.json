@@ -193,5 +193,5 @@
     "e2e/ux.spec.ts",
     "change-requests/applied/**"
   ],
-  "unrestricted": ["W3", "FAV", "UX"]
+  "unrestricted": ["W3", "FAV", "UX", "DIAL"]
 }
