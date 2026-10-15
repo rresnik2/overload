@@ -287,6 +287,7 @@ model Exercise {
   user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   muscles           ExerciseMuscle[]
   machineProfiles   MachineProfile[]
+  favorites         ExerciseFavorite[]
   templateExercises TemplateExercise[]
   workoutExercises  WorkoutExercise[]
   workoutSets       WorkoutSet[]
@@ -339,6 +340,31 @@ model MachineProfile {
 
   @@index([userId, exerciseId])
   @@index([userId, version])
+}
+
+/// A user's starred exercise. The id is deterministic (uuidv5 of `${userId}:${exerciseId}`, see favoriteId() in
+/// src/lib/ids.ts) so two offline devices converge on the same row; there is deliberately no unique constraint on
+/// (userId, exerciseId). Unfavorite = tombstone (deletedAt); favoriting again restores it with a newer HLC.
+model ExerciseFavorite {
+  id         String @id @db.Uuid
+  userId     String
+  exerciseId String @db.Uuid
+  /// fractional index (append on create; manual reorder later)
+  position   String
+
+  // sync mixin
+  hlc       String
+  fieldHlc  Json      @default("{}")
+  version   Int
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([userId, version])
+  @@index([userId, exerciseId])
 }
 
 model BodyMetric {
@@ -612,6 +638,7 @@ model User {
   syncDeadLetters   SyncDeadLetter[]
   exercises         Exercise[]
   machineProfiles   MachineProfile[]
+  exerciseFavorites ExerciseFavorite[]
   bodyMetrics       BodyMetric[]
   templates         Template[]
   templateExercises TemplateExercise[]
