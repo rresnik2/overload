@@ -98,8 +98,14 @@ export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale,
             </option>
           ))}
         </select>
-        <button type="button" className="wk-icon-btn" aria-label={`Delete ${name.toLowerCase()}`} onClick={onDelete}>
-          <Trash2 size={18} aria-hidden="true" />
+        <button
+          type="button"
+          className="wk-set__done"
+          aria-pressed={completed}
+          aria-label={completed ? `Mark ${name.toLowerCase()} not done` : `Complete ${name.toLowerCase()}`}
+          onClick={onToggleComplete}
+        >
+          <Check size={22} aria-hidden="true" />
         </button>
       </div>
 
@@ -143,36 +149,34 @@ export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale,
             <NumberStepper label={`${name} time in seconds`} hideLabel kind="reps" step={5} max={86400} value={set.durationSec} onChange={(v) => onChange({ durationSec: v })} />
           </div>
         ) : null}
-        <button
-          type="button"
-          className="wk-set__done"
-          aria-pressed={completed}
-          aria-label={completed ? `Mark ${name.toLowerCase()} not done` : `Complete ${name.toLowerCase()}`}
-          onClick={onToggleComplete}
-        >
-          <Check size={22} aria-hidden="true" />
-        </button>
       </div>
 
-      {!warmup && (fields.reps || fields.weight) ? (
-        <div className="wk-effort" role="group" aria-label={`${name} ${effortScale}`}>
-          <span className="wk-effort__label" aria-hidden="true">
-            {effortScale}
-          </span>
-          {effortOptions(effortScale).map((o) => (
-            <button
-              key={o.rir}
-              type="button"
-              className="wk-effort__btn num"
-              aria-pressed={set.rir === o.rir}
-              aria-label={`${name} ${effortScale} ${o.label}`}
-              onClick={() => onChange({ rir: set.rir === o.rir ? null : o.rir })}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <div className="wk-set__foot">
+        {!warmup && (fields.reps || fields.weight) ? (
+          <div className="wk-effort" role="group" aria-label={`${name} ${effortScale}`}>
+            <span className="wk-effort__label" aria-hidden="true">
+              {effortScale}
+            </span>
+            {effortOptions(effortScale).map((o) => (
+              <button
+                key={o.rir}
+                type="button"
+                className="wk-effort__btn num"
+                aria-pressed={set.rir === o.rir}
+                aria-label={`${name} ${effortScale} ${o.label}`}
+                onClick={() => onChange({ rir: set.rir === o.rir ? null : o.rir })}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span />
+        )}
+        <button type="button" className="wk-icon-btn" aria-label={`Delete ${name.toLowerCase()}`} onClick={onDelete}>
+          <Trash2 size={18} aria-hidden="true" />
+        </button>
+      </div>
     </li>
   );
 }
