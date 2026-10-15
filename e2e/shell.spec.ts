@@ -2,10 +2,11 @@
 // Offline / service-worker specs need a production build: PORT=3002 E2E_PROD=1 pnpm exec playwright test e2e/shell.spec.ts
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext } from "@playwright/test";
+import { createUser } from "./_support/user";
 
 const PROD = process.env.E2E_PROD === "1";
 
-// Better Auth rate-limits sign-ups per IP (persisted in the database), so each worker signs up ONCE and the tests share its session.
+// Each worker creates ONE user and the tests share its session (sign-up is rate-limited per IP in production builds).
 type WorkerFixtures = { authState: Awaited<ReturnType<BrowserContext["storageState"]>> };
 const test = base.extend<object, WorkerFixtures>({
   authState: [
@@ -14,17 +15,7 @@ const test = base.extend<object, WorkerFixtures>({
       const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
       const context = await browser.newContext({ baseURL });
       const page = await context.newPage();
-      const email = `shell-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
-      for (let attempt = 0; attempt < 4; attempt++) {
-        await page.goto("/sign-up");
-        await page.getByLabel("Name").fill("Shell Tester");
-        await page.getByLabel("Email").fill(email);
-        await page.getByLabel("Password").fill(`pw-${Math.random().toString(36).slice(2)}-Aa1!`);
-        await page.getByRole("button", { name: "Create account" }).click();
-        if (await page.waitForURL(/\/today$/, { timeout: 20_000 }).then(() => true, () => false)) break;
-        await page.waitForTimeout(11_000); // rate-limited: wait out the window
-      }
-      await expect(page).toHaveURL(/\/today$/);
+      await createUser(page, { tag: "shell", name: "Shell Tester" });
       const state = await context.storageState();
       await context.close();
       await provide(state);
@@ -112,11 +103,12 @@ test.describe("shell (signed in)", () => {
   test("SyncPip renders and reflects offline", async ({ page, context }) => {
     const pip = page.locator(".shell-tools .sync-pip");
     await expect(pip).toBeVisible();
-    await expect(pip).toContainText("Synced");
+    // The first sync of a fresh account pulls the catalog and a push round-trips the database: allow more than the default 5 s.
+    await expect(pip).toContainText("Synced", { timeout: 20_000 });
     await context.setOffline(true);
     await expect(pip).toContainText("Offline");
     await context.setOffline(false);
-    await expect(pip).toContainText("Synced");
+    await expect(pip).toContainText("Synced", { timeout: 20_000 });
   });
 
   test("theme toggle persists across reloads", async ({ page, isMobile }) => {
