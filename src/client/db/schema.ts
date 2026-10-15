@@ -9,6 +9,7 @@ import Dexie, { type DexieOptions, type Table, type Transaction } from "dexie";
 import type {
   BodyMetricRow,
   EntityName,
+  ExerciseFavoriteRow,
   ExerciseRow,
   MachineProfileRow,
   TemplateExerciseRow,
@@ -69,6 +70,15 @@ const MIGRATIONS: Migration[] = [
       meta: "key",
     },
   },
+  {
+    // Starred exercises (the 9th synced entity). Existing tables and rows are untouched (Dexie only adds the new store).
+    // The cursor goes back to 0 once: a device that ran the previous bundle advanced its cursor past favorites that
+    // another device wrote (that bundle ignores unknown entities), so it must pull them again. Pulling is idempotent
+    // (per-field merge) and the outbox is kept, so no local data is lost.
+    version: 2,
+    stores: { exerciseFavorite: "id, exerciseId, deletedAt" },
+    upgrade: (tx) => tx.table("meta").put({ key: META_KEYS.cursor, value: 0 }),
+  },
 ];
 
 export function dbNameFor(userId: string): string {
@@ -85,6 +95,7 @@ export class OverloadDb extends Dexie {
   workout!: Table<WorkoutRow, string>;
   workoutExercise!: Table<WorkoutExerciseRow, string>;
   workoutSet!: Table<WorkoutSetRow, string>;
+  exerciseFavorite!: Table<ExerciseFavoriteRow, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
 
@@ -107,7 +118,7 @@ export class OverloadDb extends Dexie {
 
   /** The tables that hold synced rows (everything except outbox and meta). */
   get syncedTables(): Table[] {
-    return [this.exercise, this.machineProfile, this.bodyMetric, this.template, this.templateExercise, this.workout, this.workoutExercise, this.workoutSet] as Table[];
+    return [this.exercise, this.machineProfile, this.bodyMetric, this.template, this.templateExercise, this.workout, this.workoutExercise, this.workoutSet, this.exerciseFavorite] as Table[];
   }
 }
 

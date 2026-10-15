@@ -8,7 +8,7 @@ Read this together with `CLAUDE.md`, your brief (`docs/agents/<stream>.md`) and,
 
 | Topic | Rule |
 |---|---|
-| IDs | Every row a client can write has a client-generated **UUIDv7** (`newId()` in `src/lib/ids.ts`). Catalog exercises use **UUIDv5** of their free-exercise-db id (`catalogExerciseId(sourceId)`); the namespace is frozen and pinned by a test. |
+| IDs | Every row a client can write has a client-generated **UUIDv7** (`newId()` in `src/lib/ids.ts`). Catalog exercises use **UUIDv5** of their free-exercise-db id (`catalogExerciseId(sourceId)`); the namespace is frozen and pinned by a test. **Exercise favorites** use the deterministic **UUIDv5** `favoriteId(userId, exerciseId)` (`src/lib/ids.ts`, namespace frozen and pinned): two offline devices that star the same exercise write the same row, and the server rejects an `exerciseFavorite` whose id is not `favoriteId(ctx.id, exerciseId)`. |
 | Units | Weights are **kg**. Server: `Decimal(7,3)`. Decimal never leaves `src/server` (mappers convert to `number`). The unit the user typed is kept in `inputUnit` so pounds display exactly as entered (`fromKg`, `formatWeight`, `displayUnit` in `src/lib/units.ts`). Effort is stored as RIR; RPE = 10 − RIR (display only). |
 | Dates | `Workout.localDate` ("YYYY-MM-DD", the device's local date when the workout started) is the **only** field used to group by day or week. Weeks are ISO, Monday to Sunday (`isoWeekStart`, `isoWeekKey`, … in `src/lib/dates.ts`). Instants are ISO-8601 UTC strings. Analytics never reads the system clock: `today` is passed in. |
 | Rows | Contract `Row` types have **no `userId`** (the client database is per user). Kg/cm/% columns are `number`, dates are strings. |
@@ -31,6 +31,7 @@ Writable fields per entity (everything else on a Row is server- or repo-derived)
 | `workout` | templateId, title, startedAt, endedAt, localDate, timezone, bodyweightKg, isDeload, notes | template? |
 | `workoutExercise` | workoutId, exerciseId, machineProfileId, position, supersetKey, restSec, notes | workout, exercise, machineProfile? |
 | `workoutSet` | workoutExerciseId, position, setType, weightKg, inputUnit, reps, rir, durationSec, distanceM, completedAt, notes | workoutExercise |
+| `exerciseFavorite` | exerciseId, position | exerciseId → exercise (required) |
 
 Plus `deletedAt` (tombstone) on every entity. `WorkoutSet` **server-derived** columns: `workoutId`, `exerciseId`, `machineProfileId`, `seriesKey`, `localDate`, `effectiveLoadKg`, `e1rmKg` (`WorkoutSetDerived`). The client repo mirrors them locally for offline reads; the server recomputes them and its values win.
 
@@ -120,6 +121,7 @@ export interface EntityTypeMap {
   workout: { row: WorkoutRow; create: WorkoutCreate; patch: WorkoutPatch };
   workoutExercise: { row: WorkoutExerciseRow; create: WorkoutExerciseCreate; patch: WorkoutExercisePatch };
   workoutSet: { row: WorkoutSetRow; create: WorkoutSetCreate; patch: WorkoutSetPatch };
+  exerciseFavorite: { row: ExerciseFavoriteRow; create: ExerciseFavoriteCreate; patch: ExerciseFavoritePatch };
 }
 ```
 
@@ -132,7 +134,7 @@ Owner of the implementation: **E1**. Shapes are frozen.
 * **Request**: `deviceId`, `cursor`, `clientHlc`, ≤ `SYNC_MAX_MUTATIONS` (200) mutations, validated by `syncRequestSchema`. Each mutation: `mutationId`, `entity`, `id`, `fields` (only writable fields + `deletedAt`), `fieldHlc` (exactly one HLC per field).
 * **Server order of operations**: validate each mutation (shape, owner, references, catalog read-only) → a bad one gets `rejected` and a `SyncDeadLetter` row and never blocks the rest → lock the user's `SyncState` row (`FOR UPDATE`) → merge fields by HLC → every changed row gets the next per-user `version` → derive `workoutId/exerciseId/machineProfileId/seriesKey/localDate/effectiveLoadKg/e1rmKg` for sets → rebuild PRs for each affected `seriesKey` → return rows with `version > cursor`, ≤ `SYNC_MAX_PULL_ROWS` (1000) per page, ordered by version across all entities.
 * A mutation referencing a parent that is missing for this user is `MISSING_REFERENCE`. Mutations in one batch are applied in `SYNC_ORDER` (parents first). Children of a tombstoned parent are tombstoned by the server (orphan rule).
-* **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; then machineProfiles and exercises).
+* **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; exerciseFavorites; then machineProfiles and exercises).
 * **Triggers** (client): app start, `online`, `visibilitychange`, 1.5 s after a write, every 30 s while pending, manual. `navigator.locks` ensures one sync at a time. iOS has no Background Sync.
 
 <!-- sig: src/contracts/sync.ts#SyncRequest,MutationResult,SyncResponse,SyncStatus,SyncReason,SyncResult,SyncedInfo -->
@@ -227,7 +229,11 @@ export interface EntityRepo<E extends EntityName> {
 }
 
 export interface ExerciseSearch {
-  /** Case-insensitive match on name, aliases and slug. */
+  /**
+   * Keyword search (src/lib/search/exercise-search.ts): every word must match the name, aliases, equipment, modality or
+   * muscles; understands abbreviations ("db", "ohp"), plurals and one-typo words; best match first, favorites win ties.
+   * Empty = filters only, in name order.
+   */
   text?: string;
   modality?: Modality;
   equipment?: Equipment;
@@ -254,6 +260,16 @@ export interface Repo {
     bySlug(slug: string): Promise<ExerciseRow | undefined>;
     /** Exercises most recently logged, newest first. */
     recent(limit?: number): Promise<ExerciseRow[]>;
+  };
+  /** Starred exercises (catalog or custom); synced offline-first. The row id is favoriteId(userId, exerciseId). */
+  favorites: {
+    /** Exercises the user starred (alive favorites whose exercise still exists), in position order (new stars append). */
+    list(): Promise<ExerciseRow[]>;
+    /** Ids of the starred exercises. */
+    ids(): Promise<Set<string>>;
+    isFavorite(exerciseId: string): Promise<boolean>;
+    /** Star or unstar (a tombstone; starring again restores it with a newer HLC). Resolves to whether it is a favorite now. */
+    toggle(exerciseId: string): Promise<boolean>;
   };
   machineProfiles: EntityRepo<"machineProfile"> & {
     forExercise(exerciseId: string): Promise<MachineProfileRow[]>;

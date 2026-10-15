@@ -8,6 +8,12 @@ import { v5 as uuidv5, v7 as uuidv7Impl, validate as uuidValidate, version as uu
 /** Namespace for catalog exercise ids: uuidv5("overload.catalog.free-exercise-db", DNS). Frozen. */
 export const CATALOG_NAMESPACE = uuidv5("overload.catalog.free-exercise-db", uuidv5.DNS);
 
+/**
+ * Namespace for exercise-favorite ids: uuidv5("overload.favorite.exercise", DNS). Frozen: changing it would give every
+ * existing favorite a new id (the server rejects a favorite whose id is not favoriteId(userId, exerciseId)).
+ */
+export const FAVORITE_NAMESPACE = uuidv5("overload.favorite.exercise", uuidv5.DNS);
+
 /** A fresh client-side id for any user-written row. */
 export function newId(): string {
   return uuidv7Impl();
@@ -17,6 +23,16 @@ export function newId(): string {
 export function catalogExerciseId(sourceId: string): string {
   if (!sourceId) throw new Error("catalogExerciseId: empty sourceId");
   return uuidv5(sourceId, CATALOG_NAMESPACE);
+}
+
+/**
+ * The one possible id of "user X starred exercise Y": two offline devices that star the same exercise write the SAME
+ * row and converge through the normal merge (no unique constraint, no failed batch). The server rejects any
+ * ExerciseFavorite whose id differs from favoriteId(ctx.id, exerciseId), so a client cannot mint ids in another user's space.
+ */
+export function favoriteId(userId: string, exerciseId: string): string {
+  if (!userId || !exerciseId) throw new Error("favoriteId: empty userId or exerciseId");
+  return uuidv5(`${userId}:${exerciseId}`, FAVORITE_NAMESPACE);
 }
 
 export function isUuid(value: string): boolean {

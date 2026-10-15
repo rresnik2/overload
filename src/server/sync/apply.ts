@@ -28,6 +28,7 @@ import { rederiveDependentSets } from "./dependents";
 import { ADAPTERS, rowValues, toDbData, type DbRow } from "./entities";
 import { applyOrphanRule } from "./orphans";
 import { pullChanges } from "./pull";
+import { entityRuleViolation } from "./rules";
 
 export interface SyncEnvelope {
   deviceId: string;
@@ -253,6 +254,12 @@ async function applyEntityGroups(
         values = { ...(parsed.data as FieldValues), deletedAt: deletedAt ?? null };
       } else if (changed.size === 0) {
         group.items.forEach((it, i) => (results[it.index] = { mutationId: it.mutation.mutationId, status: statuses[i] as "noop" }));
+        continue;
+      }
+
+      const violation = entityRuleViolation(entity, ctx, group.id, values);
+      if (violation) {
+        failGroup("INVALID_SHAPE", violation);
         continue;
       }
 

@@ -3,12 +3,11 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import type { CatalogResponse } from "@/contracts/catalog";
 import type { ExerciseRow } from "@/contracts/entities";
-import { MODALITY_VALUES, type Equipment, type Modality, type Muscle } from "@/contracts/enums";
-import { slugify } from "@/lib/ids";
 import type { UserCtx } from "@/server/auth/session";
 import { prisma } from "@/server/db";
 import { dateToLocalDate } from "@/lib/dates";
 import { exerciseToRow } from "@/server/mappers";
+import { applyLibraryQuery, type LibraryQuery, type LibraryResult } from "./library";
 
 // ───────────────────────────── GET /api/catalog ─────────────────────────────
 
@@ -29,82 +28,29 @@ export async function loadCatalog(version: number): Promise<CatalogResponse> {
 
 // ───────────────────────────── library ─────────────────────────────
 
-export interface LibraryQuery {
-  modality?: Modality | null;
-  equipment?: Equipment | null;
-  muscle?: Muscle | null;
-  text?: string;
-  /** 1-based. */
-  page?: number;
-  pageSize?: number;
-}
-
-export interface LibraryResult {
-  exercises: ExerciseRow[];
-  /** Exercises matching every filter. */
-  total: number;
-  page: number;
-  pageCount: number;
-  /** Per modality, under the muscle and text filters (not the modality/equipment filters): drives the tab counts. */
-  modalityCounts: Record<Modality, number>;
-  /** Equipment available within the selected modality (all equipment when none is selected), under the muscle and text filters. */
-  equipmentOptions: { equipment: Equipment; count: number }[];
-}
+export type { LibraryQuery, LibraryResult } from "./library";
 
 function visibleTo(ctx: UserCtx): Prisma.ExerciseWhereInput {
   return { deletedAt: null, OR: [{ userId: null }, { userId: ctx.id }] };
 }
 
-function textFilter(text: string | undefined): Prisma.ExerciseWhereInput[] {
-  const tokens = (text ?? "").toLowerCase().split(/\s+/).filter(Boolean).slice(0, 6);
-  return tokens.map((token) => ({
-    OR: [
-      { name: { contains: token, mode: "insensitive" as const } },
-      { slug: { contains: slugify(token) || token } },
-      { aliases: { has: token } },
-    ],
-  }));
+/** The ids of the user's alive favorites. Always filtered by ctx.id. */
+export async function listFavoriteExerciseIds(ctx: UserCtx): Promise<Set<string>> {
+  const rows = await prisma.exerciseFavorite.findMany({ where: { userId: ctx.id, deletedAt: null }, select: { exerciseId: true } });
+  return new Set(rows.map((r) => r.exerciseId));
 }
 
-/** The library list for the signed-in user: catalog + their own custom exercises, filtered, paged, with tab and equipment facets. */
+/**
+ * The library list for the signed-in user: catalog + their own custom exercises. The visible rows are fetched once and the
+ * shared keyword search, filters, facets and paging run in memory (see ./library), so the library and the offline picker
+ * return the same results for the same query.
+ */
 export async function listLibrary(ctx: UserCtx, query: LibraryQuery = {}): Promise<LibraryResult> {
-  const pageSize = query.pageSize ?? 48;
-  const shared: Prisma.ExerciseWhereInput[] = [
-    visibleTo(ctx),
-    ...textFilter(query.text),
-    ...(query.muscle ? [{ muscles: { some: { muscle: query.muscle } } }] : []),
-  ];
-  const modalityWhere: Prisma.ExerciseWhereInput[] = query.modality ? [{ modality: query.modality }] : [];
-  const equipmentWhere: Prisma.ExerciseWhereInput[] = query.equipment ? [{ equipment: query.equipment }] : [];
-  const where: Prisma.ExerciseWhereInput = { AND: [...shared, ...modalityWhere, ...equipmentWhere] };
-
-  const total = await prisma.exercise.count({ where });
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const page = Math.min(Math.max(1, query.page ?? 1), pageCount);
-
-  const [rows, modalityGroups, equipmentGroups] = await Promise.all([
-    prisma.exercise.findMany({
-      where,
-      include: { muscles: true },
-      orderBy: [{ name: "asc" }, { id: "asc" }],
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.exercise.groupBy({ by: ["modality"], where: { AND: shared }, _count: { _all: true } }),
-    prisma.exercise.groupBy({ by: ["equipment"], where: { AND: [...shared, ...modalityWhere] }, _count: { _all: true } }),
+  const [rows, favoriteIds] = await Promise.all([
+    prisma.exercise.findMany({ where: visibleTo(ctx), include: { muscles: true } }),
+    listFavoriteExerciseIds(ctx),
   ]);
-
-  const modalityCounts = Object.fromEntries(MODALITY_VALUES.map((m) => [m, 0])) as Record<Modality, number>;
-  for (const g of modalityGroups) modalityCounts[g.modality] = g._count._all;
-
-  return {
-    exercises: rows.map(exerciseToRow),
-    total,
-    page,
-    pageCount,
-    modalityCounts,
-    equipmentOptions: equipmentGroups.map((g) => ({ equipment: g.equipment, count: g._count._all })).sort((a, b) => b.count - a.count),
-  };
+  return applyLibraryQuery(rows.map(exerciseToRow), query, favoriteIds);
 }
 
 // ───────────────────────────── detail ─────────────────────────────

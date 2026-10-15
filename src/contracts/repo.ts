@@ -49,7 +49,11 @@ export interface EntityRepo<E extends EntityName> {
 }
 
 export interface ExerciseSearch {
-  /** Case-insensitive match on name, aliases and slug. */
+  /**
+   * Keyword search (src/lib/search/exercise-search.ts): every word must match the name, aliases, equipment, modality or
+   * muscles; understands abbreviations ("db", "ohp"), plurals and one-typo words; best match first, favorites win ties.
+   * Empty = filters only, in name order.
+   */
   text?: string;
   modality?: Modality;
   equipment?: Equipment;
@@ -76,6 +80,16 @@ export interface Repo {
     bySlug(slug: string): Promise<ExerciseRow | undefined>;
     /** Exercises most recently logged, newest first. */
     recent(limit?: number): Promise<ExerciseRow[]>;
+  };
+  /** Starred exercises (catalog or custom); synced offline-first. The row id is favoriteId(userId, exerciseId). */
+  favorites: {
+    /** Exercises the user starred (alive favorites whose exercise still exists), in position order (new stars append). */
+    list(): Promise<ExerciseRow[]>;
+    /** Ids of the starred exercises. */
+    ids(): Promise<Set<string>>;
+    isFavorite(exerciseId: string): Promise<boolean>;
+    /** Star or unstar (a tombstone; starring again restores it with a newer HLC). Resolves to whether it is a favorite now. */
+    toggle(exerciseId: string): Promise<boolean>;
   };
   machineProfiles: EntityRepo<"machineProfile"> & {
     forExercise(exerciseId: string): Promise<MachineProfileRow[]>;

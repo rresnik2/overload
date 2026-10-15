@@ -22,6 +22,7 @@ const source = {
   },
   customExercises: [],
   machineProfiles: [{ id: "m1", userId: "user-1", name: "Leg press", gymName: null, brand: null, exerciseId: null, labelUnit: null, pinStepKg: dec(5), baseLoadKg: dec(0), notes: null, ...sync }],
+  exerciseFavorites: [{ id: "f1", userId: "user-1", exerciseId: "e1", position: "a0", ...sync }],
   bodyMetrics: [
     {
       id: "b1", userId: "user-1", measuredAt: at, localDate: day, weightKg: dec(82.5), bodyFatPct: dec(16), bodyFatMethod: null,
@@ -63,6 +64,10 @@ describe("buildAccountExport", () => {
       expect(json).not.toContain(`"${secret}"`);
     }
     expect(json).not.toContain("scrypt");
+  });
+
+  it("includes the starred exercises as plain rows", () => {
+    expect(exported.exerciseFavorites).toEqual([expect.objectContaining({ id: "f1", exerciseId: "e1", position: "a0" })]);
   });
 
   it("describes sign-in methods by name only", () => {

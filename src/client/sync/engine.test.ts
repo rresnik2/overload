@@ -2,6 +2,7 @@ import "fake-indexeddb/auto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatalogResponse } from "@/contracts/catalog";
 import type { SyncedInfo } from "@/contracts/sync";
+import { favoriteId } from "@/lib/ids";
 import { META_KEYS, getMeta } from "@/client/db/schema";
 import { newDevice, seedWorkout, workoutInput, exerciseInput, type TestDevice } from "@/client/repo/test-utils";
 import { createEngine, type Engine } from "./engine";
@@ -108,6 +109,69 @@ describe("push and pull", () => {
     await a.engine.syncNow();
     expect(await a.repo.workouts.get(workout.id)).toBeUndefined();
     expect(await a.repo.sets.get(set.id)).toBeUndefined();
+  });
+
+  it("favorites: two offline devices star the same exercise (one row), then unstar and restore, and converge", async () => {
+    const server = new FakeServer();
+    const a = setup(server);
+    const b = setup(server);
+    const exercise = await a.repo.exercises.create(exerciseInput({ slug: "fav-ex", name: "Fav Press" }));
+    await a.engine.syncNow();
+    await b.engine.syncNow();
+    const id = favoriteId("user-1", exercise.id);
+
+    // both devices star it while offline: the SAME deterministic row, so the server ends up with exactly one
+    expect(await a.repo.favorites.toggle(exercise.id)).toBe(true);
+    expect(await b.repo.favorites.toggle(exercise.id)).toBe(true);
+    await a.engine.syncNow();
+    await b.engine.syncNow();
+    await a.engine.syncNow();
+    expect(server.rows("exerciseFavorite")).toHaveLength(1);
+    expect(server.row("exerciseFavorite", id)).toMatchObject({ exerciseId: exercise.id, deletedAt: null });
+    expect(await a.repo.favorites.isFavorite(exercise.id)).toBe(true);
+    expect(await b.repo.favorites.isFavorite(exercise.id)).toBe(true);
+    expect((await a.repo.favorites.list()).map((e) => e.id)).toEqual([exercise.id]);
+
+    // unstar on A, restore on B afterwards (a later HLC wins): both end starred; then unstar on A again: both end unstarred
+    await new Promise((r) => setTimeout(r, 5));
+    expect(await a.repo.favorites.toggle(exercise.id)).toBe(false);
+    await a.engine.syncNow();
+    await b.engine.syncNow();
+    expect(await b.repo.favorites.isFavorite(exercise.id)).toBe(false);
+    await new Promise((r) => setTimeout(r, 5));
+    expect(await b.repo.favorites.toggle(exercise.id)).toBe(true);
+    await b.engine.syncNow();
+    await a.engine.syncNow();
+    expect(await a.repo.favorites.isFavorite(exercise.id)).toBe(true);
+    await new Promise((r) => setTimeout(r, 5));
+    await a.repo.favorites.toggle(exercise.id);
+    await a.engine.syncNow();
+    await b.engine.syncNow();
+    expect(await a.repo.favorites.ids()).toEqual(new Set());
+    expect(await b.repo.favorites.ids()).toEqual(new Set());
+    expect(server.rows("exerciseFavorite")).toHaveLength(1);
+    expect(await a.db.exerciseFavorite.get(id)).toEqual(await b.db.exerciseFavorite.get(id));
+  });
+
+  it("an unknown entity key in a pull response is ignored, not fatal (what an older bundle sees when a newer entity arrives)", async () => {
+    const server = new FakeServer();
+    const a = setup(server);
+    await a.repo.exercises.create(exerciseInput({ slug: "x", name: "X" }));
+    const realFetch = server.fetch;
+    // Wrap the fake server so the response also carries a `changes` key this client has never heard of.
+    const futureFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const res = await realFetch(input, init);
+      if (!String(input).endsWith("/api/sync")) return res;
+      const body = (await res.json()) as { changes: Record<string, unknown[]> };
+      body.changes.somethingFromTheFuture = [{ id: "0192a5b0-0005-7000-8000-0000000000aa", version: 99 }];
+      return Response.json(body);
+    }) as typeof fetch;
+    const engine = createEngine({ db: a.db, fetch: futureFetch, status: createStatusStore(), listeners: createSyncedListeners() });
+    const result = await engine.syncNow("manual");
+    expect(result).toMatchObject({ ok: true, pushed: 1 });
+    expect(await a.repo.exercises.list()).toHaveLength(1);
+    expect(await getMeta(a.db, META_KEYS.cursor)).toBe(server.version); // the cursor still advances
+    expect((await a.engine.syncNow("manual")).ok).toBe(true);
   });
 
   it("a pending local edit with a later HLC survives an older server value, then wins on the next push", async () => {

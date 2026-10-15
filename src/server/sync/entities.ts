@@ -8,6 +8,7 @@ import { localDateToDate } from "@/lib/dates";
 import type { FieldValues } from "@/lib/sync/merge";
 import {
   bodyMetricToRow,
+  exerciseFavoriteToRow,
   exerciseToRow,
   machineProfileToRow,
   templateExerciseToRow,
@@ -79,6 +80,11 @@ export const ADAPTERS: { [E in EntityName]: EntityAdapter } = {
     name: "workoutSet",
     delegate: (db) => as<RowDelegate>(db.workoutSet),
     toRow: (r) => as<WireRow>(workoutSetToRow(as(r))),
+  },
+  exerciseFavorite: {
+    name: "exerciseFavorite",
+    delegate: (db) => as<RowDelegate>(db.exerciseFavorite),
+    toRow: (r) => as<WireRow>(exerciseFavoriteToRow(as(r))),
   },
 };
 

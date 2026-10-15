@@ -4,7 +4,7 @@ import "server-only";
 // longer exists) is told to `reset` and re-pull.
 //
 // FKs between synced rows are NoAction, so the order is children before parents (sets -> workoutExercises -> workouts;
-// templateExercises -> templates; machineProfiles; bodyMetrics; exercises). A tombstone that something live (or an
+// templateExercises -> templates; exerciseFavorites; machineProfiles; bodyMetrics; exercises). A tombstone that something live (or an
 // unexpired tombstone) still references is left in place until that reference is collected: never cascade into live data.
 // Each user is processed in its own transaction under the SyncState lock, so a concurrent sync cannot interleave.
 import { ENTITY_NAMES, type EntityName } from "@/contracts/entities";
@@ -21,6 +21,7 @@ const GC_PLAN: { entity: EntityName; guard: Record<string, unknown> }[] = [
   { entity: "workout", guard: { exercises: none, sets: none } },
   { entity: "templateExercise", guard: {} },
   { entity: "template", guard: { exercises: none, workouts: none } },
+  { entity: "exerciseFavorite", guard: {} },
   { entity: "machineProfile", guard: { templateExercises: none, workoutExercises: none, workoutSets: none, personalRecords: none } },
   { entity: "bodyMetric", guard: {} },
   { entity: "exercise", guard: { machineProfiles: none, templateExercises: none, workoutExercises: none, workoutSets: none, personalRecords: none } },

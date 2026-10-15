@@ -71,13 +71,19 @@ describe("mergeFields", () => {
 
 // ───────────────────────── convergence property tests ─────────────────────────
 
-const FIELDS = ["name", "reps", "weightKg", "notes", "deletedAt"] as const;
+// `exerciseId` and `position` are the writable fields of an exerciseFavorite (with `deletedAt` for star/unstar), so the
+// same properties cover two offline devices starring, unstarring and re-starring the same exercise.
+const FIELDS = ["name", "reps", "weightKg", "notes", "deletedAt", "exerciseId", "position"] as const;
 const valueFor = (field: string): fc.Arbitrary<unknown> =>
   field === "deletedAt"
     ? fc.constantFrom(null, "2026-10-14T00:00:00.000Z", "2026-10-15T00:00:00.000Z")
     : field === "reps"
       ? fc.integer({ min: 0, max: 30 })
-      : fc.constantFrom("a", "b", "c", null);
+      : field === "exerciseId"
+        ? fc.constantFrom("83a024cb-efa6-5b1b-8cef-e115a267bd5b", "c48fba6b-6cc5-55c1-a5c6-33e149c64422")
+        : field === "position"
+          ? fc.constantFrom("a0", "a1", "Zz")
+          : fc.constantFrom("a", "b", "c", null);
 
 const fieldsArb: fc.Arbitrary<Record<string, unknown>> = fc
   .subarray([...FIELDS], { minLength: 1 })

@@ -1,8 +1,10 @@
 // The Dexie-backed implementation of the frozen `Repo` interface (src/contracts/repo.ts).
 // Every write is ONE transaction: row + per-field HLC + outbox mutation (see core.ts). Reads hide tombstones.
+import { generateKeyBetween } from "fractional-indexing";
 import type {
   BodyMetricRow,
   EntityName,
+  ExerciseFavoriteRow,
   ExerciseRow,
   MachineProfileRow,
   TemplateExerciseRow,
@@ -12,7 +14,8 @@ import type {
 } from "@/contracts/entities";
 import { RepoError, type EntityRepo, type ExerciseSearch, type LastTimeEntry, type Repo } from "@/contracts/repo";
 import type { CatalogResponse } from "@/contracts/catalog";
-import { seriesKey } from "@/lib/ids";
+import { favoriteId, seriesKey } from "@/lib/ids";
+import { buildSearchIndex, searchExercises } from "@/lib/search/exercise-search";
 import { valuesEqual } from "@/lib/sync/merge";
 import { toLocalDate } from "@/lib/dates";
 import { tickHlc } from "@/client/db/clock";
@@ -41,6 +44,13 @@ type GetDb = () => OverloadDb;
 const alive = <T extends { deletedAt: string | null }>(rows: T[]): T[] => rows.filter((r) => !r.deletedAt);
 /** Fractional-index keys compare by code unit, never by locale. */
 const byPosition = <T extends { position: string }>(a: T, b: T): number => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0);
+
+/** Position order; two devices that appended at the same time share a position, so fall back to creation time, then id. */
+const byFavoriteOrder = (a: ExerciseFavoriteRow, b: ExerciseFavoriteRow): number =>
+  byPosition(a, b) || (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/** Exercise ids of the alive favorites (a favorite whose exercise vanished still counts: harmless, and it can come back). */
+const favoriteExerciseIds = async (db: OverloadDb): Promise<Set<string>> => new Set(alive(await db.exerciseFavorite.toArray()).map((f) => f.exerciseId));
 
 function todayLocal(): string {
   return toLocalDate(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -119,6 +129,7 @@ export function createRepo(getDb: GetDb): Repo {
   const workouts = entityRepo(getDb, "workout");
   const workoutExercises = entityRepo(getDb, "workoutExercise");
   const sets = entityRepo(getDb, "workoutSet");
+  const favorites = entityRepo(getDb, "exerciseFavorite");
 
   /** Most recently started workouts first (alive only). */
   const recentWorkouts = async (db: OverloadDb): Promise<WorkoutRow[]> => alive(await db.workout.orderBy("startedAt").reverse().toArray());
@@ -128,19 +139,19 @@ export function createRepo(getDb: GetDb): Repo {
       ...exercises,
       async search(query: ExerciseSearch) {
         const all = (await exercises.list()) as ExerciseRow[];
-        const text = query.text?.trim().toLowerCase();
         const matches = all.filter((e) => {
           if (query.customOnly && !e.isCustom) return false;
           if (query.modality && e.modality !== query.modality) return false;
           if (query.equipment && e.equipment !== query.equipment) return false;
           if (query.standardLift && e.standardLift !== query.standardLift) return false;
           if (query.muscle && !e.muscles.some((m) => m.muscle === query.muscle)) return false;
-          if (text) return e.name.toLowerCase().includes(text) || e.slug.toLowerCase().includes(text) || e.aliases.some((a) => a.toLowerCase().includes(text));
           return true;
         });
-        const rank = (e: ExerciseRow) => (text && e.name.toLowerCase().startsWith(text) ? 0 : 1);
-        matches.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
-        return query.limit !== undefined ? matches.slice(0, query.limit) : matches;
+        const text = query.text?.trim() ?? "";
+        const favoriteIds = text ? await favoriteExerciseIds(getDb()) : undefined;
+        const byId = new Map(matches.map((e) => [e.id, e]));
+        const hits = searchExercises(buildSearchIndex(matches), text, { favoriteIds, limit: query.limit });
+        return hits.map((h) => byId.get(h.id) as ExerciseRow);
       },
       async bySlug(slug) {
         const all = (await exercises.list()) as ExerciseRow[];
@@ -162,6 +173,47 @@ export function createRepo(getDb: GetDb): Repo {
             }
           }
           return out;
+        });
+      },
+    },
+
+    favorites: {
+      async list() {
+        const db = getDb();
+        return readTx(db, async () => {
+          const rows = alive(await db.exerciseFavorite.toArray()).sort(byFavoriteOrder);
+          const out: ExerciseRow[] = [];
+          for (const row of rows) {
+            const exercise = (await findRow(db, "exercise", row.exerciseId)) as unknown as ExerciseRow | undefined;
+            if (exercise && !exercise.deletedAt) out.push(exercise);
+          }
+          return out;
+        });
+      },
+      async ids() {
+        return favoriteExerciseIds(getDb());
+      },
+      async isFavorite(exerciseId) {
+        const db = getDb();
+        const row = await db.exerciseFavorite.get(favoriteId(db.userId, exerciseId));
+        return row !== undefined && !row.deletedAt;
+      },
+      async toggle(exerciseId) {
+        const db = getDb();
+        return writeTx(db, async () => {
+          const id = favoriteId(db.userId, exerciseId);
+          const row = (await db.exerciseFavorite.get(id)) as AnyRow | undefined;
+          if (row && !row.deletedAt) {
+            await tombstone(db, "exerciseFavorite", row);
+            return false;
+          }
+          // Restore keeps the old position; a first star appends after the last one.
+          if (row) await applyPatch(db, "exerciseFavorite", row, { deletedAt: null });
+          else {
+            const last = alive(await db.exerciseFavorite.toArray()).sort(byFavoriteOrder).at(-1);
+            await favorites.create({ exerciseId, position: generateKeyBetween(last?.position ?? null, null) }, { id });
+          }
+          return true;
         });
       },
     },

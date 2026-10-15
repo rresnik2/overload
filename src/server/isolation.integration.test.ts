@@ -6,14 +6,14 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ENTITY_NAMES, type EntityName } from "@/contracts/entities";
 import { InsightStatus, InsightTrigger } from "@/contracts/enums";
-import { newId } from "@/lib/ids";
+import { favoriteId, newId } from "@/lib/ids";
 import { mintUserCtx } from "@/server/auth/ctx";
 import { prisma } from "@/server/db";
 import { addBodyMetric, deleteBodyMetric, editBodyMetric } from "@/server/actions/body.logic";
 import { loadInsightsOverview } from "@/server/insights/current";
 import { latestReport, listReports, prismaReportStore } from "@/server/insights/reports";
 import { rebuildSeriesPrs } from "@/server/prs/rebuild";
-import { getExerciseDetail, listLibrary, loadCatalog } from "@/server/catalog/queries";
+import { getExerciseDetail, listFavoriteExerciseIds, listLibrary, loadCatalog } from "@/server/catalog/queries";
 import { deleteAccount } from "@/server/profile/delete-account";
 import { exportAccountData } from "@/server/profile/export";
 import { completeOnboarding } from "@/server/profile/onboarding";
@@ -71,6 +71,7 @@ const PROFILE = { sex: "MALE", heightCm: 180, timezone: "UTC", unitPreference: "
 async function seedTree(ctx: typeof ctxA, tag: string, secrets: boolean): Promise<Tree> {
   const dev = new FakeDevice(ctx, `dev${tag}`);
   const ids = Object.fromEntries(ENTITY_NAMES.map((e) => [e, newId()])) as Record<EntityName, string>;
+  ids.exerciseFavorite = favoriteId(ctx.id, ids.exercise); // a favorite's id is derived, never random
   const name = (kind: keyof typeof SECRET, fallback: string) => (secrets ? SECRET[kind] : `${fallback}-${tag}`);
   const res = await dev.push([
     dev.mutation("exercise", ids.exercise, exerciseFields({ slug: `iso-${tag}-${suffix}`, name: name("exercise", "Press") })),
@@ -81,6 +82,7 @@ async function seedTree(ctx: typeof ctxA, tag: string, secrets: boolean): Promis
     dev.mutation("workout", ids.workout, workoutFields({ notes: name("workoutNotes", "notes") })),
     dev.mutation("workoutExercise", ids.workoutExercise, { workoutId: ids.workout, exerciseId: ids.exercise, machineProfileId: ids.machineProfile, position: "a0" }),
     dev.mutation("workoutSet", ids.workoutSet, setFields(ids.workoutExercise, { weightKg: 100, reps: 5 })),
+    dev.mutation("exerciseFavorite", ids.exerciseFavorite, { exerciseId: ids.exercise, position: "a0" }),
   ]);
   expect(res.results.map((r) => r.status), `${tag} tree`).toEqual(ENTITY_NAMES.map(() => "applied"));
   const sets = await prisma.workoutSet.findMany({ where: { userId: ctx.id }, select: { seriesKey: true } });
@@ -103,6 +105,7 @@ async function snapshot(userId: string): Promise<string> {
     workout: await prisma.workout.findMany({ where, orderBy: { id: "asc" } }),
     workoutExercise: await prisma.workoutExercise.findMany({ where, orderBy: { id: "asc" } }),
     workoutSet: await prisma.workoutSet.findMany({ where, orderBy: { id: "asc" } }),
+    exerciseFavorite: await prisma.exerciseFavorite.findMany({ where, orderBy: { id: "asc" } }),
     personalRecord: await prisma.personalRecord.findMany({ where, orderBy: { id: "asc" } }),
     insightReport: await prisma.insightReport.findMany({ where, orderBy: { id: "asc" } }),
   };
@@ -165,6 +168,8 @@ describe("controls: B's data is visible to B, so 'A sees nothing' is not vacuous
     expect(JSON.stringify(await exportAccountData(ctxB))).toContain(SECRET.workoutNotes);
     expect(JSON.stringify(await listReports(ctxB))).toContain(SECRET.narrative);
     expect(JSON.stringify((await pullChanges(ctxB, 0)).changes)).toContain(treeB.ids.workoutSet);
+    expect(JSON.stringify((await pullChanges(ctxB, 0)).changes.exerciseFavorite)).toContain(treeB.ids.exerciseFavorite);
+    expect([...(await listFavoriteExerciseIds(ctxB))]).toEqual([treeB.ids.exercise]);
   });
 });
 
@@ -178,6 +183,7 @@ describe("sync: A writes to B's ids through the real handler logic", () => {
     workout: { notes: "Hijacked" },
     workoutExercise: { notes: "Hijacked" },
     workoutSet: { reps: 99 },
+    exerciseFavorite: { position: "zz" },
   };
 
   for (const entity of ENTITY_NAMES) {
@@ -209,8 +215,10 @@ describe("sync: A writes to B's ids through the real handler logic", () => {
       dev.mutation("workoutExercise", newId(), { workoutId: a.workout, exerciseId: a.exercise, machineProfileId: b.machineProfile, position: "a3" }),
       dev.mutation("workoutSet", newId(), setFields(b.workoutExercise)),
       dev.mutation("workout", newId(), workoutFields({ templateId: b.template })),
+      // starring B's custom exercise, with the id A would legitimately derive for it
+      dev.mutation("exerciseFavorite", favoriteId(userA, b.exercise), { exerciseId: b.exercise, position: "a9" }),
     ]);
-    expect(res.results.map((r) => `${r.status}:${r.reason}`)).toEqual(Array(9).fill("rejected:MISSING_REFERENCE"));
+    expect(res.results.map((r) => `${r.status}:${r.reason}`)).toEqual(Array(10).fill("rejected:MISSING_REFERENCE"));
     expectNoB(res.changes, "sync response");
   });
 
@@ -243,6 +251,66 @@ describe("sync: A writes to B's ids through the real handler logic", () => {
     for (const entity of ENTITY_NAMES) expect(page.changes[entity].length, entity).toBeGreaterThan(0); // A's own rows do arrive
     await prisma.$transaction((tx) => rebuildSeriesPrs(tx, ctxA, treeB.seriesKeys));
     expect(await prisma.personalRecord.count({ where: { userId: userA, seriesKey: { in: treeB.seriesKeys } } })).toBe(0);
+  });
+});
+
+describe("favorites: the deterministic id is checked, B's stars are invisible to A", () => {
+  it("A can star a catalog exercise and their own custom exercise", async () => {
+    const dev = new FakeDevice(ctxA, "atkfavok");
+    const catalogId = (await prisma.exercise.findFirstOrThrow({ where: { userId: null }, select: { id: true } })).id;
+    const res = await dev.push([
+      dev.mutation("exerciseFavorite", favoriteId(userA, catalogId), { exerciseId: catalogId, position: "a5" }),
+      dev.mutation("exerciseFavorite", favoriteId(userA, treeA.ids.exercise), { exerciseId: treeA.ids.exercise, position: "a6" }),
+    ]);
+    expect(res.results.map((r) => r.status)).toEqual(["applied", "applied"]);
+    expect([...(await listFavoriteExerciseIds(ctxA))].sort()).toEqual([catalogId, treeA.ids.exercise].sort());
+  });
+
+  it("a forged favorite id (random, another user's space, or B's id) is rejected", async () => {
+    const dev = new FakeDevice(ctxA, "atkfavforge");
+    const catalogId = (await prisma.exercise.findFirstOrThrow({ where: { userId: null }, select: { id: true } })).id;
+    const res = await dev.push([
+      dev.mutation("exerciseFavorite", newId(), { exerciseId: catalogId, position: "a1" }), // random id
+      dev.mutation("exerciseFavorite", favoriteId(userB, catalogId), { exerciseId: catalogId, position: "a1" }), // B's id space, B has no such row
+      dev.mutation("exerciseFavorite", treeB.ids.exerciseFavorite, { exerciseId: treeA.ids.exercise, position: "a1" }), // B's actual row
+    ]);
+    expect(res.results.map((r) => `${r.status}:${r.reason}`)).toEqual(["rejected:INVALID_SHAPE", "rejected:INVALID_SHAPE", "rejected:NOT_OWNER"]);
+    expect(await prisma.exerciseFavorite.count({ where: { id: favoriteId(userB, catalogId) } })).toBe(0);
+  });
+
+  it("re-pointing an existing favorite at another exercise is rejected (the id is the pair)", async () => {
+    const dev = new FakeDevice(ctxA, "atkfavrepoint");
+    const catalogId = (await prisma.exercise.findFirstOrThrow({ where: { userId: null }, select: { id: true } })).id;
+    const res = await dev.push([dev.mutation("exerciseFavorite", favoriteId(userA, treeA.ids.exercise), { exerciseId: catalogId })]);
+    expect(res.results.map((r) => `${r.status}:${r.reason}`)).toEqual(["rejected:INVALID_SHAPE"]);
+    expect((await prisma.exerciseFavorite.findUniqueOrThrow({ where: { id: favoriteId(userA, treeA.ids.exercise) } })).exerciseId).toBe(treeA.ids.exercise);
+  });
+
+  it("unstar and re-star: a tombstone and a restore of A's own favorite work", async () => {
+    const dev = new FakeDevice(ctxA, "atkfavtoggle");
+    const id = favoriteId(userA, treeA.ids.exercise);
+    expect((await dev.push([dev.mutation("exerciseFavorite", id, { deletedAt: new Date().toISOString() })])).results[0]?.status).toBe("applied");
+    expect(await listFavoriteExerciseIds(ctxA)).not.toContain(treeA.ids.exercise);
+    expect((await dev.push([dev.mutation("exerciseFavorite", id, { deletedAt: null })])).results[0]?.status).toBe("applied");
+    expect(await listFavoriteExerciseIds(ctxA)).toContain(treeA.ids.exercise);
+  });
+
+  it("B's favorites are in neither A's pull, A's favorite ids, nor A's favorites-only library", async () => {
+    expectNoB((await pullChanges(ctxA, 0)).changes.exerciseFavorite, "pull(0).exerciseFavorite");
+    expectNoB([...(await listFavoriteExerciseIds(ctxA))], "listFavoriteExerciseIds");
+    const library = await listLibrary(ctxA, { favoritesOnly: true, pageSize: 500 });
+    expectNoB(library, "listLibrary favoritesOnly");
+    expect(library.exercises.length).toBeGreaterThan(0);
+    expect(library.favoriteIds).not.toContain(treeB.ids.exercise);
+    expect((await listLibrary(ctxA, { favoritesOnly: true, text: SECRET.exercise })).exercises).toEqual([]);
+    // even if A guessed B's favorite for the same exercise: B's custom exercise is not visible to A at all
+    expect((await listLibrary(ctxA, { pageSize: 500 })).exercises.some((e) => e.id === treeB.ids.exercise)).toBe(false);
+  });
+
+  it("the export of A lists A's starred exercises only", async () => {
+    const exported = await exportAccountData(ctxA);
+    expect(exported.exerciseFavorites.length).toBeGreaterThan(0);
+    expectNoB(exported.exerciseFavorites, "export.exerciseFavorites");
   });
 });
 
