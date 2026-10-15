@@ -17,10 +17,13 @@ export interface ExerciseListProps {
   empty?: { title: string; description?: ReactNode; action?: ReactNode };
   /** Heading level of each card name (see ExerciseCard). */
   headingLevel?: 2 | 3;
+  /** Starred exercise ids and the star control for each card (see ExerciseCard). */
+  favoriteIds?: ReadonlySet<string>;
+  renderAction?: (exercise: ExerciseRow, isFavorite: boolean) => ReactNode;
   className?: string;
 }
 
-export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true, empty, headingLevel, className }: ExerciseListProps) {
+export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true, empty, headingLevel, favoriteIds, renderAction, className }: ExerciseListProps) {
   if (exercises.length === 0) {
     return (
       <EmptyState
@@ -34,7 +37,16 @@ export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true
     <ul className={clsx("exercise-list", className)}>
       {exercises.map((exercise, index) => (
         <li key={exercise.id}>
-          <ExerciseCard exercise={exercise} href={hrefFor?.(exercise)} actions={actionsFor?.(exercise)} showImage={showImages} priorityImage={index < 3} headingLevel={headingLevel} />
+          <ExerciseCard
+            exercise={exercise}
+            href={hrefFor?.(exercise)}
+            actions={actionsFor?.(exercise)}
+            showImage={showImages}
+            priorityImage={index < 3}
+            headingLevel={headingLevel}
+            favoriteIds={favoriteIds}
+            renderAction={renderAction}
+          />
         </li>
       ))}
     </ul>

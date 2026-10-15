@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { ExerciseList } from "@/components/exercises/ExerciseList";
+import { FavoriteButton } from "@/components/exercises/FavoriteButton";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
 import { ModalityTabs, type ModalityTab } from "@/components/ui/Tabs";
@@ -23,8 +24,9 @@ const PAGE = 30;
 const needsMachine = (e: ExerciseRow) => e.modality === "MACHINE" || e.modality === "CABLE";
 
 /**
- * Exercise picker sheet: tabs by modality (Free weight / Machine / Cable / Bodyweight), search across everything, recent first.
- * Built on `repo.exercises.search` and the catalog's ExerciseList. Machine and cable picks continue to the machine chooser.
+ * Exercise picker sheet: tabs by modality (Free weight / Machine / Cable / Bodyweight), search across everything, favorites then
+ * recent first. Every row has a star. Built on `repo.exercises.search` (keyword search; favorites win ties) and the catalog's
+ * ExerciseList. Machine and cable picks continue to the machine chooser.
  */
 export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exercise" }: ExercisePickerProps) {
   const [tab, setTab] = useState<ModalityTab>("FREE_WEIGHT");
@@ -37,7 +39,11 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
     () => repo.exercises.search({ text: query || undefined, modality: query ? undefined : tab, limit: limit + 1 }),
     [query, tab, limit],
   );
-  const recent = useLive(() => repo.exercises.recent(6), []);
+  const favorites = useLive(() => repo.favorites.list(), []);
+  const recentAll = useLive(() => repo.exercises.recent(12), []);
+  const favoriteIds = new Set((favorites ?? []).map((e) => e.id));
+  // Favorites already sit above: Recent shows the rest.
+  const recent = recentAll?.filter((e) => !favoriteIds.has(e.id)).slice(0, 6);
   const shown = results?.slice(0, limit);
   const more = (results?.length ?? 0) > limit;
 
@@ -68,6 +74,17 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
             />
           </label>
           {query ? <p className="wk-muted">Searching every modality.</p> : <ModalityTabs value={tab} onChange={(m) => { setTab(m); setLimit(PAGE); }} />}
+
+          {!query ? (
+            <section aria-label="Favorite exercises">
+              <h3 className="wk-picker__heading">Favorites</h3>
+              {favorites && favorites.length > 0 ? (
+                <PickList exercises={favorites} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
+              ) : favorites ? (
+                <p className="wk-muted">Star an exercise to pin it here.</p>
+              ) : null}
+            </section>
+          ) : null}
 
           {!query && recent && recent.length > 0 ? (
             <section aria-label="Recent exercises">
@@ -108,6 +125,7 @@ function PickList({ exercises, onChoose, empty }: { exercises: ExerciseRow[]; on
       exercises={exercises}
       showImages={false}
       empty={empty}
+      renderAction={(exercise) => <FavoriteButton exerciseId={exercise.id} name={exercise.name} />}
       actionsFor={(exercise) => (
         <Button variant="primary" onClick={() => onChoose(exercise)} aria-label={`Add ${exercise.name}`}>
           Add

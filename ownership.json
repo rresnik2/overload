@@ -186,6 +186,8 @@
     "tools/lighthouse/**",
     "src/lib/app-url.ts",
     "src/lib/app-url.test.ts",
+    "src/lib/search/**",
+    "e2e/favorites.spec.ts",
     "change-requests/applied/**"
   ],
   "unrestricted": ["W3", "FAV"]

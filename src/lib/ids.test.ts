@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   CATALOG_NAMESPACE,
+  FAVORITE_NAMESPACE,
   catalogExerciseId,
+  favoriteId,
   isUuid,
   isUuidV7,
   newId,
@@ -28,6 +30,21 @@ describe("ids", () => {
     expect(catalogExerciseId("Barbell_Squat")).not.toBe(catalogExerciseId("Barbell_Bench_Press_-_Medium_Grip"));
     expect(isUuid(catalogExerciseId("Barbell_Squat"))).toBe(true);
     expect(() => catalogExerciseId("")).toThrow();
+  });
+
+  it("derives deterministic favorite ids (namespace is frozen)", () => {
+    // Cross-checked against Python's uuid.uuid5. If this fails the favorite namespace changed: every existing favorite would be re-keyed.
+    expect(FAVORITE_NAMESPACE).toBe("159d5a78-5be3-5cd7-8072-f67b87bc5252");
+    expect(favoriteId("user-1", PINNED_BARBELL_SQUAT)).toBe("3b170bbb-fc8d-5451-ab92-7df1100dcdc0");
+    // same inputs -> same id (two devices converge); any change in user or exercise -> a different id
+    expect(favoriteId("user-1", PINNED_BARBELL_SQUAT)).toBe(favoriteId("user-1", PINNED_BARBELL_SQUAT));
+    expect(favoriteId("user-2", PINNED_BARBELL_SQUAT)).not.toBe(favoriteId("user-1", PINNED_BARBELL_SQUAT));
+    expect(favoriteId("user-1", catalogExerciseId("Barbell_Bench_Press_-_Medium_Grip"))).not.toBe(favoriteId("user-1", PINNED_BARBELL_SQUAT));
+    expect(isUuid(favoriteId("user-1", PINNED_BARBELL_SQUAT))).toBe(true);
+    expect(isUuidV7(favoriteId("user-1", PINNED_BARBELL_SQUAT))).toBe(false);
+    // the ":" separator keeps ("a:b", "c") and ("a", "b:c") apart only because exercise ids are UUIDs; both must at least be well formed
+    expect(() => favoriteId("", PINNED_BARBELL_SQUAT)).toThrow();
+    expect(() => favoriteId("user-1", "")).toThrow();
   });
 
   it("builds and parses series keys", () => {

@@ -25,10 +25,14 @@ export interface ExerciseCardProps {
   maxMuscles?: number;
   /** Heading level of the exercise name: 2 when the page title is the h1 above the list, 3 (default) under a section heading. */
   headingLevel?: 2 | 3;
+  /** Exercise ids the user starred. Props only: the card never reads data; `renderAction` is told whether this exercise is one. */
+  favoriteIds?: ReadonlySet<string>;
+  /** The star control (FavoriteButton), rendered in the card's top-right corner outside the link. */
+  renderAction?: (exercise: ExerciseRow, isFavorite: boolean) => ReactNode;
   className?: string;
 }
 
-export function ExerciseCard({ exercise, href, actions, showImage = true, priorityImage = false, maxMuscles = 4, headingLevel = 3, className }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, href, actions, showImage = true, priorityImage = false, maxMuscles = 4, headingLevel = 3, favoriteIds, renderAction, className }: ExerciseCardProps) {
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const image = showImage ? exercise.images[0] : undefined;
   const body = (
@@ -47,7 +51,8 @@ export function ExerciseCard({ exercise, href, actions, showImage = true, priori
     </>
   );
   return (
-    <HardCard as="article" interactive={Boolean(href)} padded={false} className={clsx("exercise-card", className)} data-exercise-id={exercise.id}>
+    <HardCard as="article" interactive={Boolean(href)} padded={false} className={clsx("exercise-card", renderAction && "exercise-card--starrable", className)} data-exercise-id={exercise.id}>
+      {renderAction ? <div className="exercise-card__star">{renderAction(exercise, favoriteIds?.has(exercise.id) ?? false)}</div> : null}
       {href ? (
         <Link href={href} className="exercise-card__link">
           {body}

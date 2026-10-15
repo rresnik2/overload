@@ -89,6 +89,7 @@ export const mutationSchema = z.discriminatedUnion("entity", [
   mutationFor("workout", ENTITY_PATCH_SCHEMAS.workout),
   mutationFor("workoutExercise", ENTITY_PATCH_SCHEMAS.workoutExercise),
   mutationFor("workoutSet", ENTITY_PATCH_SCHEMAS.workoutSet),
+  mutationFor("exerciseFavorite", ENTITY_PATCH_SCHEMAS.exerciseFavorite),
 ]);
 export type Mutation = z.infer<typeof mutationSchema>;
 

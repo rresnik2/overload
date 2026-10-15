@@ -1,7 +1,7 @@
 // Shared setup for the two-user isolation specs: users A and B in separate browser contexts, and B's data pushed through the real
 // POST /api/sync route handler (so B has one of every entity, with PRs and an insight-free history).
 import { expect, type Browser, type BrowserContext, type Page } from "@playwright/test";
-import { newId } from "@/lib/ids";
+import { favoriteId, newId } from "@/lib/ids";
 import { createUser, type Credentials } from "../_support/user";
 
 export const origin = () => new URL(process.env.E2E_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`).origin;
@@ -45,12 +45,15 @@ export const SECRET = (suffix: string) => ({
   workoutNotes: `ZZ-B-secret-notes-${suffix}`,
 });
 
-export type Ids = Record<"exercise" | "machineProfile" | "bodyMetric" | "template" | "templateExercise" | "workout" | "workoutExercise" | "workoutSet", string>;
+export type Ids = Record<"exercise" | "machineProfile" | "bodyMetric" | "template" | "templateExercise" | "workout" | "workoutExercise" | "workoutSet" | "exerciseFavorite", string>;
 
 /** One of every entity for `member`, with secret strings, through the sync route. */
 export async function seedViaSync(member: Member, suffix: string): Promise<{ ids: Ids; secrets: ReturnType<typeof SECRET> }> {
   const s = SECRET(suffix);
-  const ids: Ids = { exercise: newId(), machineProfile: newId(), bodyMetric: newId(), template: newId(), templateExercise: newId(), workout: newId(), workoutExercise: newId(), workoutSet: newId() };
+  // A favorite's id is derived from (user, exercise), so the seeding user's id is needed: ask the session endpoint.
+  const session = (await (await member.page.request.get("/api/auth/get-session")).json()) as { user: { id: string } };
+  const exercise = newId();
+  const ids: Ids = { exercise, machineProfile: newId(), bodyMetric: newId(), template: newId(), templateExercise: newId(), workout: newId(), workoutExercise: newId(), workoutSet: newId(), exerciseFavorite: favoriteId(session.user.id, exercise) };
   const today = new Date().toISOString().slice(0, 10);
   const res = await push(member.page, [
     mutation("exercise", ids.exercise, { slug: `zz-${suffix}`, name: s.exercise, modality: "FREE_WEIGHT", equipment: "BARBELL", loadType: "TOTAL" }),
@@ -61,8 +64,9 @@ export async function seedViaSync(member: Member, suffix: string): Promise<{ ids
     mutation("workout", ids.workout, { startedAt: `${today}T17:00:00.000Z`, localDate: today, timezone: "UTC", notes: s.workoutNotes }),
     mutation("workoutExercise", ids.workoutExercise, { workoutId: ids.workout, exerciseId: ids.exercise, position: "a0" }),
     mutation("workoutSet", ids.workoutSet, { workoutExerciseId: ids.workoutExercise, position: "a0", setType: "WORKING", weightKg: 100, reps: 5, rir: 0, completedAt: `${today}T17:10:00.000Z` }),
+    mutation("exerciseFavorite", ids.exerciseFavorite, { exerciseId: ids.exercise, position: "a0" }),
   ]);
   expect(res.status, JSON.stringify(res.body)).toBe(200);
-  expect((res.body as { results: { status: string; message?: string }[] }).results.map((r) => r.message ?? r.status)).toEqual(Array(8).fill("applied"));
+  expect((res.body as { results: { status: string; message?: string }[] }).results.map((r) => r.message ?? r.status)).toEqual(Array(9).fill("applied"));
   return { ids, secrets: s };
 }

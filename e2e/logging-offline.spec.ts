@@ -27,7 +27,8 @@ async function addExercise(page: Page, search: string, name: string) {
   await page.getByRole("button", { name: "Add exercise" }).first().click();
   const picker = page.getByRole("dialog");
   await picker.getByPlaceholder("Search exercises").fill(search);
-  await picker.getByRole("button", { name: `Add ${name}` }).first().click();
+  // exact: every row also has a star named "Add <name> to favorites", which a substring match would pick first
+  await picker.getByRole("button", { name: `Add ${name}`, exact: true }).first().click();
 }
 
 /** Fill and complete set `n` (1-based) of an exercise block. */

@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { MUSCLE_VALUES } from "@/contracts/enums";
 import { EQUIPMENT_LABEL, MODALITY_LABEL, MUSCLE_LABEL } from "./labels";
 import { libraryHref, toSlug, type LibraryFilters } from "./library-url";
@@ -22,6 +23,7 @@ export interface ExerciseFiltersProps {
 
 export function ExerciseFilters({ basePath, filters, tabs, equipmentOptions, className }: ExerciseFiltersProps) {
   const filtered = Boolean(filters.equipment || filters.muscle || filters.q);
+  const favoritesHref = libraryHref(basePath, filters, { fav: !filters.fav });
   return (
     <div className={clsx("exercise-filters", className)}>
       <nav aria-label="Exercise type" className="exercise-tabs">
@@ -37,8 +39,15 @@ export function ExerciseFilters({ basePath, filters, tabs, equipmentOptions, cla
           </Link>
         ))}
       </nav>
+      <div className="exercise-filters__chips">
+        <Link href={favoritesHref} className={clsx("exercise-chip", filters.fav && "exercise-chip--active")} aria-current={filters.fav ? "true" : undefined}>
+          <Star aria-hidden="true" focusable="false" strokeWidth={2.25} />
+          Favorites
+        </Link>
+      </div>
       <form method="get" action={basePath} className="exercise-filter-form" role="search">
         {filters.modality ? <input type="hidden" name="modality" value={toSlug(filters.modality)} /> : null}
+        {filters.fav ? <input type="hidden" name="fav" value="1" /> : null}
         <label className="exercise-filter-form__field exercise-filter-form__search">
           <span className="exercise-filter-form__label">Search</span>
           <input type="search" name="q" defaultValue={filters.q} placeholder="Squat, curl, row..." className="input input-bordered" autoComplete="off" />

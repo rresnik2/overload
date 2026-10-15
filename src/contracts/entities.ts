@@ -145,6 +145,27 @@ export interface MachineProfileRow extends MachineProfileFields, SyncMeta {
   id: Uuid;
 }
 
+// ───────────────────────────── ExerciseFavorite ─────────────────────────────
+
+/**
+ * A starred exercise (catalog or custom). The row id is NOT a client UUIDv7: it is favoriteId(userId, exerciseId)
+ * (src/lib/ids.ts), so two offline devices that star the same exercise write the same row and converge through the
+ * normal merge. `exerciseId` is therefore create-only in practice: changing it would change the id, and the server
+ * rejects a row whose id is not favoriteId(user, exerciseId). Unfavorite = tombstone (`deletedAt`); favoriting again
+ * is `deletedAt = null` with a newer HLC.
+ */
+export const exerciseFavoriteFieldsSchema = z.strictObject({
+  exerciseId: uuidSchema,
+  position: positionSchema,
+});
+export const exerciseFavoritePatchSchema = patchOf(exerciseFavoriteFieldsSchema);
+export type ExerciseFavoriteFields = z.output<typeof exerciseFavoriteFieldsSchema>;
+export type ExerciseFavoriteCreate = z.input<typeof exerciseFavoriteFieldsSchema>;
+export type ExerciseFavoritePatch = Partial<ExerciseFavoriteCreate>;
+export interface ExerciseFavoriteRow extends ExerciseFavoriteFields, SyncMeta {
+  id: Uuid;
+}
+
 // ───────────────────────────── BodyMetric ─────────────────────────────
 
 export const bodyMetricFieldsSchema = z.strictObject({
@@ -338,7 +359,7 @@ export interface ProfileRow {
 
 // ───────────────────────────── entity registry (used by sync + repo) ─────────────────────────────
 
-/** The 8 synced entities. Order = a valid dependency order (parents before children); see SYNC_ORDER. */
+/** The 9 synced entities. Order = a valid dependency order (parents before children); see SYNC_ORDER. */
 export const ENTITY_NAMES = [
   "exercise",
   "machineProfile",
@@ -348,6 +369,7 @@ export const ENTITY_NAMES = [
   "workout",
   "workoutExercise",
   "workoutSet",
+  "exerciseFavorite",
 ] as const;
 export type EntityName = (typeof ENTITY_NAMES)[number];
 export const SYNC_ORDER: readonly EntityName[] = ENTITY_NAMES;
@@ -361,6 +383,7 @@ export interface EntityTypeMap {
   workout: { row: WorkoutRow; create: WorkoutCreate; patch: WorkoutPatch };
   workoutExercise: { row: WorkoutExerciseRow; create: WorkoutExerciseCreate; patch: WorkoutExercisePatch };
   workoutSet: { row: WorkoutSetRow; create: WorkoutSetCreate; patch: WorkoutSetPatch };
+  exerciseFavorite: { row: ExerciseFavoriteRow; create: ExerciseFavoriteCreate; patch: ExerciseFavoritePatch };
 }
 
 /** Full-field (Create) schemas by entity: validates a brand-new row's writable fields. */
@@ -373,6 +396,7 @@ export const ENTITY_FIELDS_SCHEMAS = {
   workout: workoutFieldsSchema,
   workoutExercise: workoutExerciseFieldsSchema,
   workoutSet: workoutSetFieldsSchema,
+  exerciseFavorite: exerciseFavoriteFieldsSchema,
 } as const;
 
 /** Partial (Patch) schemas by entity: validates a mutation against an existing row. */
@@ -385,6 +409,7 @@ export const ENTITY_PATCH_SCHEMAS = {
   workout: workoutPatchSchema,
   workoutExercise: workoutExercisePatchSchema,
   workoutSet: workoutSetPatchSchema,
+  exerciseFavorite: exerciseFavoritePatchSchema,
 } as const;
 
 /** Writable field names per entity (the keys of the Fields schema). `deletedAt` is additionally writable on every entity. */
@@ -397,6 +422,7 @@ export const ENTITY_WRITABLE_FIELDS: { [E in EntityName]: readonly string[] } = 
   workout: Object.keys(workoutFieldsSchema.shape),
   workoutExercise: Object.keys(workoutExerciseFieldsSchema.shape),
   workoutSet: Object.keys(workoutSetFieldsSchema.shape),
+  exerciseFavorite: Object.keys(exerciseFavoriteFieldsSchema.shape),
 };
 
 /** Foreign references the server must validate (same owner, not hard-missing) before applying a mutation. */
@@ -422,6 +448,7 @@ export const ENTITY_REFS: { [E in EntityName]: readonly EntityRef[] } = {
     { field: "machineProfileId", entity: "machineProfile", required: false },
   ],
   workoutSet: [{ field: "workoutExerciseId", entity: "workoutExercise", required: true }],
+  exerciseFavorite: [{ field: "exerciseId", entity: "exercise", required: true }],
 };
 
 /** WorkoutSet columns the server derives; they must never be writable (see WorkoutSetDerived). */

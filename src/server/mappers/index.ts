@@ -4,6 +4,7 @@
 import type {
   BodyMetric,
   Exercise,
+  ExerciseFavorite,
   ExerciseMuscle,
   MachineProfile,
   PersonalRecord,
@@ -16,6 +17,7 @@ import type {
 } from "@/generated/prisma/client";
 import type {
   BodyMetricRow,
+  ExerciseFavoriteRow,
   ExerciseRow,
   MachineProfileRow,
   PersonalRecordRow,
@@ -109,6 +111,10 @@ export function machineProfileToRow(row: MachineProfile): MachineProfileRow {
     notes: row.notes,
     ...syncMeta(row),
   };
+}
+
+export function exerciseFavoriteToRow(row: ExerciseFavorite): ExerciseFavoriteRow {
+  return { id: row.id, exerciseId: row.exerciseId, position: row.position, ...syncMeta(row) };
 }
 
 export function bodyMetricToRow(row: BodyMetric): BodyMetricRow {
