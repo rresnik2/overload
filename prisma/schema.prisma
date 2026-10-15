@@ -322,6 +322,9 @@ model MachineProfile {
   labelUnit  WeightUnit?
   pinStepKg  Decimal?    @db.Decimal(6, 3)
   baseLoadKg Decimal?    @db.Decimal(6, 2)
+  /// Plate weights (kg) the gym owns, for bar and plate-loaded profiles. Empty means the standard set for the unit
+  /// (the wire value is null; Prisma scalar lists cannot be null).
+  platesKg   Decimal[]   @db.Decimal(6, 2)
   notes      String?
 
   // sync mixin

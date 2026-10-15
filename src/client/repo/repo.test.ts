@@ -151,6 +151,24 @@ describe("derived set columns, cascades and queries", () => {
     expect((await repo.sets.get(legSet.id))?.effectiveLoadKg).toBe(220);
   });
 
+  it("a machine profile's platesKg list is stamped, queued as one field, replaced whole and clearable", async () => {
+    const { repo } = fresh();
+    const bar = await repo.machineProfiles.create({ name: "Home bar", baseLoadKg: 15, platesKg: [20, 10, 5, 2.5] });
+    expect(bar.platesKg).toEqual([20, 10, 5, 2.5]);
+    expect(bar.fieldHlc.platesKg).toMatch(HLC_REGEX);
+    expect((await repo.machineProfiles.create({ name: "No inventory" })).platesKg).toBeNull();
+
+    await repo.machineProfiles.update(bar.id, { platesKg: [25, 20, 10, 5, 2.5, 1.25] });
+    expect((await repo.machineProfiles.get(bar.id))?.platesKg).toEqual([25, 20, 10, 5, 2.5, 1.25]);
+    await repo.machineProfiles.update(bar.id, { platesKg: null });
+    expect((await repo.machineProfiles.get(bar.id))?.platesKg).toBeNull();
+
+    const queued = (await outbox()).filter((q) => q.entity === "machineProfile" && q.id === bar.id);
+    expect(queued.at(-2)?.fields).toEqual({ platesKg: [25, 20, 10, 5, 2.5, 1.25] });
+    expect(queued.at(-1)?.fields).toEqual({ platesKg: null });
+    await rejects(repo.machineProfiles.update(bar.id, { platesKg: [500] }), "INVALID");
+  });
+
   it("deleting a workout tombstones its exercises and sets (and queues those tombstones); a template takes its exercises", async () => {
     const { repo } = fresh();
     const { workout, we } = await seedWorkout(repo);

@@ -512,3 +512,54 @@ describe("exerciseFavorite", () => {
     expect(await prisma.exercise.count({ where: { id: custom } })).toBe(0); // collected in the same pass, after the favorite
   });
 });
+
+describe("machineProfile.platesKg (plate inventory)", () => {
+  it("round-trips an array field through apply and pull, and treats null as the empty list", async () => {
+    const dev = new FakeDevice(ctxB, "devBplates");
+    const id = newId();
+    const bare = newId();
+    const plates = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5];
+
+    const pushed = await dev.push(
+      [
+        dev.mutation("machineProfile", id, { name: "Home bar", baseLoadKg: 15, platesKg: plates }),
+        dev.mutation("machineProfile", bare, { name: "No inventory" }),
+      ],
+      0,
+    );
+    expect(statuses(pushed)).toEqual(["applied", "applied"]);
+    expect(rowOf(pushed, "machineProfile", id)).toMatchObject({ baseLoadKg: 15, platesKg: plates });
+    expect(rowOf(pushed, "machineProfile", bare)).toMatchObject({ platesKg: null });
+
+    const stored = await prisma.machineProfile.findUniqueOrThrow({ where: { id } });
+    expect(stored.platesKg.map((d) => d.toNumber())).toEqual(plates);
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id: bare } })).platesKg).toEqual([]);
+
+    // A second device pulling from scratch sees the same wire rows.
+    const pulled = await pullChanges(ctxB, 0);
+    const byId = new Map((pulled.changes.machineProfile as unknown as { id: string; platesKg: number[] | null }[]).map((r) => [r.id, r]));
+    expect(byId.get(id)?.platesKg).toEqual(plates);
+    expect(byId.get(bare)?.platesKg).toBeNull();
+  });
+
+  it("merges platesKg per field by HLC: a newer replacement wins, a stale one is a noop, null clears it", async () => {
+    const dev = new FakeDevice(ctxB, "devBplates2");
+    const other = new FakeDevice(ctxB, "devBplates3");
+    const id = newId();
+    await dev.push([dev.mutation("machineProfile", id, { name: "Gym bar", platesKg: [20, 10, 5] })], 0);
+
+    const staleHlc = other.clock.tick();
+    const newer = await dev.push([dev.mutation("machineProfile", id, { platesKg: [25, 20, 10, 5, 2.5] })], 0);
+    expect(statuses(newer)).toEqual(["applied"]);
+    expect(rowOf(newer, "machineProfile", id)).toMatchObject({ platesKg: [25, 20, 10, 5, 2.5] });
+
+    const stale = await other.push([other.mutation("machineProfile", id, { platesKg: [1.25] }, staleHlc)], 0);
+    expect(statuses(stale)).toEqual(["noop"]);
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id } })).platesKg.map((d) => d.toNumber())).toEqual([25, 20, 10, 5, 2.5]);
+
+    const cleared = await dev.push([dev.mutation("machineProfile", id, { platesKg: null })], 0);
+    expect(statuses(cleared)).toEqual(["applied"]);
+    expect(rowOf(cleared, "machineProfile", id)).toMatchObject({ platesKg: null });
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id } })).platesKg).toEqual([]);
+  });
+});

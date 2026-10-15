@@ -110,9 +110,12 @@ describe("mappers", () => {
   it("maps machine profile, body metric, workout, PR and profile without leaking Decimals", () => {
     const machine: MachineProfile = {
       id: FIXTURE_IDS.machineProfile, userId: "u", name: "Leg press", gymName: null, brand: null, exerciseId: null,
-      labelUnit: "LB", pinStepKg: D("2.268"), baseLoadKg: D("50.00"), notes: null, ...sync,
+      labelUnit: "LB", pinStepKg: D("2.268"), baseLoadKg: D("50.00"), platesKg: [], notes: null, ...sync,
     };
-    expect(machineProfileToRow(machine)).toMatchObject({ pinStepKg: 2.268, baseLoadKg: 50 });
+    expect(machineProfileToRow(machine)).toMatchObject({ pinStepKg: 2.268, baseLoadKg: 50, platesKg: null });
+    const plated = machineProfileToRow({ ...machine, platesKg: [D("25"), D("1.25"), D("0.50")] });
+    assertPlain(plated);
+    expect(plated.platesKg).toEqual([25, 1.25, 0.5]);
 
     const body: BodyMetric = {
       id: FIXTURE_IDS.bodyMetric, userId: "u", measuredAt: when, localDate: new Date("2026-10-12T00:00:00.000Z"),

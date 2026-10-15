@@ -108,6 +108,8 @@ export function machineProfileToRow(row: MachineProfile): MachineProfileRow {
     labelUnit: row.labelUnit,
     pinStepKg: num(row.pinStepKg),
     baseLoadKg: num(row.baseLoadKg),
+    // A Prisma scalar list is never null: an empty list is the wire's null ("standard set").
+    platesKg: row.platesKg.length > 0 ? row.platesKg.map(numRequired) : null,
     notes: row.notes,
     ...syncMeta(row),
   };
