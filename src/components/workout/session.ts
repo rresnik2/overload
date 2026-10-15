@@ -40,7 +40,7 @@ export function shownWeight(kg: number | null, unit: WeightUnit): number | null 
 
 // ───────────────────────────── "last time" ghosts ─────────────────────────────
 
-type GhostSource = Pick<WorkoutSetRow, "weightKg" | "reps" | "inputUnit" | "durationSec" | "distanceM" | "rir">;
+type GhostSource = Pick<WorkoutSetRow, "weightKg" | "reps" | "inputUnit" | "durationSec" | "distanceM">;
 
 /** The set of the previous session this one lines up with: the n-th warm-up for the n-th warm-up, the n-th other set for the rest. */
 export function ghostSet(last: LastTimeEntry | undefined, sets: WorkoutSetRow[], set: WorkoutSetRow): GhostSource | null {

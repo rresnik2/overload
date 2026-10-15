@@ -144,9 +144,9 @@ describe("completing and finishing", () => {
 
     const blank = await repo.sets.create({ workoutExerciseId: we.id, position: "zz" });
     expect(completionPatch(blank, bench, null, new Date())).toEqual({ ok: false, error: "Enter the reps first." });
-    const filled = completionPatch(blank, bench, { weightKg: 80, reps: 8, inputUnit: "KG", durationSec: null, distanceM: null, rir: null }, at("2026-10-12T17:05:00.000Z"));
+    const filled = completionPatch(blank, bench, { weightKg: 80, reps: 8, inputUnit: "KG", durationSec: null, distanceM: null }, at("2026-10-12T17:05:00.000Z"));
     expect(filled).toEqual({ ok: true, patch: { completedAt: "2026-10-12T17:05:00.000Z", reps: 8, weightKg: 80, inputUnit: "KG" } });
-    const bw = completionPatch(blank, { tracking: "LOAD_REPS", loadType: "BODYWEIGHT_PLUS" }, { weightKg: null, reps: 5, inputUnit: null, durationSec: null, distanceM: null, rir: null }, new Date());
+    const bw = completionPatch(blank, { tracking: "LOAD_REPS", loadType: "BODYWEIGHT_PLUS" }, { weightKg: null, reps: 5, inputUnit: null, durationSec: null, distanceM: null }, new Date());
     expect(bw).toMatchObject({ ok: true, patch: { weightKg: 0, reps: 5 } });
 
     const [first] = await repo.sets.forWorkoutExercise(we.id);
