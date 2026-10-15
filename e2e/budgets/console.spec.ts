@@ -38,7 +38,7 @@ test("key screens log no console errors and keep the chosen theme through hydrat
   for (const path of ["/", "/sign-in", "/sign-up", "/forgot-password", "/learn"]) {
     await page.goto(path);
     await expect(page.locator("main").first()).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator("html"), `theme on ${path}`).toHaveAttribute("data-theme", "overload-paper");
+    await expect(page.locator("html"), `theme on ${path}`).toHaveAttribute("data-theme", "overload-daylight");
   }
 
   await signInDemo(page);
@@ -46,7 +46,7 @@ test("key screens log no console errors and keep the chosen theme through hydrat
     await page.goto(path);
     await expect(page.locator("main").first()).toBeVisible({ timeout: 45_000 });
     await page.waitForLoadState("networkidle").catch(() => undefined);
-    await expect(page.locator("html"), `theme on ${path}`).toHaveAttribute("data-theme", "overload-paper");
+    await expect(page.locator("html"), `theme on ${path}`).toHaveAttribute("data-theme", "overload-daylight");
   }
   expect(problems).toEqual([]);
 });

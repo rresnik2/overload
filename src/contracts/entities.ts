@@ -135,6 +135,8 @@ export const machineProfileFieldsSchema = z.strictObject({
   labelUnit: weightUnitSchema.nullable().default(null),
   pinStepKg: optNum(0, 100),
   baseLoadKg: optNum(0, 500),
+  /** Plate weights (kg) the gym owns; null = the standard set for the unit. */
+  platesKg: z.array(z.number().min(0).max(100)).max(20).nullable().default(null),
   notes: optText(),
 });
 export const machineProfilePatchSchema = patchOf(machineProfileFieldsSchema);

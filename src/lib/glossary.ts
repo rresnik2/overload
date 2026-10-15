@@ -152,6 +152,18 @@ const entries = {
     short: "Pick the machine you're using, or add one. Progress is tracked per machine so numbers are only compared like with like.",
     learn: "machine-vs-free-weight",
   },
+  weightDial: {
+    term: "Weight dial",
+    short: "Turn the plate to change the weight one step at a time, or tap the number to type an exact weight. Each click is one step for this equipment.",
+  },
+  barProfile: {
+    term: "Bar weight",
+    short: "What your bar weighs when it's empty, like 15 kg for a training bar. Overload adds it to the plates you load, so the total is right.",
+  },
+  plateInventory: {
+    term: "Plates you have",
+    short: "The plate sizes your gym has. The dial only offers weights you can build with them, so without 1.25 kg plates it moves in 5 kg steps.",
+  },
 
   // ───────────── progress
   e1rm: {

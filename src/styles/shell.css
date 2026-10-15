@@ -11,10 +11,10 @@
     --backdrop-veil: 62%;
   }
 }
-[data-theme="overload-ink"] {
+[data-theme="overload-floor"] {
   --backdrop-veil: 62%;
 }
-[data-theme="overload-paper"] {
+[data-theme="overload-daylight"] {
   --backdrop-veil: 0%;
 }
 @media (max-width: 767px) {

@@ -98,6 +98,11 @@ const DATE_FIELDS: Partial<Record<EntityName, readonly string[]>> = {
   workout: ["localDate"],
 };
 
+/** Wire fields stored as Prisma scalar lists: a list column cannot be null, so the wire's null is the empty list. */
+const LIST_FIELDS: Partial<Record<EntityName, readonly string[]>> = {
+  machineProfile: ["platesKg"],
+};
+
 /** The merge-state values of a row: its writable fields plus `deletedAt` (in wire form). */
 export function rowValues(entity: EntityName, row: WireRow): FieldValues {
   const out: FieldValues = {};
@@ -109,10 +114,12 @@ export function rowValues(entity: EntityName, row: WireRow): FieldValues {
 export function toDbData(entity: EntityName, values: FieldValues): Record<string, unknown> {
   const instants = INSTANT_FIELDS[entity] ?? [];
   const dates = DATE_FIELDS[entity] ?? [];
+  const lists = LIST_FIELDS[entity] ?? [];
   const data: Record<string, unknown> = {};
   for (const [field, value] of Object.entries(values)) {
     if (field === "muscles") continue;
-    if (value == null) data[field] = null;
+    if (lists.includes(field)) data[field] = Array.isArray(value) ? value : [];
+    else if (value == null) data[field] = null;
     else if (field === "deletedAt" || instants.includes(field)) data[field] = new Date(value as string);
     else if (dates.includes(field)) data[field] = localDateToDate(value as string);
     else data[field] = value;

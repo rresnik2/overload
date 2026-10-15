@@ -2,12 +2,14 @@
 // Stored value: "paper" | "ink" | absent (absent = follow prefers-color-scheme; installed PWAs default to ink: the gym default).
 export const THEME_STORAGE_KEY = "overload-theme";
 
-export const THEME_NAMES = { paper: "overload-paper", ink: "overload-ink" } as const;
+// The keys are the stored values from before the Calibrated Dial rename ("paper" = light, "ink" = dark); they stay so
+// choices already saved in localStorage keep working. The daisyUI theme names are the new ones.
+export const THEME_NAMES = { paper: "overload-daylight", ink: "overload-floor" } as const;
 export type ThemeChoice = keyof typeof THEME_NAMES; // stored in localStorage
 export type ThemeName = (typeof THEME_NAMES)[ThemeChoice]; // daisyUI data-theme value
 
 /** `<meta name="theme-color">` per theme (matches base-100). */
-export const THEME_COLORS = { paper: "#F4F2ED", ink: "#1C1B19" } as const;
+export const THEME_COLORS = { paper: "#F2F2EF", ink: "#16181A" } as const;
 
 /**
  * Runs synchronously in <head> (the <html> element carries suppressHydrationWarning).

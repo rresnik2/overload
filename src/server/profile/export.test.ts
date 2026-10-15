@@ -21,7 +21,7 @@ const source = {
     e1rmFormula: "EPLEY", timezone: "UTC", defaultRestSec: 120, insightsEnabled: true, onboardedAt: at, createdAt: at, updatedAt: at,
   },
   customExercises: [],
-  machineProfiles: [{ id: "m1", userId: "user-1", name: "Leg press", gymName: null, brand: null, exerciseId: null, labelUnit: null, pinStepKg: dec(5), baseLoadKg: dec(0), notes: null, ...sync }],
+  machineProfiles: [{ id: "m1", userId: "user-1", name: "Leg press", gymName: null, brand: null, exerciseId: null, labelUnit: null, pinStepKg: dec(5), baseLoadKg: dec(0), platesKg: [], notes: null, ...sync }],
   exerciseFavorites: [{ id: "f1", userId: "user-1", exerciseId: "e1", position: "a0", ...sync }],
   bodyMetrics: [
     {
