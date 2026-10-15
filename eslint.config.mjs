@@ -59,6 +59,7 @@ export default defineConfig([
   ...nextVitals,
   ...nextTs,
   globalIgnores([
+    ".claude/**", // the app's per-session git worktrees live here; each one is linted in its own checkout
     ".next/**",
     "out/**",
     "build/**",

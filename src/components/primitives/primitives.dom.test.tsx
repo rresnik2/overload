@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { EmptyState } from "./EmptyState";
@@ -41,7 +42,7 @@ describe("SectionHeader", () => {
   });
 
   it("omits the index and supports other levels and an actions slot", () => {
-    const { container } = render(<SectionHeader as="h3" title="Recent" actions={<a href="/history">All</a>} />);
+    const { container } = render(<SectionHeader as="h3" title="Recent" actions={<Link href="/history">All</Link>} />);
     expect(screen.getByRole("heading", { level: 3, name: "Recent" })).toBeInTheDocument();
     expect(container.querySelector(".section-header__index")).toBeNull();
     expect(screen.getByRole("link", { name: "All" })).toBeInTheDocument();
