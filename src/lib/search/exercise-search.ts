@@ -4,8 +4,9 @@
 // Matching. The query is normalized (lowercase, accents and punctuation stripped, hyphens and slashes become spaces) and
 // split into words. EVERY word must match something on the exercise (AND). A word matches, by word-prefix, in:
 //   name words > alias words (and slug) > primary-muscle words > equipment / modality words > secondary-muscle words.
-// Gym abbreviations expand first ("db" -> dumbbell, "ohp" -> overhead press | military press, "pecs" -> chest, ...); a
-// multi-word expansion matches when all of its words are found in one field. Plural query words fold to the singular
+// Gym abbreviations expand first ("db" -> dumbbell, "ohp" -> overhead press | military press); muscle nicknames ("pecs",
+// "hams", "quads", ...) expand to the muscle and match muscles only, never a name word ("pecs" skips "One Knee To Chest").
+// A multi-word expansion matches when all of its words are found in one field. Plural query words fold to the singular
 // ("curls" = "curl", "presses" = "press"; words of three letters or fewer, like "abs", never fold). A word of 5+ letters
 // with no exact/prefix hit anywhere on the exercise may match with one typo (Damerau-Levenshtein <= 1) at the lowest tier.
 //
