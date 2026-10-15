@@ -87,7 +87,7 @@ export function PaletteSample() {
         </text>
       </svg>
       <figcaption className="sg-note">
-        Free weight = vermilion, machine = graphite (dashed, square markers), cable = slate blue, bodyweight = ochre. Forecast is dashed with the 80% band at 12% and the 50% band at 22% opacity. PRs are filled stars. Identity is never colour alone: marker shape, dash and direct labels back every series.
+        Free weight = plate blue, machine = steel (dashed, square markers), cable = plate green, bodyweight = plate yellow. Forecast is dashed with the 80% band at 12% and the 50% band at 22% opacity. PRs are filled stars. Identity is never colour alone: marker shape, dash and direct labels back every series.
       </figcaption>
     </figure>
   );

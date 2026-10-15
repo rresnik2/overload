@@ -34,7 +34,7 @@ export function weightText(kg: number, unit: WeightUnit, maxDecimals = 1): strin
 
 export const unitLabel = (unit: WeightUnit): string => (unit === "LB" ? "lb" : "kg");
 
-/** Series colour by modality: free weight = vermilion, machine = graphite, cable = slate blue, bodyweight = ochre. */
+/** Series colour by modality: free weight = plate blue, machine = steel, cable = plate green, bodyweight = plate yellow. */
 export function modalityColor(modality: Modality): string {
   switch (modality) {
     case "FREE_WEIGHT":

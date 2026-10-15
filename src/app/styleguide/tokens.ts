@@ -60,23 +60,23 @@ export const COLORS: Record<ThemeKey, Record<string, string>> = {
   },
 };
 
-/** Data-viz palette (previous values under the new theme names until stream RESTYLE re-validates it; see theme.css). */
+/** Data-viz palette: validated with the dataviz skill on the base-200 panel (see the comment in theme.css). */
 export const CHART: Record<ThemeKey, Record<string, string>> = {
   paper: {
-    "chart-free-weight": "#e4402b",
-    "chart-machine": "#555350",
-    "chart-cable": "#4a7fb8",
-    "chart-bodyweight": "#a8730a",
-    "chart-forecast": "#6b6862",
-    "chart-pr": "#e4402b",
+    "chart-free-weight": "#2556c4",
+    "chart-machine": "#454a50",
+    "chart-cable": "#1f7a3c",
+    "chart-bodyweight": "#a67c00",
+    "chart-forecast": "#6b7279",
+    "chart-pr": "#c21f26",
   },
   ink: {
-    "chart-free-weight": "#e8573f",
-    "chart-machine": "#8a867f",
-    "chart-cable": "#4f8fe0",
-    "chart-bodyweight": "#c28410",
-    "chart-forecast": "#a8a49a",
-    "chart-pr": "#f26a55",
+    "chart-free-weight": "#3a6ee0",
+    "chart-machine": "#b5babf",
+    "chart-cable": "#2f9a4f",
+    "chart-bodyweight": "#efbd2a",
+    "chart-forecast": "#8c9196",
+    "chart-pr": "#ff5a52",
   },
 };
 
