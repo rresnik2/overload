@@ -90,7 +90,7 @@ test("the star works on the exercise detail page and survives a reload (aria-pre
   await createUser(page, { tag: "favdetail", name: "Fav Detail" });
   await page.goto("/exercises?q=leg+press");
   await expect(page.locator('.sync-pip[data-state="idle"]')).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("link", { name: LEG_PRESS, exact: true }).first().click();
+  await page.getByRole("link").filter({ has: page.getByRole("heading", { name: LEG_PRESS, exact: true }) }).first().click(); // the card link wraps the photo, tags and name
   await expect(page.getByRole("heading", { name: LEG_PRESS, level: 1 })).toBeVisible({ timeout: 30_000 });
   const star = page.getByRole("button", { name: `Add ${LEG_PRESS} to favorites`, exact: true });
   await expect(star).toHaveAttribute("aria-pressed", "false");
@@ -139,7 +139,7 @@ for (const theme of ["paper", "ink"] as const) {
 
     // detail
     await page.goto("/exercises?q=leg+press");
-    await page.getByRole("link", { name: LEG_PRESS, exact: true }).first().click();
+    await page.getByRole("link").filter({ has: page.getByRole("heading", { name: LEG_PRESS, exact: true }) }).first().click(); // the card link wraps the photo, tags and name
     await expect(page.getByRole("heading", { name: LEG_PRESS, level: 1 })).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("button", { name: /to favorites$|from favorites$/ })).toBeVisible();
     await audit("/exercises/[id]");

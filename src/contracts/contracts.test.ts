@@ -119,7 +119,9 @@ describe("entity schemas", () => {
     expect(profileUpdateSchema.safeParse({ heightCm: 5 }).success).toBe(false);
   });
 
-  it("registry is consistent: sync order, refs and schemas cover the 8 entities", () => {
+  it("registry is consistent: sync order, refs and schemas cover the 9 entities", () => {
+    expect(ENTITY_NAMES).toHaveLength(9);
+    expect(ENTITY_NAMES).toContain("exerciseFavorite");
     expect(SYNC_ORDER).toEqual([...ENTITY_NAMES]);
     expect(Object.keys(ENTITY_FIELDS_SCHEMAS).sort()).toEqual([...ENTITY_NAMES].sort());
     // every reference points at an entity that is synced BEFORE it (parents first) and at a real writable field
@@ -129,6 +131,35 @@ describe("entity schemas", () => {
         expect(ENTITY_WRITABLE_FIELDS[name]).toContain(ref.field);
       }
     }
+  });
+});
+
+describe("exerciseFavorite contract", () => {
+  const exerciseId = "83a024cb-efa6-5b1b-8cef-e115a267bd5b";
+
+  it("writable fields are exerciseId and position (plus deletedAt on the wire); everything else is rejected, not stripped", () => {
+    expect(ENTITY_WRITABLE_FIELDS.exerciseFavorite).toEqual(["exerciseId", "position"]);
+    expect(ENTITY_FIELDS_SCHEMAS.exerciseFavorite.safeParse({ exerciseId, position: "a0" }).success).toBe(true);
+    expect(ENTITY_FIELDS_SCHEMAS.exerciseFavorite.safeParse({ position: "a0" }).success).toBe(false); // exerciseId is required on create
+    for (const forbidden of ["userId", "version", "hlc", "fieldHlc", "id", "deletedAt"]) {
+      expect(ENTITY_FIELDS_SCHEMAS.exerciseFavorite.safeParse({ exerciseId, position: "a0", [forbidden]: "x" }).success, forbidden).toBe(false);
+    }
+    expect(ENTITY_PATCH_SCHEMAS.exerciseFavorite.safeParse({ position: "a1" }).success).toBe(true);
+    expect(ENTITY_PATCH_SCHEMAS.exerciseFavorite.safeParse({ userId: "x" }).success).toBe(false);
+  });
+
+  it("references the exercise (catalog or custom) as a required parent", () => {
+    expect(ENTITY_REFS.exerciseFavorite).toEqual([{ field: "exerciseId", entity: "exercise", required: true }]);
+  });
+
+  it("is a valid mutation (create, unstar, restore) and appears in SyncChanges", () => {
+    const base = { mutationId: "0192a5b0-0005-7000-8000-000000000001", entity: "exerciseFavorite", id: "3b170bbb-fc8d-5451-ab92-7df1100dcdc0" };
+    const create = { ...base, fields: { exerciseId, position: "a0" }, fieldHlc: { exerciseId: FIXTURE_HLC, position: FIXTURE_HLC } };
+    expect(mutationSchema.safeParse(create).success).toBe(true);
+    expect(mutationSchema.safeParse({ ...base, fields: { deletedAt: "2026-10-15T10:00:00.000Z" }, fieldHlc: { deletedAt: FIXTURE_HLC } }).success).toBe(true);
+    expect(mutationSchema.safeParse({ ...base, fields: { deletedAt: null }, fieldHlc: { deletedAt: FIXTURE_HLC } }).success).toBe(true);
+    expect(mutationSchema.safeParse({ ...create, fields: { ...create.fields, userId: "u" }, fieldHlc: { ...create.fieldHlc, userId: FIXTURE_HLC } }).success).toBe(false);
+    expect(emptyChanges().exerciseFavorite).toEqual([]);
   });
 });
 
