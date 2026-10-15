@@ -37,7 +37,8 @@ export function PrBoardView({ board, unit }: { board: PrBoard; unit: WeightUnit 
         </section>
       ) : null}
 
-      <div className="pr-grid">
+      <h2 id="pr-by-lift" className="progress-subhead pr-by-lift">By exercise</h2>
+      <div className="pr-grid" aria-labelledby="pr-by-lift" role="group">
         {board.series.map((b) => (
           <HardCard as="article" key={b.seriesKey} className="pr-card" aria-labelledby={`pr-${b.seriesKey}`}>
             <h3 id={`pr-${b.seriesKey}`} className="pr-card__name">

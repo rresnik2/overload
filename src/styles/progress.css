@@ -502,11 +502,13 @@
   font-size: 0.85rem;
   color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
 }
+.pr-by-lift {
+  margin-top: 2rem;
+}
 .pr-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
   gap: 1.5rem;
-  margin-top: 2rem;
 }
 .pr-card__name {
   margin: 0;
