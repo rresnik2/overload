@@ -1,5 +1,5 @@
 "use client";
-import { ArrowDown, ArrowUp, Play, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Play, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -11,7 +11,7 @@ import { Modal } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
 import type { TemplateRow } from "@/contracts/entities";
 import { useWorkoutPrefs } from "@/components/workout/prefs";
-import { movedPosition, startWorkout, templatePositionAfter } from "@/components/workout/session";
+import { duplicateTemplate, movedPosition, startWorkout, templatePositionAfter } from "@/components/workout/session";
 
 const byPosition = (a: { position: string }, b: { position: string }) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0);
 
@@ -47,6 +47,15 @@ export function TemplatesView() {
       router.push("/workout");
     } catch (e) {
       toast({ kind: "error", title: "Could not start the workout", description: e instanceof Error ? e.message : undefined });
+    }
+  };
+
+  const duplicate = async (t: TemplateRow) => {
+    try {
+      const copy = await duplicateTemplate(repo, t.id);
+      toast({ kind: "success", title: "Template duplicated", description: copy.name, action: { label: "Edit", onClick: () => router.push(`/templates/${copy.id}`) } });
+    } catch (e) {
+      toast({ kind: "error", title: "Could not duplicate the template", description: e instanceof Error ? e.message : undefined });
     }
   };
 
@@ -112,8 +121,11 @@ export function TemplatesView() {
                       <Button icon={<Play size={18} />} disabled={Boolean(active)} onClick={() => void start(t)} aria-label={`Start ${t.name}`}>
                         Start
                       </Button>
-                      <Button variant="ghost" onClick={() => router.push(`/templates/${t.id}`)}>
+                      <Button variant="ghost" onClick={() => router.push(`/templates/${t.id}`)} aria-label={`Edit ${t.name}`}>
                         Edit
+                      </Button>
+                      <Button variant="ghost" icon={<Copy size={18} />} onClick={() => void duplicate(t)} aria-label={`Duplicate ${t.name}`}>
+                        Duplicate
                       </Button>
                       <button type="button" className="wk-icon-btn" aria-label={`Delete ${t.name}`} onClick={() => setDeleting(t)}>
                         <Trash2 size={18} aria-hidden="true" />

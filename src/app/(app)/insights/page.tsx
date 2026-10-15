@@ -5,6 +5,7 @@ import { RegenerateButton } from "@/components/insights/RegenerateButton";
 import { ReportView } from "@/components/insights/ReportView";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { PageIntro } from "@/components/ui/PageIntro";
 import { requireUser } from "@/server/auth/session";
 import { MAX_ON_DEMAND_PER_WEEK } from "@/server/insights/constants";
 import { loadInsightsOverview } from "@/server/insights/current";
@@ -26,6 +27,9 @@ export default async function InsightsPage() {
         description="What last week's training says, from your logged sets. Findings come from fixed rules with cited evidence; the written review is generated from the same numbers."
         actions={<RegenerateButton remaining={remaining} max={MAX_ON_DEMAND_PER_WEEK} label={current?.narrative ? "Regenerate review" : "Write this week's review"} />}
       />
+      <PageIntro id="insights">
+        Each week Overload checks your logged sets against a few evidence-based rules. Open a finding to see the numbers behind it and its sources.
+      </PageIntro>
       <ReportView facts={facts} report={current} />
       {current?.generatedAt ? (
         <p className="report__meta num">

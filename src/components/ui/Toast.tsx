@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { CircleAlert, CircleCheck, Info, Star, X } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { InfoHint } from "./InfoHint";
 
 export type ToastKind = "info" | "success" | "pr" | "error";
 
@@ -66,7 +67,10 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
     >
       <Icon className="toast__icon" size={20} aria-hidden="true" fill={kind === "pr" ? "currentColor" : "none"} strokeWidth={kind === "pr" ? 0 : 2} />
       <div className="toast__text">
-        <p className="toast__title">{item.title}</p>
+        <p className="toast__title">
+          {item.title}
+          {kind === "pr" ? <InfoHint term="personalRecord" /> : null}
+        </p>
         {item.description ? <p className="toast__description">{item.description}</p> : null}
       </div>
       {item.action ? (

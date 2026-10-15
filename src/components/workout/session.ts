@@ -283,6 +283,55 @@ export async function saveWorkoutAsTemplate(repo: Repo, workoutId: string, name:
   });
 }
 
+/** A copy of a template (name + " (copy)", same folder, last in the list) with all of its exercises. */
+export async function duplicateTemplate(repo: Repo, templateId: string): Promise<TemplateRow> {
+  return repo.transact(async (tx) => {
+    const source = await tx.templates.get(templateId);
+    if (!source) throw new Error("That template no longer exists.");
+    const existing = (await tx.templates.list()).sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0));
+    const suffix = " (copy)";
+    const copy = await tx.templates.create({
+      name: `${source.name.slice(0, 120 - suffix.length)}${suffix}`,
+      folder: source.folder,
+      notes: source.notes,
+      position: keyAfter(existing),
+    });
+    for (const te of await tx.templates.exercisesOf(templateId)) {
+      await tx.templateExercises.create({
+        templateId: copy.id,
+        exerciseId: te.exerciseId,
+        machineProfileId: te.machineProfileId,
+        position: te.position,
+        warmupSets: te.warmupSets,
+        workingSets: te.workingSets,
+        repMin: te.repMin,
+        repMax: te.repMax,
+        targetRir: te.targetRir,
+        restSec: te.restSec,
+        supersetKey: te.supersetKey,
+        notes: te.notes,
+      });
+    }
+    return copy;
+  });
+}
+
+/** Templates most recently started first (by the newest workout that used each), then the never-used ones in their own order. */
+export function templatesByRecentUse<T extends Pick<TemplateRow, "id" | "position">>(templates: T[], workouts: Pick<WorkoutRow, "templateId" | "startedAt">[]): T[] {
+  const lastUsed = new Map<string, string>();
+  for (const w of workouts) {
+    if (w.templateId && w.startedAt > (lastUsed.get(w.templateId) ?? "")) lastUsed.set(w.templateId, w.startedAt);
+  }
+  return [...templates].sort((a, b) => {
+    const ua = lastUsed.get(a.id);
+    const ub = lastUsed.get(b.id);
+    if (ua && ub) return ua < ub ? 1 : ua > ub ? -1 : 0;
+    if (ua) return -1;
+    if (ub) return 1;
+    return a.position < b.position ? -1 : a.position > b.position ? 1 : 0;
+  });
+}
+
 export function templatePositionAfter(rows: { position: string }[]): string {
   return keyAfter(rows);
 }

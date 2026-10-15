@@ -2,6 +2,7 @@
 import clsx from "clsx";
 import { Check, Star, Trash2 } from "lucide-react";
 import { NumberStepper } from "@/components/ui/NumberStepper";
+import { Term } from "@/components/ui/Term";
 import type { ExerciseRow, WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { EffortScale, SetType, WeightUnit } from "@/contracts/enums";
 import { formatWeight } from "@/lib/units";
@@ -78,7 +79,7 @@ export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale,
         </span>
         {isPr ? (
           <span className="wk-set__pr">
-            <Star size={14} aria-hidden="true" fill="currentColor" strokeWidth={0} /> PR
+            <Star size={14} aria-hidden="true" fill="currentColor" strokeWidth={0} /> <Term id="personalRecord">PR</Term>
           </span>
         ) : null}
         {ghostLine ? (

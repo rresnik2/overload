@@ -1,6 +1,7 @@
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { HardCard } from "@/components/primitives/HardCard";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { InfoHint } from "@/components/ui/InfoHint";
 import type { InsightFacts, InsightReportRow } from "@/contracts/insights";
 import { InsightCard } from "./InsightCard";
 import { NarrativePanel } from "./NarrativePanel";
@@ -31,7 +32,7 @@ export function ReportView({ facts, report }: ReportViewProps) {
         </p>
       )}
       <section aria-labelledby="findings-heading">
-        <SectionHeader title="Findings" index={narrative ? 2 : 1} id="findings-heading" />
+        <SectionHeader title="Findings" index={narrative ? 2 : 1} id="findings-heading" actions={<InfoHint term="insightSeverity" />} />
         {cards.length > 0 ? (
           <ul className="report__cards">
             {cards.map((card) => (
@@ -41,7 +42,7 @@ export function ReportView({ facts, report }: ReportViewProps) {
             ))}
           </ul>
         ) : (
-          <EmptyState title="No findings this week" description="None of the ten checks flagged anything. Keep logging and they will update as your data grows." />
+          <EmptyState title="No findings this week" description="None of the eleven checks flagged anything. Keep logging and they will update as your data grows." />
         )}
       </section>
     </div>

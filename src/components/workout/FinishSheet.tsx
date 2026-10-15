@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Sheet";
 import { Stat } from "@/components/ui/Stat";
+import { Term } from "@/components/ui/Term";
 import type { WeightUnit } from "@/contracts/enums";
 import { formatWeight } from "@/lib/units";
 import { formatClock } from "./labels";
@@ -71,6 +72,11 @@ export function FinishSheet({ open, phase, summary, unit, busy, historyHref, onC
                 </li>
               ))}
             </ul>
+          ) : null}
+          {!done ? (
+            <p className="wk-muted">
+              Finishing saves this workout, checks it for <Term id="personalRecord">personal records</Term> and updates your charts.
+            </p>
           ) : null}
           {!done && summary.unfinishedSets > 0 ? (
             <p className="wk-muted">

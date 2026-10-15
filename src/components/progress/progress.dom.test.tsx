@@ -94,7 +94,9 @@ describe("overview cards", () => {
   it("DOTS card shows what is missing and never scores a partial big three", () => {
     render(<BigThreeCard bigThree={overview.bigThree} unit="KG" />);
     expect(screen.getByTestId("bigthree")).toHaveTextContent(/appears once you have logged a barbell squat, bench press and deadlift/);
-    expect(screen.queryByText("DOTS")).toBeNull();
+    // the DOTS term in the note is a hint button; no DOTS or Total figure is shown
+    expect(screen.queryByText("Total")).toBeNull();
+    expect(screen.queryAllByText("DOTS").filter((el) => el.tagName !== "BUTTON")).toEqual([]);
   });
 
   it("DOTS card is absent without any big-three lift", () => {

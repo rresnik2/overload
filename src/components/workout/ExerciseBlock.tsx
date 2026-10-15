@@ -5,6 +5,9 @@ import { ModalityBadge } from "@/components/exercises/ModalityBadge";
 import type { WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { PrCandidate } from "@/contracts/prs";
 import { Button } from "@/components/ui/Button";
+import { InfoHint } from "@/components/ui/InfoHint";
+import { Term } from "@/components/ui/Term";
+import type { TermId } from "@/lib/glossary";
 import type { WorkoutPrefs } from "./prefs";
 import { SetRow, type SetRowGhost } from "./SetRow";
 import { ghostSet, unitForSet, weightStep } from "./session";
@@ -36,6 +39,46 @@ export interface ExerciseBlockProps {
   showGhost?: boolean;
 }
 
+const LOAD_TERM: Partial<Record<ExerciseView["exercise"]["loadType"], TermId>> = {
+  TOTAL: "loadTotal",
+  PER_IMPLEMENT: "loadPerHand",
+  PLATES_PER_SIDE: "loadPerSide",
+  STACK: "loadStack",
+  BODYWEIGHT_PLUS: "bodyweightPlus",
+};
+
+/** A one-line key above the sets: what the weight number means here, what effort and set type are, and the grey "last" values. */
+function SetLegend({ item, prefs, showGhost }: { item: ExerciseView; prefs: WorkoutPrefs; showGhost: boolean }) {
+  const { exercise, last } = item;
+  const loadTerm = LOAD_TERM[exercise.loadType];
+  const hasGhost = showGhost && last !== undefined;
+  return (
+    <p className="wk-legend" aria-label="What the set fields mean">
+      {loadTerm ? (
+        <span className="wk-legend__item">
+          Weight
+          <InfoHint term={loadTerm} />
+          {/assisted/i.test(exercise.name) ? <InfoHint term="assisted" /> : null}
+        </span>
+      ) : null}
+      <span className="wk-legend__item">
+        Effort ({prefs.effortScale})
+        <InfoHint term={prefs.effortScale === "RPE" ? "rpe" : "rir"} />
+      </span>
+      <span className="wk-legend__item">
+        Set type
+        <InfoHint term="setType" />
+      </span>
+      {hasGhost ? (
+        <span className="wk-legend__item">
+          Last time
+          <InfoHint term="lastTime" />
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
 /** One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove). */
 export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true }: ExerciseBlockProps) {
   const { exercise, machine, sets, last } = item;
@@ -43,7 +86,11 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
   const workingNumber = sets.map((_, i) => sets.slice(0, i + 1).filter((x) => x.setType !== "WARMUP").length);
   return (
     <section className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id}>
-      {supersetLabel ? <p className="wk-exercise__superset">Superset {supersetLabel}</p> : null}
+      {supersetLabel ? (
+        <p className="wk-exercise__superset">
+          <Term id="superset">Superset {supersetLabel}</Term>
+        </p>
+      ) : null}
       <header className="wk-exercise__head">
         <div className="wk-exercise__title">
           <h2 className="wk-exercise__name">{exercise.name}</h2>
@@ -52,6 +99,7 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
             <p className="wk-exercise__machine">
               <strong>{machine.name}</strong>
               {machine.gymName ? <span> · {machine.gymName}</span> : null}
+              <InfoHint term="machineProfile" />
             </p>
           ) : null}
         </div>
@@ -88,6 +136,7 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
         </details>
       </header>
 
+      <SetLegend item={item} prefs={prefs} showGhost={showGhost} />
       <ol className="wk-sets">
         {sets.map((set, index) => {
           const ghost = showGhost ? ghostSet(last, sets, set) : null;

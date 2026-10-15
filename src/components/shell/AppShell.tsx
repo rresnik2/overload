@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/ui/Button";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { SyncPip } from "@/components/ui/SyncPip";
 import { ToastProvider } from "@/components/ui/Toast";
 import { Avatar } from "./Avatar";
@@ -39,6 +40,7 @@ export function AppShell({ user, children }: AppShellProps) {
               Start workout
             </ButtonLink>
             <SyncPip />
+            <InfoHint term="syncStatus" />
             <ThemeToggle />
             <Avatar name={user.name} image={user.image} />
           </div>

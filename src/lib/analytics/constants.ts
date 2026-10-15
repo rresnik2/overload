@@ -96,6 +96,8 @@ export const VOLUME_BANDS: Record<TrainingGoal, { low: number; high: number }> =
   HYPERTROPHY: { low: 10, high: 20 },
   STRENGTH: { low: 4, high: 10 },
   GENERAL: { low: 4, high: 20 },
+  // ASSUMPTION: no lower "maintenance" floor is cited, so weight loss reuses the hypertrophy band (keep volume, do not cut it).
+  FAT_LOSS: { low: 10, high: 20 },
 };
 /** No goal set: use the hypertrophy default (docs/research.md). */
 export const DEFAULT_VOLUME_GOAL: TrainingGoal = "HYPERTROPHY";
@@ -167,6 +169,7 @@ export const DEFAULT_REP_RANGE: Record<TrainingGoal, { min: number; max: number 
   HYPERTROPHY: { min: 8, max: 12 },
   STRENGTH: { min: 3, max: 6 },
   GENERAL: { min: 8, max: 12 },
+  FAT_LOSS: { min: 8, max: 12 }, // ASSUMPTION: same as hypertrophy; the point is to keep lifting, not to change the training
 };
 
 // ───────────────────────────── scores ─────────────────────────────
@@ -255,5 +258,18 @@ export const HYPERTROPHY_GOAL_LOW_REP_TO = 3;
 /** cut-strength-drop: bodyweight trend down by this fraction over 4 weeks AND a main lift's best e1RM down by NOISE_THRESHOLD. */
 export const CUT_WEIGHT_LOSS_FRACTION_4W = 0.02;
 export const CUT_PROTEIN_G_PER_KG = 1.6;
+/**
+ * weight-change-rate (helms2014): weight loss of about 0.5-1% of bodyweight per week keeps the most muscle; faster risks
+ * muscle and strength. The rate is read from the smoothed bodyweight trend over a 4-week window.
+ */
+export const LOSS_RATE_TARGET_MIN_PCT_PER_WEEK = 0.5;
+export const LOSS_RATE_TARGET_MAX_PCT_PER_WEEK = 1;
+export const RATE_WINDOW_DAYS = 28;
+/** A loss slower than this over STALL_WEEKS weeks (with enough weigh-ins) counts as a stall for a weight-loss goal. ASSUMPTION: 0.25 %/wk is the noise floor of a smoothed weekly trend. */
+export const LOSS_STALL_PCT_PER_WEEK = 0.25;
+export const LOSS_STALL_WEEKS = 3;
+export const RATE_MIN_WEIGH_INS = 4;
+/** Any goal: a falling trend at or above this rate gets an info card with the reference range. */
+export const FALLING_WEIGHT_NOTICE_PCT_PER_WEEK = 0.25;
 /** Cards never carry more than this many characters of body text (insightCardSchema max is 1200). */
 export const CARD_BODY_MAX = 1100;

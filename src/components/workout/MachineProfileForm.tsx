@@ -67,7 +67,7 @@ export function MachineProfileForm({ initial, unit, exerciseId, extra, linkedExe
 
   return (
     <form className="wk-form" onSubmit={submit} noValidate>
-      <Field label="Machine name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Hammer Strength chest press" required />
+      <Field label="Machine name" labelHint="machineProfile" value={name} onChange={(e) => setName(e.target.value)} placeholder="Hammer Strength chest press" required />
       <div className="wk-form__row">
         <Field label="Gym" value={gym} onChange={(e) => setGym(e.target.value)} />
         <Field label="Brand" value={brand} onChange={(e) => setBrand(e.target.value)} />
@@ -82,8 +82,8 @@ export function MachineProfileForm({ initial, unit, exerciseId, extra, linkedExe
         ))}
       </fieldset>
       <div className="wk-form__row">
-        <Field label={`Pin step (${unitText})`} kind="weight" value={pinStep} onChange={(e) => setPinStep(e.target.value)} hint="Weight jump between pins" />
-        <Field label={`Base load (${unitText})`} kind="weight" value={baseLoad} onChange={(e) => setBaseLoad(e.target.value)} hint="Sled or empty carriage" />
+        <Field label={`Pin step (${unitText})`} labelHint="loadStack" kind="weight" value={pinStep} onChange={(e) => setPinStep(e.target.value)} hint="Weight jump between pins" />
+        <Field label={`Base load (${unitText})`} labelHint="loadPerSide" kind="weight" value={baseLoad} onChange={(e) => setBaseLoad(e.target.value)} hint="Sled or empty carriage" />
       </div>
       {extra}
       {error ? (

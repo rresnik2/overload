@@ -2,6 +2,7 @@ import { BodyFatChart, WeightTrendChart } from "@/components/charts/BodyTrendCha
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { formatDate, METHOD_LABEL, plural, unitLabel, weightText } from "@/components/charts/format";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { Stat } from "@/components/ui/Stat";
 import { fromKg, type WeightUnit } from "@/lib/units";
 import type { BodyView } from "@/server/queries/body.shape";
@@ -29,7 +30,7 @@ export function BodySections({ view, unit }: { view: BodyView; unit: WeightUnit 
   return (
     <>
       <section aria-labelledby="body-weight" className="progress-section">
-        <SectionHeader id="body-weight" index={1} title="Weight trend" />
+        <SectionHeader id="body-weight" index={1} title="Weight trend" actions={<InfoHint term="bodyweightTrend" />} />
         <div className="progress-stats">
           <Stat label="Weight" value={weight.latestKg != null ? weightText(weight.latestKg, unit) : "–"} unit={weight.latestKg != null ? u : undefined} />
           <Stat label="Trend" value={weight.trendKg != null ? weightText(weight.trendKg, unit) : "–"} unit={weight.trendKg != null ? u : undefined} note={weight.trend28dKg != null ? `${signed(fromKg(weight.trend28dKg, unit))} ${u} / 4 weeks` : "needs 4 weeks of weigh-ins"} />
@@ -57,7 +58,7 @@ export function BodySections({ view, unit }: { view: BodyView; unit: WeightUnit 
       </section>
 
       <section aria-labelledby="body-fat" className="progress-section">
-        <SectionHeader id="body-fat" index={2} title="Body fat" />
+        <SectionHeader id="body-fat" index={2} title="Body fat" actions={<InfoHint term="bodyFatMethods" />} />
         <ChartFrame
           testId="chart-bodyfat"
           title="Body fat (%)"
@@ -72,7 +73,7 @@ export function BodySections({ view, unit }: { view: BodyView; unit: WeightUnit 
       </section>
 
       <section aria-labelledby="body-ffmi" className="progress-section">
-        <SectionHeader id="body-ffmi" index={3} title="Fat-free mass index" />
+        <SectionHeader id="body-ffmi" index={3} title="Fat-free mass index" actions={<InfoHint term="ffmi" />} />
         {ffmi ? (
           <div data-testid="ffmi">
             <div className="progress-stats">
@@ -89,7 +90,7 @@ export function BodySections({ view, unit }: { view: BodyView; unit: WeightUnit 
       </section>
 
       <section aria-labelledby="body-circ" className="progress-section">
-        <SectionHeader id="body-circ" index={4} title="Circumferences" />
+        <SectionHeader id="body-circ" index={4} title="Circumferences" actions={<InfoHint term="navyTape" />} />
         {circumferences.length === 0 ? (
           <p className="progress-note">No tape measurements yet.</p>
         ) : (

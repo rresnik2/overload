@@ -369,6 +369,7 @@ export const INSIGHT_RULE_IDS = [
   "on-track-vs-population", // 8. only when the 80% bands separate
   "ffmi-context", // 9.
   "cut-strength-drop", // 10. losing weight while strength drops (slow the cut; 1.6 g/kg protein)
+  "weight-change-rate", // 11. rate of bodyweight change vs ~0.5-1 %/week (Helms 2014): too fast, on pace, stalled (FAT_LOSS)
 ] as const;
 export type InsightRuleId = (typeof INSIGHT_RULE_IDS)[number];
 
@@ -394,7 +395,7 @@ export interface InsightCard {
   subject?: { seriesKey?: string; exerciseId?: string; muscle?: Muscle };
 }
 
-/** Run all ten rules (each may emit 0..n cards). Deterministic: same input -> same cards in the same order. */
+/** Run all eleven rules (each may emit 0..n cards). Deterministic: same input -> same cards in the same order. */
 export type RunInsightRules = (input: AnalyticsInput) => InsightCard[];
 
 /** One rule: a pure function from the shared input to cards. Rules are exported individually for unit tests. */

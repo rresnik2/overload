@@ -41,6 +41,7 @@ export const TrainingGoal = {
   HYPERTROPHY: "HYPERTROPHY",
   STRENGTH: "STRENGTH",
   GENERAL: "GENERAL",
+  FAT_LOSS: "FAT_LOSS", // "Lose weight (keep muscle)"
 } as const;
 export type TrainingGoal = (typeof TrainingGoal)[keyof typeof TrainingGoal];
 export const trainingGoalSchema = z.enum(TrainingGoal);

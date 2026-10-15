@@ -1,7 +1,7 @@
 // Constants of the weekly insight pipeline. Cost controls live here so tests and code share one definition.
 
 /** Stored on every report (InsightReport.promptVersion). Bump it whenever SYSTEM_PROMPT or the output schema changes. */
-export const PROMPT_VERSION = "insights-2026-10-14.1";
+export const PROMPT_VERSION = "insights-2026-10-15.1";
 
 /** At most this many on-demand model calls per report week (InsightReport.onDemandCount). */
 export const MAX_ON_DEMAND_PER_WEEK = 3;

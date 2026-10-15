@@ -1,0 +1,336 @@
+/* In-app hints (stream UX): InfoHint, Term, PageIntro, the "How logging works" panel and the goal cards.
+   Hint popovers: ink with paper text in the paper theme, the inverse in the ink theme (daisyUI "neutral" does both).
+   Vermilion is for the icon and borders only, never body text. */
+
+.info-hint,
+.term {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.term {
+  display: inline;
+  vertical-align: baseline;
+}
+
+/* 18px circle, 44px hit area. The negative margin gives the footprint back so the hint sits tight against its label. */
+.info-hint__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--tap-target);
+  block-size: var(--tap-target);
+  margin: calc((18px - var(--tap-target)) / 2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-vermilion);
+  cursor: help;
+  flex: none;
+}
+.info-hint__icon {
+  flex: none;
+}
+.info-hint__btn:hover .info-hint__icon,
+.info-hint__btn[aria-expanded="true"] .info-hint__icon {
+  fill: color-mix(in srgb, var(--color-vermilion) 16%, transparent);
+}
+
+.term__btn {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--color-vermilion);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.term__btn:hover,
+.term__btn[aria-expanded="true"] {
+  text-decoration-style: solid;
+}
+
+/* The popover: top layer, fixed to the viewport by useHint. */
+.hint-pop {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-base-content);
+  max-inline-size: min(280px, calc(100vw - 16px));
+  inline-size: max-content;
+  display: block;
+  background: var(--color-neutral);
+  color: var(--color-neutral-content);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: start;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: 3px 3px 0 var(--color-vermilion);
+  overflow: visible;
+  pointer-events: auto;
+}
+.hint-pop:focus {
+  outline: none;
+}
+.hint-pop__term {
+  display: block;
+  margin-block-end: 0.25rem;
+  font-weight: 600;
+}
+.hint-pop__text {
+  display: block;
+}
+.hint-pop__learn {
+  display: inline-block;
+  margin-block-start: 0.5rem;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-block-size: 24px;
+}
+.hint-pop__learn:focus-visible {
+  outline: 2px solid var(--color-neutral-content);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hint-pop {
+    animation: hint-in 120ms var(--ease-out);
+  }
+  @keyframes hint-in {
+    from {
+      opacity: 0;
+      translate: 0 2px;
+    }
+  }
+}
+
+/* Page intro */
+.page-intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-block: 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-vermilion);
+  border-inline-start-width: 4px;
+  background: var(--color-base-200);
+  color: var(--color-base-content);
+}
+.page-intro__text {
+  flex: 1 1 18rem;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+}
+.page-intro__dismiss {
+  min-block-size: var(--tap-target);
+  min-inline-size: var(--tap-target);
+  padding: 0 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+/* Label + hint pairs (section titles, column headers). */
+.label-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+/* "How logging works": the first-run panel on /workout. */
+.log-guide {
+  margin-block: 0 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-base-content);
+  background: var(--color-base-200);
+}
+.log-guide__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.log-guide__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+.log-guide__steps {
+  margin: 0.75rem 0 0;
+  padding-inline-start: 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 16px;
+  line-height: 1.45;
+}
+.log-guide__steps li::marker {
+  color: var(--color-vermilion);
+  font-weight: 600;
+}
+.log-guide__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-block-start: 0.75rem;
+}
+
+/* Goal cards (onboarding + settings). */
+.goal-cards {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+@media (min-width: 40rem) {
+  .goal-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.goal-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-block-size: var(--tap-target);
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--color-base-content);
+  background: var(--color-base-100);
+  cursor: pointer;
+}
+.goal-card:has(input:checked) {
+  border-color: var(--color-vermilion);
+  box-shadow: 3px 3px 0 var(--color-vermilion);
+  background: var(--color-base-200);
+}
+.goal-card:has(input:focus-visible) {
+  outline: 2px solid var(--color-vermilion);
+  outline-offset: 2px;
+}
+.goal-card input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.goal-card__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.375rem;
+  line-height: 1.15;
+}
+.goal-card__summary {
+  font-size: 15px;
+  line-height: 1.4;
+}
+.goal-card-wrap {
+  position: relative;
+  display: flex;
+}
+.goal-card-wrap .goal-card {
+  flex: 1;
+  padding-inline-end: 2.5rem;
+}
+.goal-card__hint {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+}
+
+/* A field label with its "i" beside it. */
+.field__label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+/* Exercise cards: the load line, and hints next to library tabs/chips. */
+.exercise-card__load {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.exercise-tabs {
+  align-items: center;
+}
+
+/* Chart frames: the title hint and the legend hint sit beside their text. */
+.chart-frame__head {
+  align-items: center;
+}
+.chart-legend-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+.pr-legend {
+  margin: 0 0 1rem;
+  line-height: 1.7;
+}
+
+.insight-card__evidence-head {
+  display: flex;
+  align-items: center;
+  margin: 0.75rem 0 0.25rem;
+  font-weight: 600;
+}
+
+/* /learn comparison table */
+.learn__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-base-content);
+}
+.learn__table-wrap:focus-visible {
+  outline: 2px solid var(--color-vermilion);
+  outline-offset: 2px;
+}
+.learn__table {
+  border-collapse: collapse;
+  inline-size: 100%;
+  min-inline-size: 52rem;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.learn__table th,
+.learn__table td {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-base-300);
+  text-align: start;
+  vertical-align: top;
+}
+.learn__table thead th {
+  background: var(--color-base-200);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.25rem;
+}
+.learn__table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  background: var(--color-base-200);
+  font-weight: 600;
+  min-inline-size: 9rem;
+}

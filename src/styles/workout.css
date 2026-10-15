@@ -680,3 +680,17 @@ body:has(.wk-rest) .toast-region {
   grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
   gap: 0.6rem;
 }
+
+/* ---- set legend: the key above an exercise's sets (stream UX) ---------------- */
+.wk-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.wk-legend__item {
+  display: inline-flex;
+  align-items: center;
+}

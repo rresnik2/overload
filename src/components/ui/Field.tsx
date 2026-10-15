@@ -1,6 +1,8 @@
 import clsx from "clsx";
 import { useId } from "react";
 import type { InputHTMLAttributes, ReactNode } from "react";
+import type { TermId } from "@/lib/glossary";
+import { InfoHint } from "./InfoHint";
 
 export type FieldKind = "text" | "number" | "weight" | "reps" | "rir";
 
@@ -11,6 +13,8 @@ export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   /** Short trailing unit ("kg", "lb", "reps"), shown inside the field. Weight fields should pass the user's unit. */
   unit?: string;
   hint?: ReactNode;
+  /** A glossary term: adds a small "i" next to the label. */
+  labelHint?: TermId;
   /** An error message; sets aria-invalid and links the message with aria-describedby. */
   error?: ReactNode;
   /** Hide the label visually but keep it for screen readers (e.g. a set-row input). */
@@ -26,7 +30,7 @@ const KIND_ATTRS: Record<FieldKind, Pick<InputHTMLAttributes<HTMLInputElement>, 
 };
 
 /** Labelled text input. Always at least 16px (iOS does not zoom), 44px tall, vermilion focus ring. Server-renderable. */
-export function Field({ label, kind = "text", unit, hint, error, hideLabel = false, className, id, ...rest }: FieldProps) {
+export function Field({ label, kind = "text", unit, hint, labelHint, error, hideLabel = false, className, id, ...rest }: FieldProps) {
   const auto = useId();
   const inputId = id ?? auto;
   const hintId = `${inputId}-hint`;
@@ -34,9 +38,18 @@ export function Field({ label, kind = "text", unit, hint, error, hideLabel = fal
   const describedBy = [hint ? hintId : null, error ? errId : null, rest["aria-describedby"]].filter(Boolean).join(" ") || undefined;
   return (
     <div className={clsx("field", error && "field--error", rest.disabled && "field--disabled", className)}>
-      <label htmlFor={inputId} className={clsx("field__label", hideLabel && "sr-only")}>
-        {label}
-      </label>
+      {labelHint && !hideLabel ? (
+        <div className="field__label-row">
+          <label htmlFor={inputId} className="field__label">
+            {label}
+          </label>
+          <InfoHint term={labelHint} />
+        </div>
+      ) : (
+        <label htmlFor={inputId} className={clsx("field__label", hideLabel && "sr-only")}>
+          {label}
+        </label>
+      )}
       <div className="field__control">
         <input
           id={inputId}

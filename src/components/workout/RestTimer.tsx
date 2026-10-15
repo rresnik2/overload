@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { Minus, Pause, Play, Plus, SkipForward, Timer } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { Sheet } from "@/components/ui/Sheet";
 import { formatClock } from "./labels";
 import type { RestStatus } from "./rest";
@@ -40,6 +41,7 @@ export function RestTimer({ status, remainingMs, durationSec, onStart, onPause, 
             </span>
           ) : null}
         </button>
+        <InfoHint term="restTimer" />
         {status === "running" || status === "paused" ? (
           <>
             <button type="button" className="wk-icon-btn" aria-label="Subtract 15 seconds" onClick={() => onAdjust(-15)}>
@@ -66,6 +68,7 @@ export function RestTimer({ status, remainingMs, durationSec, onStart, onPause, 
             {clock}
           </p>
           <p className="wk-rest-sheet__status">{STATUS_TEXT[status]}</p>
+          <p className="wk-muted">Rests start by themselves when you finish a set. Heavy lifts usually need 2 to 5 minutes.</p>
           {status === "running" || status === "paused" ? (
             <div className="wk-rest-sheet__row">
               <Button variant="ink" onClick={() => onAdjust(-15)}>

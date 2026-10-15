@@ -1,4 +1,6 @@
 import { E1rmForecastChart } from "@/components/charts/E1rmForecastChart";
+import { InfoHint } from "@/components/ui/InfoHint";
+import { Term } from "@/components/ui/Term";
 import { ChartFrame, type LegendItem } from "@/components/charts/ChartFrame";
 import { TopSetChart } from "@/components/charts/TopSetChart";
 import { VolumeChart } from "@/components/charts/VolumeChart";
@@ -39,7 +41,7 @@ export function ExerciseCharts({ exerciseName, series, unit }: ExerciseChartsPro
   return (
     <div className="progress-charts" data-series-key={ref.seriesKey}>
       <section aria-labelledby="pc-e1rm" className="progress-section">
-        <SectionHeader id="pc-e1rm" index={1} title="Estimated 1RM" />
+        <SectionHeader id="pc-e1rm" index={1} title="Estimated 1RM" actions={<InfoHint term="e1rm" />} />
         <div className="progress-stats">
           <Stat label="Latest e1RM" value={series.latestE1rmKg != null ? weightText(series.latestE1rmKg, unit) : "–"} unit={series.latestE1rmKg != null ? u : undefined} size="md" />
           <Stat label="Best e1RM" value={series.bestE1rmKg != null ? weightText(series.bestE1rmKg, unit) : "–"} unit={series.bestE1rmKg != null ? u : undefined} size="md" pr={series.bestE1rmKg != null && e1rm.some((p) => p.isPr)} note={series.bestLocalDate ? formatDate(series.bestLocalDate, true) : undefined} />
@@ -51,7 +53,9 @@ export function ExerciseCharts({ exerciseName, series, unit }: ExerciseChartsPro
           summary={e1rmSummary(label, e1rm, forecast, unit)}
           state={e1rm.length === 0 ? "empty" : forecast.status === "ok" ? "ready" : "low-data"}
           empty={{ title: "No estimated 1RM yet", description: "Working sets of 10 reps or fewer with a load give an estimate. Log one and the chart appears." }}
-          lowData={forecast.status === "insufficient" ? lowDataCopy(forecast) : undefined}
+          lowData={forecast.status === "insufficient" ? { ...lowDataCopy(forecast), hint: "forecastNeedsSessions" } : undefined}
+          hint="forecast"
+          legendHint="forecastBands"
           table={e1rm.length ? e1rmTable(label, e1rm, forecast, unit) : null}
           legend={e1rmLegend}
         >
@@ -61,7 +65,7 @@ export function ExerciseCharts({ exerciseName, series, unit }: ExerciseChartsPro
           <p className="progress-note" data-testid="forecast-note">
             Forecast from {plural(forecast.usedSessions, "session")}
             {forecast.excluded.deload ? `, ${plural(forecast.excluded.deload, "deload session")} left out` : ""}
-            {forecast.excluded.outliers ? `, ${plural(forecast.excluded.outliers, "outlier")} left out` : ""}. It is a trend estimate, not a promise: the shaded bands show how sure it is.
+            {forecast.excluded.outliers ? `, ${plural(forecast.excluded.outliers, "outlier")} left out` : ""}. It is a trend estimate, not a promise: the shaded <Term id="forecastBands">bands</Term> show how sure it is.
           </p>
         ) : null}
         {series.strength.percentile ? (
@@ -72,7 +76,7 @@ export function ExerciseCharts({ exerciseName, series, unit }: ExerciseChartsPro
       </section>
 
       <section aria-labelledby="pc-top" className="progress-section">
-        <SectionHeader id="pc-top" index={2} title="Top set" />
+        <SectionHeader id="pc-top" index={2} title="Top set" actions={<InfoHint term="topSet" />} />
         <ChartFrame
           testId="chart-topset"
           title={`Top set (${u})`}
@@ -86,7 +90,7 @@ export function ExerciseCharts({ exerciseName, series, unit }: ExerciseChartsPro
       </section>
 
       <section aria-labelledby="pc-vol" className="progress-section">
-        <SectionHeader id="pc-vol" index={3} title="Volume" />
+        <SectionHeader id="pc-vol" index={3} title="Volume" actions={<InfoHint term="volumeLoad" />} />
         <ChartFrame
           testId="chart-volume"
           title={`Session volume (${u})`}

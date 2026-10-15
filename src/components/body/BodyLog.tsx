@@ -7,6 +7,7 @@ import { FormAlert } from "@/components/auth/FormAlert";
 import { formatDate, METHOD_LABEL, unitLabel, weightText } from "@/components/charts/format";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { syncNow } from "@/client/sync";
 import type { BodyFatMethod, Sex } from "@/contracts/enums";
 import { navyBodyFat } from "@/lib/analytics/scores";
@@ -127,7 +128,10 @@ export function BodyLog({ today, unit, sex, heightCm, entries }: BodyLogProps) {
         </div>
 
         <fieldset className="body-form__group">
-          <legend>Tape measurements (cm)</legend>
+          <legend>
+            Tape measurements (cm)
+            <InfoHint term="navyTape" />
+          </legend>
           <div className="body-form__grid body-form__grid--3">
             <Field label="Neck" kind="weight" unit="cm" value={values.neckCm} onChange={set("neckCm")} error={err("neckCm")} />
             <Field label="Waist" kind="weight" unit="cm" value={values.waistCm} onChange={set("waistCm")} error={err("waistCm")} hint="At the navel" />
@@ -140,7 +144,10 @@ export function BodyLog({ today, unit, sex, heightCm, entries }: BodyLogProps) {
         </fieldset>
 
         <fieldset className="body-form__group" data-testid="navy-calculator">
-          <legend>Body fat</legend>
+          <legend>
+            Body fat
+            <InfoHint term="bodyFatMethods" />
+          </legend>
           <div className="body-form__grid">
             <Field label="Body fat" kind="weight" unit="%" value={bodyFatShown} onChange={set("bodyFatPct")} disabled={navySelected} error={err("bodyFatPct")} />
             <div className="field">

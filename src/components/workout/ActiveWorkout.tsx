@@ -1,5 +1,5 @@
 "use client";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { CircleHelp, MoreHorizontal, Plus } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { EmptyState } from "@/components/primitives/EmptyState";
@@ -10,6 +10,7 @@ import { setWorkoutActive } from "@/lib/pwa";
 import { useWorkoutActions } from "./actions";
 import { ExerciseBlock } from "./ExerciseBlock";
 import { ExercisePicker } from "./ExercisePicker";
+import { LoggingGuide, useLoggingGuide } from "./LoggingGuide";
 import { useNow, useRestTimer, useWakeLock } from "./hooks";
 import { formatClock } from "./labels";
 import { MachineChooser } from "./MachineChooser";
@@ -37,6 +38,7 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const [changing, setChanging] = useState<ExerciseView | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [title, setTitle] = useState<string | null>(null);
+  const guide = useLoggingGuide();
 
   useWakeLock(true);
   useEffect(() => {
@@ -76,6 +78,9 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
             {formatClock(now - new Date(workout.startedAt).getTime())}
           </p>
         </div>
+        <button type="button" className="wk-icon-btn" aria-label="How logging works" aria-expanded={guide.open} onClick={guide.toggle}>
+          <CircleHelp size={20} aria-hidden="true" />
+        </button>
         <details className="wk-menu wk-menu--right">
           <summary className="wk-icon-btn" aria-label="Workout options">
             <MoreHorizontal size={20} aria-hidden="true" />
@@ -93,6 +98,8 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
           Finish
         </Button>
       </div>
+
+      {guide.open ? <LoggingGuide onClose={guide.close} /> : null}
 
       {!view ? (
         <p className="wk-muted">Loading workout…</p>

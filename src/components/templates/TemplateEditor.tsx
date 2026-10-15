@@ -8,7 +8,9 @@ import { ModalityBadge } from "@/components/exercises/ModalityBadge";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { NumberStepper } from "@/components/ui/NumberStepper";
+import { Term } from "@/components/ui/Term";
 import { ExercisePicker } from "@/components/workout/ExercisePicker";
 import { useWorkoutPrefs } from "@/components/workout/prefs";
 import { movedPosition, supersetLabels, supersetPatches, templatePositionAfter } from "@/components/workout/session";
@@ -71,7 +73,11 @@ export function TemplateEditor({ id }: { id: string }) {
       ) : (
         lines.map(({ te, exercise, machines }, i) => (
           <section key={te.id} className="wk-te" aria-label={exercise.name}>
-            {labels.get(te.id) ? <p className="wk-exercise__superset">Superset {labels.get(te.id)}</p> : null}
+            {labels.get(te.id) ? (
+              <p className="wk-exercise__superset">
+                <Term id="superset">Superset {labels.get(te.id)}</Term>
+              </p>
+            ) : null}
             <div className="wk-card__head">
               <div>
                 <h2 className="wk-card__title">{exercise.name}</h2>
@@ -99,17 +105,23 @@ export function TemplateEditor({ id }: { id: string }) {
               </div>
             </div>
             <div className="wk-te__grid">
-              <NumberStepper label="Warm-up sets" kind="reps" step={1} max={50} value={te.warmupSets} onChange={(v) => patchLine(te, { warmupSets: v ?? 0 })} />
-              <NumberStepper label="Working sets" kind="reps" step={1} max={50} value={te.workingSets} onChange={(v) => patchLine(te, { workingSets: v ?? 0 })} />
-              <NumberStepper label="Reps from" kind="reps" step={1} min={1} max={200} value={te.repMin} onChange={(v) => patchLine(te, { repMin: v })} />
+              <NumberStepper label="Warm-up sets" labelHint="warmupSet" kind="reps" step={1} max={50} value={te.warmupSets} onChange={(v) => patchLine(te, { warmupSets: v ?? 0 })} />
+              <NumberStepper label="Working sets" labelHint="workingSet" kind="reps" step={1} max={50} value={te.workingSets} onChange={(v) => patchLine(te, { workingSets: v ?? 0 })} />
+              <NumberStepper label="Reps from" labelHint="repRange" kind="reps" step={1} min={1} max={200} value={te.repMin} onChange={(v) => patchLine(te, { repMin: v })} />
               <NumberStepper label="Reps to" kind="reps" step={1} min={1} max={200} value={te.repMax} onChange={(v) => patchLine(te, { repMax: v })} />
-              <NumberStepper label={prefs.effortScale === "RPE" ? "Target RPE" : "Target RIR"} kind="reps" step={1} max={10} value={prefs.effortScale === "RPE" && te.targetRir != null ? 10 - te.targetRir : te.targetRir} onChange={(v) => patchLine(te, { targetRir: v === null ? null : prefs.effortScale === "RPE" ? 10 - v : v })} />
-              <NumberStepper label="Rest (seconds)" kind="reps" step={15} max={3600} value={te.restSec} onChange={(v) => patchLine(te, { restSec: v })} hint={te.restSec === null ? `Default ${prefs.defaultRestSec} s` : undefined} />
+              <NumberStepper label={prefs.effortScale === "RPE" ? "Target RPE" : "Target RIR"} labelHint={prefs.effortScale === "RPE" ? "rpe" : "targetRir"} kind="reps" step={1} max={10} value={prefs.effortScale === "RPE" && te.targetRir != null ? 10 - te.targetRir : te.targetRir} onChange={(v) => patchLine(te, { targetRir: v === null ? null : prefs.effortScale === "RPE" ? 10 - v : v })} />
+              <NumberStepper label="Rest (seconds)" labelHint="restSeconds" kind="reps" step={15} max={3600} value={te.restSec} onChange={(v) => patchLine(te, { restSec: v })} hint={te.restSec === null ? `Default ${prefs.defaultRestSec} s` : undefined} />
             </div>
             {machines.length > 0 || exercise.modality === "MACHINE" || exercise.modality === "CABLE" ? (
-              <label className="field">
-                <span className="field__label">Machine</span>
-                <select className="wk-select" value={te.machineProfileId ?? ""} onChange={(e) => patchLine(te, { machineProfileId: e.target.value || null })}>
+              <div className="field">
+                <div className="field__label-row">
+                  <label htmlFor={`machine-${te.id}`} className="field__label">
+                    Machine
+                  </label>
+                  <InfoHint term="machineProfile" />
+                </div>
+                <select
+                  id={`machine-${te.id}`} className="wk-select" value={te.machineProfileId ?? ""} onChange={(e) => patchLine(te, { machineProfileId: e.target.value || null })}>
                   <option value="">Ask when I start</option>
                   {machines.map((m) => (
                     <option key={m.id} value={m.id}>
@@ -118,7 +130,7 @@ export function TemplateEditor({ id }: { id: string }) {
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
             ) : null}
           </section>
         ))

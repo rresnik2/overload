@@ -4,6 +4,8 @@ import { BodyLog } from "@/components/body/BodyLog";
 import { BodySections } from "@/components/body/BodySections";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { PageIntro } from "@/components/ui/PageIntro";
+import { Term } from "@/components/ui/Term";
 import { requireUser } from "@/server/auth/session";
 import { loadBodyView } from "@/server/queries/body";
 
@@ -19,6 +21,9 @@ export default async function BodyPage() {
         description="Weight trend, body fat, lean mass and tape measurements."
         actions={<Link href="/progress" className="btn btn-outline">All progress</Link>}
       />
+      <PageIntro id="progress-body">
+        Log your weight often: the <Term id="bodyweightTrend">trend</Term> smooths out daily swings. Body fat and tape measurements are optional.
+      </PageIntro>
       <BodySections view={view} unit={view.unit} />
       <section aria-labelledby="body-log" className="progress-section">
         <SectionHeader id="body-log" index={5} title="Log a measurement" />

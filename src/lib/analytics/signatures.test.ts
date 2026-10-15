@@ -46,6 +46,6 @@ describe("analytics signatures", () => {
 
   it("has exactly one rule per insight rule id", () => {
     expect(Object.keys(INSIGHT_RULES)).toEqual([...INSIGHT_RULE_IDS]);
-    expect(INSIGHT_RULE_IDS).toHaveLength(10);
+    expect(INSIGHT_RULE_IDS).toHaveLength(11);
   });
 });

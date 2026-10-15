@@ -10,6 +10,7 @@ export const ARTICLES: readonly ArticleMeta[] = [
   { slug: "e1rm", title: "Estimated one-rep max (e1RM)", summary: "How Overload estimates your max from a working set, and why a 5% change is noise." },
   { slug: "rir", title: "Reps in reserve (RIR)", summary: "How close to failure to train, and how well you can judge it." },
   { slug: "volume-landmarks", title: "Weekly volume and volume landmarks", summary: "How many hard sets per muscle per week, with diminishing returns." },
+  { slug: "choosing-a-goal", title: "Choosing a goal", summary: "Build muscle, get stronger, general fitness or lose weight: what each goal changes, and how they overlap." },
   { slug: "machine-vs-free-weight", title: "Machines vs. free weights", summary: "Similar muscle growth, but the numbers on the stack are not comparable across machines." },
 ] as const;
 

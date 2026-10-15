@@ -1,6 +1,8 @@
 import clsx from "clsx";
 import { Info } from "lucide-react";
 import { useId } from "react";
+import { InfoHint } from "@/components/ui/InfoHint";
+import type { TermId } from "@/lib/glossary";
 import type { CSSProperties, ReactNode } from "react";
 
 export interface ChartTable {
@@ -27,11 +29,15 @@ export interface ChartFrameProps {
   /** Shown instead of the chart when state is "empty" (say why and what to do). */
   empty?: { title: string; description?: ReactNode; action?: ReactNode };
   /** Shown under the chart when state is "low-data". */
-  lowData?: { title: string; description?: ReactNode };
+  lowData?: { title: string; description?: ReactNode; hint?: TermId };
   /** The accessible table fallback: every chart has one. */
   table: ChartTable | null;
   legend?: LegendItem[];
   actions?: ReactNode;
+  /** A glossary term for the chart title: a small "i" beside it. */
+  hint?: TermId;
+  /** A glossary term for the legend (e.g. what the shaded bands mean). */
+  legendHint?: TermId;
   children?: ReactNode;
   className?: string;
   /** Data hook for e2e tests. */
@@ -47,7 +53,7 @@ function Swatch({ item }: { item: LegendItem }) {
  * The frame every chart sits in: title, a text summary wired with aria-describedby, the plot, a legend (always for 2+ series),
  * loading / empty / low-data states and the table fallback. Renders on the server; the plot itself is a client component.
  */
-export function ChartFrame({ title, summary, state = "ready", empty, lowData, table, legend, actions, children, className, testId }: ChartFrameProps) {
+export function ChartFrame({ title, summary, state = "ready", empty, lowData, table, legend, actions, hint, legendHint, children, className, testId }: ChartFrameProps) {
   const base = useId();
   const summaryId = `${base}-summary`;
   const tableId = `${base}-table`;
@@ -57,6 +63,7 @@ export function ChartFrame({ title, summary, state = "ready", empty, lowData, ta
     <figure className={clsx("chart-frame", className)} data-chart-state={state} data-testid={testId} aria-busy={state === "loading" || undefined}>
       <div className="chart-frame__head">
         <figcaption className="chart-frame__title">{title}</figcaption>
+        {hint ? <InfoHint term={hint} /> : null}
         {actions ? <div className="chart-frame__actions">{actions}</div> : null}
       </div>
       <p id={summaryId} className="chart-frame__summary">
@@ -83,6 +90,7 @@ export function ChartFrame({ title, summary, state = "ready", empty, lowData, ta
       ) : null}
 
       {legend && legend.length > 1 ? (
+        <div className="chart-legend-row">
         <ul className="chart-legend" aria-label={`${title}: legend`}>
           {legend.map((item) => (
             <li key={item.label} className="chart-legend__item">
@@ -91,13 +99,18 @@ export function ChartFrame({ title, summary, state = "ready", empty, lowData, ta
             </li>
           ))}
         </ul>
+        {legendHint ? <InfoHint term={legendHint} /> : null}
+        </div>
       ) : null}
 
       {state === "low-data" && lowData ? (
         <div className="chart-frame__lowdata" role="note" data-testid="low-data">
           <Info size={16} aria-hidden="true" className="chart-frame__lowdata-icon" />
           <div>
-            <p className="chart-frame__lowdata-title">{lowData.title}</p>
+            <p className="chart-frame__lowdata-title">
+              {lowData.title}
+              {lowData.hint ? <InfoHint term={lowData.hint} /> : null}
+            </p>
             {lowData.description ? <p className="chart-frame__lowdata-text">{lowData.description}</p> : null}
           </div>
         </div>
