@@ -190,6 +190,7 @@
     "src/lib/glossary.ts",
     "src/styles/hints.css",
     "e2e/favorites.spec.ts",
+    "e2e/ux.spec.ts",
     "change-requests/applied/**"
   ],
   "unrestricted": ["W3", "FAV", "UX"]
