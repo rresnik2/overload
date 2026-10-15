@@ -8,8 +8,13 @@ import { createSerwistRoute } from "@serwist/turbopack";
 const revision =
   process.env.VERCEL_GIT_COMMIT_SHA ?? (spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).stdout?.trim() || "dev");
 
+// Extra precache entries must be public, unauthenticated 200s (one failing entry aborts the worker install). Files in public/
+// (icons, splash, backdrop) and the built _next/static assets are already in the manifest: listing them again throws
+// "add-to-cache-list-conflicting-entries" at worker start, so only the offline route is added here.
+const PRECACHE = ["/~offline"];
+
 export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } = createSerwistRoute({
-  additionalPrecacheEntries: [{ url: "/~offline", revision }],
+  additionalPrecacheEntries: PRECACHE.map((url) => ({ url, revision })),
   swSrc: "src/app/sw.ts",
   useNativeEsbuild: true,
 });
