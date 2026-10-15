@@ -187,6 +187,8 @@
     "src/lib/app-url.ts",
     "src/lib/app-url.test.ts",
     "src/lib/search/**",
+    "src/lib/glossary.ts",
+    "src/styles/hints.css",
     "e2e/favorites.spec.ts",
     "change-requests/applied/**"
   ],

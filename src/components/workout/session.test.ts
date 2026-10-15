@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { resetAllDbs } from "@/client/db/active";
 import { exerciseInput, newDevice, type TestDevice } from "@/client/repo/test-utils";
 import type { WorkoutSetRow } from "@/contracts/entities";
-import { addExerciseToWorkout, addSet, completionPatch, finishWorkout, ghostSet, movedPosition, saveWorkoutAsTemplate, shownWeight, startWorkout, supersetLabels, supersetPatches, unitForSet, weightPatch, weightStep } from "./session";
+import { addExerciseToWorkout, addSet, completionPatch, finishWorkout, ghostSet, duplicateTemplate, movedPosition, saveWorkoutAsTemplate, shownWeight, startWorkout, supersetLabels, supersetPatches, templatesByRecentUse, unitForSet, weightPatch, weightStep } from "./session";
 
 let device: TestDevice;
 const fresh = () => (device = newDevice());
@@ -207,5 +207,45 @@ describe("ordering, supersets and save-as-template", () => {
     expect(lines[0]).toMatchObject({ exerciseId: bench.id, warmupSets: 1, workingSets: 2, repMin: 6, repMax: 8 });
     const second = await saveWorkoutAsTemplate(repo, workout.id, "Second");
     expect(second.position > template.position).toBe(true);
+  });
+});
+
+describe("duplicateTemplate", () => {
+  it("copies the template and every exercise line, leaving the original untouched", async () => {
+    const { repo } = fresh();
+    const bench = await repo.exercises.create(exerciseInput({ slug: "bench", name: "Bench" }));
+    const original = await repo.templates.create({ name: "Push", folder: "PPL", position: "a0" });
+    await repo.templateExercises.create({ templateId: original.id, exerciseId: bench.id, position: "a0", warmupSets: 1, workingSets: 4, repMin: 6, repMax: 8, targetRir: 2, restSec: 150, supersetKey: "ss-1" });
+    const copy = await duplicateTemplate(repo, original.id);
+    expect(copy).toMatchObject({ name: "Push (copy)", folder: "PPL" });
+    expect(copy.id).not.toBe(original.id);
+    expect(copy.position > original.position).toBe(true);
+    const [line] = await repo.templates.exercisesOf(copy.id);
+    expect(line).toMatchObject({ exerciseId: bench.id, warmupSets: 1, workingSets: 4, repMin: 6, repMax: 8, targetRir: 2, restSec: 150, supersetKey: "ss-1" });
+    expect(await repo.templates.exercisesOf(original.id)).toHaveLength(1);
+    expect(await repo.templates.list()).toHaveLength(2);
+  });
+
+  it("keeps the name within the 120-character limit and rejects a missing template", async () => {
+    const { repo } = fresh();
+    const long = await repo.templates.create({ name: "x".repeat(120), position: "a0" });
+    expect((await duplicateTemplate(repo, long.id)).name).toHaveLength(120);
+    await expect(duplicateTemplate(repo, "00000000-0000-4000-8000-000000000000")).rejects.toThrow("no longer exists");
+  });
+});
+
+describe("templatesByRecentUse", () => {
+  it("puts the most recently started template first, then never-used ones by position", () => {
+    const t = (id: string, position: string) => ({ id, position });
+    const ordered = templatesByRecentUse(
+      [t("a", "a0"), t("b", "a1"), t("c", "a2"), t("d", "a3")],
+      [
+        { templateId: "c", startedAt: "2026-10-01T10:00:00.000Z" },
+        { templateId: "b", startedAt: "2026-10-10T10:00:00.000Z" },
+        { templateId: "c", startedAt: "2026-10-12T10:00:00.000Z" },
+        { templateId: null, startedAt: "2026-10-13T10:00:00.000Z" },
+      ],
+    );
+    expect(ordered.map((x) => x.id)).toEqual(["c", "b", "a", "d"]);
   });
 });

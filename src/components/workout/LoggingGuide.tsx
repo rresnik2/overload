@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { dismissTip, useTipHidden } from "@/client/hints/tips";
+import { dismissTip, useTipHidden } from "@/components/ui/tips";
 import { Term } from "@/components/ui/Term";
 
 const TIP_ID = "workout-guide";

@@ -1,7 +1,7 @@
 "use client";
 import clsx from "clsx";
 import type { ReactNode } from "react";
-import { dismissTip, useTipHidden } from "@/client/hints/tips";
+import { dismissTip, useTipHidden } from "@/components/ui/tips";
 
 export interface PageIntroProps {
   /** Stable per-page key for the "dismissed" memory, e.g. "today" or "workout-guide". */

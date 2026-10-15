@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ARTICLES } from "@/components/learn/articles";
-import { GLOSSARY, GLOSSARY_MAX_LENGTH, TERM_IDS } from "./glossary";
+import { GLOSSARY, GLOSSARY_MAX_LENGTH, TERM_IDS } from "@/lib/glossary";
 
 function sourceFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {

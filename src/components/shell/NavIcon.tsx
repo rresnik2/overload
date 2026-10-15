@@ -1,9 +1,10 @@
-import { CalendarDays, ChartLine, Dumbbell, History, Settings, Sparkles, Weight } from "lucide-react";
+import { CalendarDays, ChartLine, ClipboardList, Dumbbell, History, Settings, Sparkles, Weight } from "lucide-react";
 import type { NavItem } from "./nav";
 
 const ICONS = {
   today: CalendarDays,
   exercises: Dumbbell,
+  templates: ClipboardList,
   history: History,
   progress: ChartLine,
   insights: Sparkles,

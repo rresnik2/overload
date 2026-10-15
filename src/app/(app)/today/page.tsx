@@ -6,6 +6,8 @@ import { LatestInsightCard } from "@/components/insights/LatestInsightCard";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { WeekVolumeCard } from "@/components/progress/WeekVolumeCard";
 import { TodayStartCard } from "@/components/today/TodayStartCard";
+import { TodayTemplatesCard } from "@/components/today/TodayTemplatesCard";
+import { PageIntro } from "@/components/ui/PageIntro";
 import { requireSessionInfo } from "@/server/auth/session";
 import { latestReport } from "@/server/insights/reports";
 import { getProfileRow } from "@/server/profile/profile";
@@ -18,9 +20,13 @@ export default async function TodayPage() {
   return (
     <>
       <PageHeader title="Today" meta={["Overload", user.name]} />
+      <PageIntro id="today">Start a workout here, then watch this week&rsquo;s sets and your bodyweight trend fill in. Your latest insight appears at the bottom.</PageIntro>
       <div className="today-grid">
         <div className="today-grid__start">
           <TodayStartCard unit={profile?.unitPreference ?? "KG"} />
+        </div>
+        <div className="today-grid__start">
+          <TodayTemplatesCard unit={profile?.unitPreference ?? "KG"} />
         </div>
         <WeekVolumeCard ctx={ctx} />
         <BodyTrendCard ctx={ctx} />

@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setTipsEnabled } from "@/client/hints/tips";
+import { setTipsEnabled } from "@/components/ui/tips";
 import { GLOSSARY } from "@/lib/glossary";
 import { InfoHint } from "./InfoHint";
 import { PageIntro } from "./PageIntro";

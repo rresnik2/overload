@@ -29,3 +29,33 @@
 .today-grid a.link-underline::after {
   display: none;
 }
+
+/* "Your templates" card (stream UX). */
+.today-templates__head {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.today-templates__title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+.today-templates__list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+.today-templates__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.today-templates__name {
+  display: grid;
+  flex: 1 1 10rem;
+  min-width: 0;
+}

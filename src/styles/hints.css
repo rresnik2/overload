@@ -248,3 +248,10 @@
 .goal-card__summary--second {
   opacity: 0.85;
 }
+
+/* A field label with its "i" beside it. */
+.field__label-row {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}

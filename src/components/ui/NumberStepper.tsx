@@ -3,6 +3,8 @@ import clsx from "clsx";
 import { Minus, Plus } from "lucide-react";
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
+import type { TermId } from "@/lib/glossary";
+import { InfoHint } from "./InfoHint";
 
 export interface NumberStepperProps {
   label: string;
@@ -18,6 +20,8 @@ export interface NumberStepperProps {
   /** Trailing unit ("kg"). */
   unit?: string;
   hint?: ReactNode;
+  /** A glossary term: adds a small "i" next to the label. */
+  labelHint?: TermId;
   error?: ReactNode;
   disabled?: boolean;
   hideLabel?: boolean;
@@ -32,7 +36,7 @@ const fmt = (n: number | null) => (n === null ? "" : String(n));
  * Text input flanked by 44px - / + buttons. Typing is free-form (decimal or integer per `kind`); the value commits
  * on every valid keystroke and the text snaps to the committed number on blur. States: default, focus, error, disabled.
  */
-export function NumberStepper({ label, value, onChange, step, kind = "weight", min = 0, max, unit, hint, error, disabled, hideLabel, className, id }: NumberStepperProps) {
+export function NumberStepper({ label, value, onChange, step, kind = "weight", min = 0, max, unit, hint, labelHint, error, disabled, hideLabel, className, id }: NumberStepperProps) {
   const auto = useId();
   const inputId = id ?? auto;
   const hintId = `${inputId}-hint`;
@@ -62,9 +66,18 @@ export function NumberStepper({ label, value, onChange, step, kind = "weight", m
 
   return (
     <div className={clsx("field stepper", error && "field--error", disabled && "field--disabled", className)}>
-      <label htmlFor={inputId} className={clsx("field__label", hideLabel && "sr-only")}>
-        {label}
-      </label>
+      {labelHint && !hideLabel ? (
+        <div className="field__label-row">
+          <label htmlFor={inputId} className="field__label">
+            {label}
+          </label>
+          <InfoHint term={labelHint} />
+        </div>
+      ) : (
+        <label htmlFor={inputId} className={clsx("field__label", hideLabel && "sr-only")}>
+          {label}
+        </label>
+      )}
       <div className="stepper__row">
         <button type="button" className="stepper__btn" aria-label={`Decrease ${label}`} disabled={disabled || atMin} onClick={() => bump(-1)}>
           <Minus size={18} aria-hidden="true" />

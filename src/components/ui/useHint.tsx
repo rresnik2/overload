@@ -94,10 +94,7 @@ export function useHint(id: TermId): HintApi {
 
   // Show in the top layer and measure before paint, so the popover never flashes in the wrong place.
   useLayoutEffect(() => {
-    if (!open) {
-      setPlacement(null);
-      return;
-    }
+    if (!open) return;
     const pop = popoverRef.current;
     try {
       pop?.showPopover?.();
