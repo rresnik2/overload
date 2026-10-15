@@ -229,11 +229,11 @@ test.describe("/api/cron/insights", () => {
 });
 
 test.describe("/learn", () => {
-  test("lists the five articles", async ({ page }) => {
+  test("lists the six articles", async ({ page }) => {
     await page.goto("/learn");
     await expect(page.getByRole("heading", { level: 1, name: "Learn" })).toBeVisible();
     for (const a of ARTICLES) await expect(page.getByRole("heading", { level: 2, name: a.title })).toBeVisible();
-    expect(ARTICLES.map((a) => a.slug)).toEqual(["hypertrophy-vs-hyperplasia", "e1rm", "rir", "volume-landmarks", "machine-vs-free-weight"]);
+    expect(ARTICLES.map((a) => a.slug)).toEqual(["hypertrophy-vs-hyperplasia", "e1rm", "rir", "volume-landmarks", "choosing-a-goal", "machine-vs-free-weight"]);
   });
 
   for (const article of ARTICLES) {

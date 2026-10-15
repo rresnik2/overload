@@ -16,11 +16,11 @@ export function PageIntro({ id, children, className }: PageIntroProps) {
   const hidden = useTipHidden(id);
   if (hidden) return null;
   return (
-    <aside className={clsx("page-intro", className)} aria-label="Tip" data-tip={id}>
+    <div role="note" className={clsx("page-intro", className)} data-tip={id}>
       <p className="page-intro__text">{children}</p>
       <button type="button" className="page-intro__dismiss" onClick={() => dismissTip(id)}>
         Got it
       </button>
-    </aside>
+    </div>
   );
 }

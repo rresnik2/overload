@@ -59,8 +59,8 @@ export function BigThreeCard({ bigThree, unit }: { bigThree: BigThree; unit: Wei
       </div>
       <p className="progress-note">
         {bigThree.dots != null
-          ? <><Term id="dots">DOTS</Term> compares your estimated total with your bodyweight. Barbell squat, bench and deadlift only; machines are never scored.</>
-          : <><Term id="dots">DOTS</Term> appears once you have logged a barbell squat, bench press and deadlift. Machines are never scored.</>}
+          ? <><Term id="dots">DOTS score</Term> compares your estimated total with your bodyweight. Barbell squat, bench and deadlift only; machines are never scored.</>
+          : <><Term id="dots">DOTS score</Term> appears once you have logged a barbell squat, bench press and deadlift. Machines are never scored.</>}
       </p>
     </HardCard>
   );
