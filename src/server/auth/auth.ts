@@ -1,5 +1,5 @@
-// Better Auth server instance. Phase 0 ships MINIMAL email + password; stream A owns everything
-// in this file from Wave 1 (Resend verification/reset emails, Google, passkey UX, rate-limit rules).
+// Better Auth server instance (stream A): email + password with verification and reset through Resend, optional Google,
+// passkeys, database-backed rate limits, 30-day sessions.
 //
 // The plugin/provider LIST here is what the Better Auth CLI reads to generate the auth tables
 // (`pnpm auth:generate`); the tables are already in prisma/schema.prisma and frozen.
@@ -7,7 +7,11 @@ import { passkey } from "@better-auth/passkey";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
+import { waitUntil } from "@vercel/functions";
 import { prisma } from "@/server/db";
+import { sendEmail } from "@/server/email/send";
+import { passwordResetEmail, verificationEmail } from "@/server/email/templates";
+import { authRateLimitRules } from "@/server/profile/auth-rate-limits";
 
 const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 // `next build` evaluates this module without runtime secrets; Better Auth refuses a missing secret in production,
@@ -27,8 +31,30 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 10,
-    // Stream A turns verification on once Resend is wired (docs/agents/A.md).
-    requireEmailVerification: false,
+    requireEmailVerification: true,
+    revokeSessionsOnPasswordReset: true,
+    resetPasswordTokenExpiresIn: 60 * 60,
+    sendResetPassword: async ({ user, url }) => {
+      // Not awaited (response timing must not reveal whether the address exists); waitUntil keeps it alive on Vercel.
+      waitUntil(
+        sendEmail({ to: user.email, ...passwordResetEmail({ name: user.name, url }) }).catch((error) =>
+          console.error("[auth] password reset email failed", error instanceof Error ? error.message : error),
+        ),
+      );
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    sendOnSignIn: true,
+    autoSignInAfterVerification: true,
+    expiresIn: 60 * 60,
+    sendVerificationEmail: async ({ user, url }) => {
+      waitUntil(
+        sendEmail({ to: user.email, ...verificationEmail({ name: user.name, url }) }).catch((error) =>
+          console.error("[auth] verification email failed", error instanceof Error ? error.message : error),
+        ),
+      );
+    },
   },
   socialProviders: googleConfigured
     ? {
@@ -43,7 +69,11 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // refresh once a day
   },
   // Serverless: in-memory rate limiting does not work across instances. Stored in the `rateLimit` table.
-  rateLimit: { enabled: true, storage: "database" },
+  rateLimit: {
+    enabled: true,
+    storage: "database",
+    customRules: authRateLimitRules(process.env.NODE_ENV === "production"),
+  },
   plugins: [
     passkey({
       rpID: process.env.PASSKEY_RP_ID ?? new URL(baseURL).hostname,
