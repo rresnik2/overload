@@ -121,3 +121,36 @@ test("offline: log 9 sets, reload, sync drains, the server has exactly 9", async
   await second.close();
   expect((await dbSetCount(email)).sets).toBe(9);
 });
+
+test("a heavier second session shows the PR toast, and the rest timer survives a reload", async ({ page }) => {
+  test.setTimeout(240_000);
+  await createUser(page, { tag: "pr", name: "PR Logger" });
+  await page.goto("/workout");
+  await page.getByRole("button", { name: "Start empty workout" }).click();
+  await addExercise(page, "barbell bench press", FREE_WEIGHT);
+  const first = page.getByRole("region", { name: FREE_WEIGHT });
+  await logSet(first, 1, "100", "5");
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  await page.getByRole("button", { name: "Finish workout" }).click();
+  await expect(page.getByRole("heading", { name: "Workout saved" })).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).click();
+  await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible();
+
+  // Second session: beat the first set.
+  await page.getByRole("button", { name: "Start empty workout" }).click();
+  await addExercise(page, "barbell bench press", FREE_WEIGHT);
+  const second = page.getByRole("region", { name: FREE_WEIGHT });
+  await expect(second.getByText(/^last 100 × 5$/)).toBeVisible(); // ghost values from last time
+  await logSet(second, 1, "105", "5");
+  await expect(page.locator(".toast--pr")).toContainText(FREE_WEIGHT);
+  await expect(second.locator(".wk-set--pr")).toHaveCount(1);
+
+  // The rest timer started on completion and keeps its absolute end time over a reload.
+  const before = await page.getByTestId("rest-clock").textContent();
+  expect(before).toMatch(/^[01]:\d\d$/);
+  await page.reload();
+  await expect(page.getByTestId("rest-clock")).toBeVisible({ timeout: 60_000 });
+  const secs = (t: string | null) => Number(t?.split(":")[0]) * 60 + Number(t?.split(":")[1]);
+  expect(secs(await page.getByTestId("rest-clock").textContent())).toBeLessThanOrEqual(secs(before));
+  await expect(page.getByRole("region", { name: FREE_WEIGHT }).locator(".wk-set--pr")).toHaveCount(1); // PR badge recomputed from history
+});
