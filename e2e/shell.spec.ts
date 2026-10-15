@@ -121,10 +121,10 @@ test.describe("shell (signed in)", () => {
     await toggle.click();
     const after = await html.getAttribute("data-theme");
     expect(after).not.toBe(before);
-    expect(["overload-paper", "overload-ink"]).toContain(after);
+    expect(["overload-daylight", "overload-floor"]).toContain(after);
     await page.reload();
     await expect(html).toHaveAttribute("data-theme", after!);
-    expect(await page.evaluate(() => localStorage.getItem("overload-theme"))).toBe(after === "overload-ink" ? "ink" : "paper");
+    expect(await page.evaluate(() => localStorage.getItem("overload-theme"))).toBe(after === "overload-floor" ? "ink" : "paper");
   });
 
   test("iOS Safari: the Add to Home Screen hint shows once and stays dismissed", async ({ page, browserName }) => {
@@ -155,7 +155,7 @@ test.describe("public pages", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Create account" }).first()).toBeVisible();
-    expect(await page.locator("body").evaluate((el) => getComputedStyle(el).fontFamily)).toContain("Newsreader");
+    expect(await page.locator("body").evaluate((el) => getComputedStyle(el).fontFamily)).toContain("Archivo");
     await expect(page.locator(".shell-backdrop")).toHaveCount(1);
   });
 
@@ -184,7 +184,7 @@ test.describe("axe: /styleguide (every primitive and UI component)", () => {
 
   test("open sheet and toasts have no violations", async ({ page }) => {
     await page.goto("/styleguide");
-    const surface = page.locator('.sg-surface[data-theme="overload-paper"]');
+    const surface = page.locator('.sg-surface[data-theme="overload-daylight"]');
     await surface.getByRole("button", { name: "Open sheet" }).click();
     await expect(page.getByRole("dialog", { name: "Rest timer" })).toBeVisible();
     await page.waitForTimeout(400); // let the open transition finish before measuring contrast

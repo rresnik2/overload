@@ -1,49 +1,45 @@
-/* Overload design tokens. Owner: stream B ("final tokens"); Phase 0 ships the plan's exact values.
-   Source: reece-resnik.vercel.app computed styles (docs/PLAN.md "Design system").
-   daisyUI 5 with its built-in themes OFF; the two custom themes below are the only ones. */
+/* Overload design tokens: the "Calibrated Dial" system (docs/design/calibrated-dial-handoff.html, section 03).
+   A rubber-floor dark theme and a daylight light theme built from competition plate colours, one type family
+   (Archivo, condensed italic for display), 4/6 px radii. daisyUI 5 with its built-in themes OFF; the two custom
+   themes below are the only ones.
+   Plate colours appear on plates, lifts and data only, never as decoration. Components reference tokens, not hex. */
 @plugin "daisyui" {
   themes: false;
 }
 
-/* overload-paper: the light theme (also the default when the OS is light). */
+/* overload-daylight: the light theme (also the default when the OS is light). */
 @plugin "daisyui/theme" {
-  name: "overload-paper";
+  name: "overload-daylight";
   default: true;
   prefersdark: false;
   color-scheme: light;
 
-  --color-base-100: #f4f2ed; /* paper */
-  --color-base-200: #eae7df;
-  --color-base-300: #dcd8ce;
-  --color-base-content: #141414; /* ink */
+  --color-base-100: #f2f2ef;
+  --color-base-200: #e5e5e0;
+  --color-base-300: #c4c6c0; /* hairlines and dividers only (decorative) */
+  --color-base-content: #16181a;
 
-  /* Filled buttons: vermilion-deep. Paper text on #C8321F = 4.77:1 (AA). */
-  --color-primary: #c8321f;
-  --color-primary-content: #f4f2ed;
-  /* Final (stream B): slate blue = cable (paper text 4.95:1), ochre = bodyweight (paper text 5.30:1). */
-  --color-secondary: #3d6b9e;
-  --color-secondary-content: #f4f2ed;
-  --color-accent: #8a5a00;
-  --color-accent-content: #f4f2ed;
-  --color-neutral: #141414; /* ink buttons and tooltips */
-  --color-neutral-content: #f4f2ed;
+  --color-primary: #2556c4; /* plate 20 blue: Log set, Start, active underline */
+  --color-primary-content: #ffffff;
+  --color-secondary: #c21f26; /* plate 25 red: PR markers */
+  --color-secondary-content: #ffffff;
+  --color-accent: #efbd2a; /* plate 15 yellow: stall and below-target notices (fill; text uses --color-accent-ink) */
+  --color-accent-content: #16181a;
+  --color-neutral: #16181a;
+  --color-neutral-content: #f2f2ef;
 
-  --color-info: #2f5d8a;
-  --color-info-content: #f4f2ed;
-  --color-success: #2f6b3f;
-  --color-success-content: #f4f2ed;
-  --color-warning: #8a5a00;
-  --color-warning-content: #f4f2ed;
+  --color-info: #2556c4;
+  --color-info-content: #ffffff;
+  --color-success: #1f7a3c; /* plate 10 green */
+  --color-success-content: #ffffff;
+  --color-warning: #735200;
+  --color-warning-content: #f2f2ef;
   --color-error: #b3261e;
-  --color-error-content: #f4f2ed;
+  --color-error-content: #ffffff;
 
-  /* Brand vermilion: borders, hard shadows, display type, icons. 3.7:1 on paper: NEVER small body text. */
-  --color-vermilion: #e4402b;
-
-  /* Square everywhere, flat surfaces. */
-  --radius-selector: 0;
-  --radius-field: 0;
-  --radius-box: 0;
+  --radius-selector: 4px;
+  --radius-field: 4px;
+  --radius-box: 6px;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -51,41 +47,39 @@
   --noise: 0;
 }
 
-/* overload-ink: the dark theme (default when the OS is dark; the gym default once installed). */
+/* overload-floor: the dark theme (default when the OS is dark; the gym default once installed). */
 @plugin "daisyui/theme" {
-  name: "overload-ink";
+  name: "overload-floor";
   default: false;
   prefersdark: true;
   color-scheme: dark;
 
-  --color-base-100: #1c1b19;
-  --color-base-200: #232220;
-  --color-base-300: #2e2c29;
-  --color-base-content: #edeae3;
+  --color-base-100: #16181a; /* the floor */
+  --color-base-200: #1f2225; /* panels, cards, segmented track */
+  --color-base-300: #31363b; /* hairlines and dividers only (decorative) */
+  --color-base-content: #ecebe6;
 
-  --color-primary: #f26a55; /* ink text on #F26A55 = 6.1:1 */
-  --color-primary-content: #141414;
-  --color-secondary: #6fa3dc; /* ink text 6.97:1 */
-  --color-secondary-content: #141414;
-  --color-accent: #e0a94a; /* ink text 8.72:1 */
-  --color-accent-content: #141414;
-  --color-neutral: #edeae3;
-  --color-neutral-content: #141414;
+  --color-primary: #2f63d6; /* plate 20 blue. White on it 5.42:1. On base-100 only 3.29: borders, never text */
+  --color-primary-content: #ffffff;
+  --color-secondary: #d8262d; /* plate 25 red */
+  --color-secondary-content: #ffffff;
+  --color-accent: #efbd2a; /* plate 15 yellow; also fine as text on base-100/200 */
+  --color-accent-content: #16181a;
+  --color-neutral: #ecebe6;
+  --color-neutral-content: #16181a;
 
-  --color-info: #8fb8e8;
-  --color-info-content: #141414;
-  --color-success: #8ccb98;
-  --color-success-content: #141414;
-  --color-warning: #e8b84f;
-  --color-warning-content: #141414;
-  --color-error: #ff8f85;
-  --color-error-content: #141414;
+  --color-info: #7d9bff;
+  --color-info-content: #16181a;
+  --color-success: #2f9a4f; /* plate 10 green. 3.59:1: icons and text of at least 19 px bold only */
+  --color-success-content: #ffffff;
+  --color-warning: #efbd2a;
+  --color-warning-content: #16181a;
+  --color-error: #ff7a6e;
+  --color-error-content: #16181a;
 
-  --color-vermilion: #f26a55;
-
-  --radius-selector: 0;
-  --radius-field: 0;
-  --radius-box: 0;
+  --radius-selector: 4px;
+  --radius-field: 4px;
+  --radius-box: 6px;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
@@ -93,34 +87,131 @@
   --noise: 0;
 }
 
-/* Tailwind theme: utilities like text-vermilion / border-vermilion / font-display / font-body read these.
-   The colour defaults to the paper value; each daisyUI theme block above overrides it on <html data-theme=...>. */
-@theme {
-  --color-vermilion: #e4402b;
-  --color-ink: #141414;
-  --color-paper: #f4f2ed;
+/* Tailwind theme: utilities like text-muted / border-line-strong / text-accent-ink / font-display read these. The
+   values here are the daylight defaults; the scope blocks below re-declare them per theme (same pattern as the chart
+   palette), so a theme switch never needs a rebuild. `static` keeps them in the output even when only var() uses them. */
+@theme static {
+  --color-muted: #565b62;
+  --color-line-strong: #80868d;
+  --color-up: #1a6e36;
+  --color-accent-ink: #735200;
 
-  --font-display: var(--font-instrument), "Iowan Old Style", "Times New Roman", serif;
-  --font-body: var(--font-newsreader), Georgia, "Times New Roman", serif;
-  /* Set inputs: if the body face ever lacks tnum, fall back to this (see CONTRACTS.md "Fonts"). */
-  --font-numeric: var(--font-newsreader), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* One family. Display type adds font-stretch: 62% + italic 850 (the type-* utilities below). */
+  --font-display: var(--font-archivo), "Arial Narrow", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  /* Numbers: tabular + lining figures come from the `num` utility (Archivo ships tnum); mono only as a last resort. */
+  --font-numeric: var(--font-archivo), ui-sans-serif, system-ui, ui-monospace, "SF Mono", Menlo, monospace;
 
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* LEGACY: removed after wave 2. The old editorial tokens, so unrestyled partials keep rendering. */
+  --color-vermilion: var(--color-primary);
+  --color-ink: #16181a;
+  --color-paper: #f2f2ef;
 }
 
-/* Hard shadows re-resolve inside any [data-theme] subtree (the styleguide shows both themes side by side). */
+/* Per-theme custom tokens (daylight is the default; floor applies under a stored dark choice or an OS dark
+   preference with no stored choice). */
+:root,
+[data-theme="overload-daylight"] {
+  --color-muted: #565b62; /* secondary text, labels, axis text: 6.10 on base-100 */
+  --color-line-strong: #80868d; /* borders that mark a control's edge: 3.28 */
+  --color-up: #1a6e36; /* small positive deltas: 4.99 on base-200 */
+  --color-accent-ink: #735200; /* yellow as text: 6.38 */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-muted: #a2a8ae;
+    --color-line-strong: #6b7279;
+    --color-up: #62cc80;
+    --color-accent-ink: #efbd2a;
+  }
+}
+[data-theme="overload-floor"] {
+  --color-muted: #a2a8ae; /* 7.42 on base-100, 6.66 on base-200 */
+  --color-line-strong: #6b7279; /* 3.65 on base-100, 3.28 on base-200 */
+  --color-up: #62cc80; /* 7.97 on base-200 */
+  --color-accent-ink: #efbd2a; /* yellow is already text-safe on the floor */
+}
+
+/* Plate colours are physical objects: identical in both themes. Ink = the text colour that sits on each plate.
+   The light theme outlines the white and black plates with --color-line-strong where they are drawn. */
+:root {
+  --plate-red: #d8262d; /* 25 kg / 55 lb, white ink */
+  --plate-blue: #2f63d6; /* 20 / 45, white ink */
+  --plate-yellow: #efbd2a; /* 15 / 35, dark ink */
+  --plate-green: #2f9a4f; /* 10 / 25, white ink */
+  --plate-white: #ecebe6; /* 5 / 10, dark ink */
+  --plate-black: #26282a; /* 2.5 / 5, white ink */
+  --plate-chrome: #b9bdc2; /* 1.25 / 2.5, dark ink */
+  --plate-ink-light: #ffffff;
+  --plate-ink-dark: #16181a;
+  --steel: #b5babf; /* bar sleeves, handles, collars */
+  --steel-dark: #8c9196;
+}
+
+/* Spacing scale. The active-set panel stacks at --space-2; the page gutter is --space-6; desktop grid gaps are --space-7. */
+:root {
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 22px;
+  --space-8: 28px;
+
+  --dial-size: clamp(176px, 48vw, 220px);
+  --picture-h: 120px;
+}
+@media (max-height: 700px) {
+  :root {
+    --dial-size: 160px;
+    --picture-h: 88px;
+  }
+}
+
+/* Type scale (size and line-height; the display styles also use the utilities at the bottom of this file). */
+:root {
+  --type-display-xl-size: 76px;
+  --type-display-xl-lh: 0.95;
+  --type-readout-size: 62px;
+  --type-readout-size-long: 52px; /* 4 or more integer digits */
+  --type-readout-lh: 1;
+  --type-display-m-size: 36px;
+  --type-display-m-size-wrapped: 30px; /* the name wraps to 2 lines */
+  --type-display-m-lh: 1.12; /* never below 1.1 where text truncates: ascenders clip inside overflow:hidden */
+  --type-display-s-size: 24px; /* 22-25 */
+  --type-display-s-lh: 1;
+  --type-label-size: 11px;
+  --type-label-lh: 1.4;
+  --type-label-tracking: 0.12em;
+  --type-body-size: 15px;
+  --type-body-size-dense: 13px;
+  --type-body-lh: 1.5;
+}
+
+/* LEGACY: removed after wave 2. The editorial hard shadows are gone: anything still using them gets no shadow. */
 :root,
 [data-theme] {
-  --shadow-hard: 6px 6px 0 var(--color-vermilion);
-  --shadow-hard-pressed: 4px 4px 0 var(--color-vermilion);
-  --shadow-hard-sm: 3px 3px 0 var(--color-vermilion);
+  --shadow-hard: none;
+  --shadow-hard-pressed: none;
+  --shadow-hard-sm: none;
+  /* Re-resolved per scope so a [data-theme] subtree follows its own primary. */
+  --color-vermilion: var(--color-primary);
+}
+/* LEGACY: removed after wave 2. The old font variables now resolve to Archivo. */
+:root {
+  --font-instrument: var(--font-archivo);
+  --font-newsreader: var(--font-archivo);
 }
 
-/* Data-viz palette (stream B, validated with the dataviz skill in both themes; stream F consumes these).
-   free weight = vermilion, machine = graphite, cable = slate blue, bodyweight = ochre. Machine is a deliberate neutral:
-   every chart pairs it with a dash/marker + direct label (never colour alone). Bands: 80% at 12%, 50% at 22% opacity. */
+/* Data-viz palette. The spec (section 03) maps free weight to blue, machine to steel, cable to green and bodyweight to
+   yellow; stream RESTYLE re-validates it with the dataviz skill. Until then these are the previous values under the new
+   theme names, so charts keep rendering. Bands: 80% at 12%, 50% at 22% opacity. */
 :root,
-[data-theme="overload-paper"] {
+[data-theme="overload-daylight"] {
   --chart-free-weight: #e4402b;
   --chart-machine: #555350;
   --chart-cable: #4a7fb8;
@@ -142,7 +233,7 @@
     --chart-axis: #a8a49a;
   }
 }
-[data-theme="overload-ink"] {
+[data-theme="overload-floor"] {
   --chart-free-weight: #e8573f;
   --chart-machine: #8a867f;
   --chart-cable: #4f8fe0;
@@ -183,13 +274,13 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Instrument Serif has regular + italic only: never bold. */
+  /* Headings use the display family at a normal width; the condensed italic look is opt-in via the type-* utilities. */
   h1,
   h2,
   h3,
   .font-display {
     font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: 700;
   }
 
   /* iOS zooms into any input under 16px. */
@@ -200,7 +291,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-vermilion);
+    outline: 2px solid var(--color-base-content);
     outline-offset: 2px;
   }
 }
@@ -213,4 +304,58 @@
 @utility font-numeric {
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Display styles: Archivo at 62% width, 850 italic. Use these instead of re-stating the font settings. */
+@utility type-display-xl {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: var(--type-display-xl-size);
+  line-height: var(--type-display-xl-lh);
+  letter-spacing: 0.005em;
+}
+@utility type-readout {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  font-size: var(--type-readout-size);
+  line-height: var(--type-readout-lh);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+@utility type-display-m {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: var(--type-display-m-size);
+  line-height: var(--type-display-m-lh);
+}
+@utility type-display-s {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: var(--type-display-s-size);
+  line-height: var(--type-display-s-lh);
+}
+@utility type-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-stretch: 100%;
+  text-transform: uppercase;
+  font-size: var(--type-label-size);
+  line-height: var(--type-label-lh);
+  letter-spacing: var(--type-label-tracking);
+}
+@utility type-body {
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-lh);
 }

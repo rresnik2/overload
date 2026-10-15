@@ -19,8 +19,8 @@ import { CHART, COLORS, contrast, TEXT_PAIRS, THEME_NAME, type ThemeKey } from "
 export const metadata: Metadata = { title: "Styleguide", robots: { index: false } };
 
 const THEMES: { key: ThemeKey; title: string }[] = [
-  { key: "paper", title: "Light: overload-paper" },
-  { key: "ink", title: "Dark: overload-ink" },
+  { key: "paper", title: "Light: overload-daylight" },
+  { key: "ink", title: "Dark: overload-floor" },
 ];
 
 function Swatches({ theme }: { theme: ThemeKey }) {
@@ -79,7 +79,7 @@ function Showcase({ theme }: { theme: ThemeKey }) {
           <ContrastTable theme={theme} />
           <div className="sg-stack">
             <p className="sg-note m-0">
-              Vermilion is for borders, hard shadows, display type and icons. It is <strong>3.7:1</strong> on paper, so it is never used for small body text: text uses ink, or the deeper primary.
+              Plate colours (primary blue, secondary red, accent yellow, success green) appear on plates, lifts and data only, never as decoration. Plate blue is <strong>3.29:1</strong> on the dark floor, so it marks borders and fills but is never small text.
             </p>
             <div className="sg-row">
               <span className="sg-vermilion-box">Hard shadow</span>
@@ -91,8 +91,8 @@ function Showcase({ theme }: { theme: ThemeKey }) {
 
       <section className="sg-section">
         <SectionHeader id={id("type")} index={2} title="Type" />
-        <p className="font-display m-0 text-6xl italic leading-none">Instrument Serif italic</p>
-        <p className="m-0 mt-3 text-lg">Newsreader body text for everything you read, at least 16px in inputs. Numbers use tabular figures:</p>
+        <p className="font-display m-0 text-6xl italic leading-none">Archivo italic</p>
+        <p className="m-0 mt-3 text-lg">Archivo body text for everything you read, at least 16px in inputs. Numbers use tabular figures:</p>
         <p className="num m-0 mt-1 text-2xl">0123456789 · 82.5 kg × 8 @ 2 RIR</p>
         <p className="m-0 mt-3">
           A <a className="link-underline tap-target" href="#main">link with the animated vermilion underline</a>.
