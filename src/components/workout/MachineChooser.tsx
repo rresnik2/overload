@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { Button } from "@/components/ui/Button";
+import { InfoHint } from "@/components/ui/InfoHint";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
 import type { WeightUnit } from "@/contracts/enums";
 import { MachineProfileForm } from "./MachineProfileForm";
@@ -56,7 +57,10 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
 
   return (
     <div className="wk-machine">
-      <h3 className="wk-machine__title">Which machine?</h3>
+      <h3 className="wk-machine__title">
+        Which machine?
+        <InfoHint term="machineProfile" />
+      </h3>
       <p className="wk-muted">{exercise.name}: each machine keeps its own progress.</p>
       <ul className="wk-machine__list" role="radiogroup" aria-label="Machine">
         {data.profiles.map((profile) => (

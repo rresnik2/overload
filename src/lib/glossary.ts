@@ -293,7 +293,7 @@ const entries = {
   },
   syncStatus: {
     term: "Sync status",
-    short: "Synced means saved to your account. Offline means saved on this device and sent when you're back online. Error or signed out needs your attention.",
+    short: "Synced means saved to your account; offline means saved on this device and sent when you're back online. Error or signed out needs your attention.",
   },
   units: {
     term: "Units",

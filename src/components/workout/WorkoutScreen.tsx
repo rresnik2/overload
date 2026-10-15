@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { useOnSynced } from "@/client/sync";
 import { SaveTemplateModal } from "@/components/templates/SaveTemplateModal";
+import { PageIntro } from "@/components/ui/PageIntro";
 import { useToast } from "@/components/ui/Toast";
 import type { WorkoutRow } from "@/contracts/entities";
 import { setWorkoutActive } from "@/lib/pwa";
@@ -117,6 +118,7 @@ export function WorkoutScreen() {
         />
       ) : (
         <div className="wk-idle">
+          <PageIntro id="workout">Start an empty workout or one of your templates. Add exercises, log each set, then tap Finish to save it.</PageIntro>
           <StartWorkoutCard
             activeWorkout={null}
             templates={templates ?? []}
