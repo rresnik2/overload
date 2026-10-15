@@ -83,9 +83,20 @@
   }
 }
 .exercise-card {
+  position: relative;
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+/* The star sits in the corner, outside the card link (a button inside a link would be invalid). */
+.exercise-card__star {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+}
+.exercise-card--starrable .exercise-card__body {
+  padding-right: 4rem;
 }
 .exercise-card__link {
   display: flex;
@@ -305,4 +316,72 @@
 }
 .series-list__meta {
   opacity: 0.8;
+}
+
+/* ── favorites: the star toggle and the library filter chip ── */
+.favorite-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 2px solid var(--color-vermilion);
+  border-radius: 0;
+  background: var(--color-base-100);
+  color: var(--color-vermilion);
+  cursor: pointer;
+}
+.favorite-button:hover {
+  background: var(--color-base-200);
+}
+.favorite-button:focus-visible {
+  outline: 2px solid var(--color-base-content);
+  outline-offset: 2px;
+}
+.favorite-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+}
+.favorite-button[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+.exercise-filters__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.exercise-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 2px solid var(--color-vermilion);
+  background: var(--color-base-100);
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+.exercise-chip svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-vermilion);
+  fill: none;
+}
+.exercise-chip:hover {
+  background: var(--color-base-200);
+}
+.exercise-chip:focus-visible {
+  outline: 2px solid var(--color-base-content);
+  outline-offset: 2px;
+}
+.exercise-chip--active {
+  background: var(--color-base-200);
+  box-shadow: 4px 4px 0 var(--color-vermilion);
+}
+.exercise-chip--active svg {
+  fill: currentColor;
 }

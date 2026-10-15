@@ -8,13 +8,15 @@ export interface LibraryFilters {
   modality: Modality | null;
   equipment: Equipment | null;
   muscle: Muscle | null;
-  /** Free text; matches name, slug and aliases. */
+  /** Free text: every word must match the name, aliases, equipment, modality or muscles (see src/lib/search/exercise-search.ts). */
   q: string;
+  /** Only the user's starred exercises (`fav=1`). */
+  fav: boolean;
   /** 1-based. */
   page: number;
 }
 
-export const DEFAULT_FILTERS: LibraryFilters = { modality: null, equipment: null, muscle: null, q: "", page: 1 };
+export const DEFAULT_FILTERS: LibraryFilters = { modality: null, equipment: null, muscle: null, q: "", fav: false, page: 1 };
 
 /** "MACHINE_PLATE_LOADED" -> "machine-plate-loaded" */
 export const toSlug = (value: string): string => value.toLowerCase().replace(/_/g, "-");
@@ -32,8 +34,9 @@ export function parseLibraryParams(raw: Record<string, string | string[] | undef
   const equipment = fromSlug(EQUIPMENT_VALUES, first(raw.equipment));
   const muscle = fromSlug(MUSCLE_VALUES, first(raw.muscle));
   const q = (first(raw.q) ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
+  const fav = first(raw.fav) === "1";
   const page = Math.max(1, Math.min(1000, Number.parseInt(first(raw.page) ?? "1", 10) || 1));
-  return { modality, equipment, muscle, q, page };
+  return { modality, equipment, muscle, q, fav, page };
 }
 
 /**
@@ -49,6 +52,7 @@ export function libraryHref(basePath: string, filters: LibraryFilters, patch: Pa
   if (next.equipment) params.set("equipment", toSlug(next.equipment));
   if (next.muscle) params.set("muscle", toSlug(next.muscle));
   if (next.q) params.set("q", next.q);
+  if (next.fav) params.set("fav", "1");
   if (next.page > 1) params.set("page", String(next.page));
   const query = params.toString();
   return query ? `${basePath}?${query}` : basePath;

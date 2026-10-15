@@ -103,6 +103,35 @@ describe("ExerciseCard / ExerciseList", () => {
     expect(screen.getByRole("button", { name: "Add" })).toBeInTheDocument();
   });
 
+  it("favoriteIds and renderAction stay props-only: the card tells the action whether the exercise is starred", () => {
+    const seen: [string, boolean][] = [];
+    render(
+      <ExerciseList
+        exercises={[base, legPress]}
+        hrefFor={(e) => `/exercises/${e.id}`}
+        favoriteIds={new Set([legPress.id])}
+        renderAction={(e, isFavorite) => {
+          seen.push([e.name, isFavorite]);
+          return <button type="button" aria-pressed={isFavorite}>{`Star ${e.name}`}</button>;
+        }}
+      />,
+    );
+    expect(seen).toEqual([["Barbell Squat", false], ["Leg Press", true]]);
+    const article = screen.getByRole("heading", { name: "Leg Press" }).closest("article") as HTMLElement;
+    expect(article).toHaveClass("exercise-card--starrable");
+    const star = within(article).getByRole("button", { name: "Star Leg Press" });
+    expect(star).toHaveAttribute("aria-pressed", "true");
+    // the control is a sibling of the card link, never inside it (a button inside a link is invalid)
+    expect(star.closest("a")).toBeNull();
+    expect(within(article).getByRole("link")).toHaveAttribute("href", `/exercises/${legPress.id}`);
+  });
+
+  it("without renderAction there is no star slot", () => {
+    render(<ExerciseCard exercise={base} href="/exercises/x" />);
+    expect(document.querySelector(".exercise-card__star")).toBeNull();
+    expect(document.querySelector(".exercise-card--starrable")).toBeNull();
+  });
+
   it("renders a grid, or an empty state with a message", () => {
     const { rerender } = render(<ExerciseList exercises={[base, legPress]} hrefFor={(e) => `/exercises/${e.id}`} />);
     expect(screen.getAllByRole("listitem").length).toBeGreaterThanOrEqual(2);
@@ -132,6 +161,24 @@ describe("ExerciseFilters", () => {
     expect(form.querySelector('input[name="q"]')).toHaveValue("press");
     expect(screen.getByRole("option", { name: "Smith machine (2)" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Clear" })).toHaveAttribute("href", "/exercises?modality=machine");
+  });
+});
+
+describe("ExerciseFilters favorites chip", () => {
+  const tabs = [{ modality: null, label: "All", count: 10, href: "/exercises", active: true }];
+
+  it("is a server-rendered link that turns the filter on (fav=1) and off, and the form keeps fav", () => {
+    const { rerender } = render(<ExerciseFilters basePath="/exercises" filters={{ ...DEFAULT_FILTERS, q: "curl" }} tabs={tabs} equipmentOptions={[]} />);
+    const off = screen.getByRole("link", { name: "Favorites" });
+    expect(off).toHaveAttribute("href", "/exercises?q=curl&fav=1");
+    expect(off).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("search").querySelector('input[name="fav"]')).toBeNull();
+
+    rerender(<ExerciseFilters basePath="/exercises" filters={{ ...DEFAULT_FILTERS, q: "curl", fav: true }} tabs={tabs} equipmentOptions={[]} />);
+    const on = screen.getByRole("link", { name: "Favorites" });
+    expect(on).toHaveAttribute("aria-current", "true");
+    expect(on).toHaveAttribute("href", "/exercises?q=curl");
+    expect(screen.getByRole("search").querySelector('input[name="fav"]')).toHaveValue("1");
   });
 });
 

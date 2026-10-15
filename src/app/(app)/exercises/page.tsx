@@ -1,6 +1,7 @@
 // Exercise library: tabs by modality, equipment / muscle filters and search, all driven by the URL (works without JS).
 import Link from "next/link";
 import { ExerciseFilters } from "@/components/exercises/ExerciseFilters";
+import { FavoriteButton } from "@/components/exercises/FavoriteButton";
 import { ExerciseList } from "@/components/exercises/ExerciseList";
 import { MODALITY_LABEL, MODALITY_ORDER } from "@/components/exercises/labels";
 import { LIBRARY_PAGE_SIZE, libraryHref, parseLibraryParams } from "@/components/exercises/library-url";
@@ -21,10 +22,12 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
     equipment: filters.equipment,
     muscle: filters.muscle,
     text: filters.q,
+    favoritesOnly: filters.fav,
     page: filters.page,
     pageSize: LIBRARY_PAGE_SIZE,
   });
 
+  const favoriteIds = new Set(result.favoriteIds);
   const allCount = MODALITY_ORDER.reduce((sum, m) => sum + result.modalityCounts[m], 0);
   const tabs = [
     { modality: null, label: "All", count: allCount, href: libraryHref(BASE_PATH, filters, { modality: null, equipment: null }), active: filters.modality === null },
@@ -41,7 +44,7 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
     <>
       <PageHeader
         title="Exercises"
-        meta={["Library", filters.modality ? MODALITY_LABEL[filters.modality] : "All"]}
+        meta={["Library", filters.fav ? "Favorites" : filters.modality ? MODALITY_LABEL[filters.modality] : "All"]}
         description="Free weights, machines and cables are kept apart: a machine's numbers are never mixed with a barbell's."
         actions={
           <Link href="/exercises/new" className="btn btn-outline">
@@ -57,15 +60,29 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
         exercises={result.exercises}
         hrefFor={(exercise) => `${BASE_PATH}/${exercise.id}`}
         headingLevel={2}
-        empty={{
-          title: "No exercises match",
-          description: "Nothing fits those filters. Try another search or clear a filter.",
-          action: (
-            <Link href={BASE_PATH} className="btn btn-neutral">
-              Show all exercises
-            </Link>
-          ),
-        }}
+        favoriteIds={favoriteIds}
+        renderAction={(exercise, isFavorite) => <FavoriteButton exerciseId={exercise.id} name={exercise.name} initial={isFavorite} />}
+        empty={
+          filters.fav && !filters.q && !filters.muscle && !filters.equipment && !filters.modality
+            ? {
+                title: "No favorites yet",
+                description: "Tap the star on an exercise to keep it here and at the top of the picker.",
+                action: (
+                  <Link href={libraryHref(BASE_PATH, filters, { fav: false })} className="btn btn-neutral">
+                    Show all exercises
+                  </Link>
+                ),
+              }
+            : {
+                title: "No exercises match",
+                description: "Nothing fits those filters. Try another search or clear a filter.",
+                action: (
+                  <Link href={BASE_PATH} className="btn btn-neutral">
+                    Show all exercises
+                  </Link>
+                ),
+              }
+        }
       />
       <Pagination page={result.page} pageCount={result.pageCount} hrefFor={(page) => libraryHref(BASE_PATH, filters, { page })} />
     </>
