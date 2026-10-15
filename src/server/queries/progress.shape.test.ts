@@ -175,7 +175,7 @@ describe("overview", () => {
   it("a full big three scores DOTS (never from machine sets)", () => {
     const ex = (standardLift: "SQUAT" | "BENCH_PRESS" | "DEADLIFT", id: string) => ({ ...input.exercises[0]!, id, standardLift, modality: "FREE_WEIGHT" as const });
     const exercises = [ex("SQUAT", "s"), ex("BENCH_PRESS", "b"), ex("DEADLIFT", "d")];
-    const set = (id: string, kg: number) => ({ ...input.sets[0]!, id: `${id}-set`, exerciseId: id, machineProfileId: null, seriesKey: id, setType: "NORMAL" as const, reps: 1, rir: null, e1rmKg: kg, effectiveLoadKg: kg });
+    const set = (id: string, kg: number) => ({ ...input.sets[0]!, id: `${id}-set`, exerciseId: id, machineProfileId: null, seriesKey: id, setType: "WORKING" as const, reps: 1, rir: null, e1rmKg: kg, effectiveLoadKg: kg });
     const big = buildBigThree(exercises, [set("s", 180), set("b", 120), set("d", 220)], { ...input.profile, sex: "MALE" }, 90);
     expect(big.totalKg).toBe(520);
     expect(big.dots).toBeGreaterThan(300);

@@ -28,7 +28,8 @@ type Fields = z.output<typeof bodyMetricInputSchema>;
 /** Cross-field rules. Navy results are recomputed here so a client can never submit a body-fat % it did not measure. */
 async function reconcile(ctx: UserCtx, fields: Fields): Promise<{ ok: true; fields: Fields } | { ok: false; fieldErrors: Record<string, string> }> {
   const errors: Record<string, string> = {};
-  let { bodyFatPct, bodyFatMethod } = fields;
+  const { bodyFatMethod } = fields;
+  let { bodyFatPct } = fields;
 
   if (bodyFatMethod === "NAVY_TAPE") {
     const profile = await prisma.profile.findUnique({ where: { userId: ctx.id }, select: { sex: true, heightCm: true } });

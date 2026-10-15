@@ -16,7 +16,7 @@ import {
 import type { Modality } from "@/contracts/enums";
 import { fromKg, type WeightUnit } from "@/lib/units";
 import type { E1rmPoint, ForecastView } from "@/server/queries/progress.shape";
-import { dayNumber, formatDay, modalityColor, modalityShape, unitLabel, weightText } from "./format";
+import { dayNumber, formatDay, modalityColor, modalityShape, unitLabel } from "./format";
 import { Mark, PrStar } from "./markers";
 
 interface Row {
