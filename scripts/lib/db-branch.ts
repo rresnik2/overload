@@ -1,5 +1,5 @@
 // Pure helpers for scripts/db-branch.ts (unit-tested; no network, no secrets).
-export const STREAM_PORTS: Record<string, number> = { A: 3001, B: 3002, C: 3003, D: 3004, E1: 3005, E2: 3001, F: 3002, G: 3003, W3: 3000 };
+export const STREAM_PORTS: Record<string, number> = { A: 3001, B: 3002, C: 3003, D: 3004, E1: 3005, E2: 3001, F: 3002, G: 3003, W3: 3000, FAV: 3004 };
 
 export const REQUIRED_VARS = ["NEON_API_KEY", "NEON_PROJECT_ID"] as const;
 

@@ -188,5 +188,5 @@
     "src/lib/app-url.test.ts",
     "change-requests/applied/**"
   ],
-  "unrestricted": ["W3"]
+  "unrestricted": ["W3", "FAV"]
 }
