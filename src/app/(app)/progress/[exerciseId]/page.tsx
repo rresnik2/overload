@@ -50,7 +50,7 @@ export default async function ExerciseProgressPage({ params, searchParams }: Pro
           {data.modality === "MACHINE" || data.modality === "CABLE" ? (
             <p className="progress-note">Machine and cable numbers stay in their own series: they are never merged with free weights or converted to a barbell equivalent.</p>
           ) : null}
-          <ExerciseCharts series={selected} unit={data.unit} />
+          <ExerciseCharts exerciseName={data.name} series={selected} unit={data.unit} />
         </>
       ) : (
         <EmptyState

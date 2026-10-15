@@ -5,11 +5,11 @@ import type { ChartTable } from "@/components/charts/ChartFrame";
 import type { E1rmPoint, ForecastView, TopSetPoint, VolumePoint } from "@/server/queries/progress.shape";
 
 export function lowDataCopy(f: Extract<ForecastView, { status: "insufficient" }>): { title: string; description: string } {
-  const have = `${plural(f.haveSessions, "session")} over ${plural(f.haveWeeks, "week")}`;
+  const have = `${plural(f.haveSessions, "session")} with an estimate (working sets of 10 reps or fewer) over ${plural(f.haveWeeks, "week")}`;
   if (f.reason === "layoff") {
     return {
       title: `Needs ${f.needSessions} sessions since your break`,
-      description: `You were away for 4 weeks or more, so the forecast restarted. You have ${have} since you came back; ${f.needSessions} sessions over ${f.needWeeks} weeks brings it back.`,
+      description: `You were away for 4 weeks or more, so the forecast starts over from your latest sessions. You have ${have}; ${f.needSessions} sessions over ${f.needWeeks} weeks brings it back.`,
     };
   }
   if (f.reason === "span") {
@@ -20,7 +20,7 @@ export function lowDataCopy(f: Extract<ForecastView, { status: "insufficient" }>
   }
   return {
     title: `Needs ${f.needSessions} sessions for a forecast`,
-    description: `You have ${plural(f.haveSessions, "session")} so far. Keep logging: after ${f.needSessions} sessions over ${f.needWeeks} weeks a forecast with 50% and 80% ranges appears here.`,
+    description: `You have ${plural(f.haveSessions, "session")} with an estimate so far (working sets of 10 reps or fewer count). Keep logging: after ${f.needSessions} sessions over ${f.needWeeks} weeks a forecast with 50% and 80% ranges appears here.`,
   };
 }
 
