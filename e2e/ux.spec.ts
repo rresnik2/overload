@@ -163,7 +163,7 @@ test.describe("templates are easy to reach and use", () => {
     await startEmptyWorkout(page);
     await waitForCatalog(page);
     // leave the empty workout behind so templates can be started
-    await page.getByRole("button", { name: "Workout options" }).click();
+    await page.locator('summary[aria-label="Workout options"]').click();
     await page.getByRole("button", { name: "Discard workout" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
 
