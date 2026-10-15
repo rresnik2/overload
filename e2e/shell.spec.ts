@@ -202,6 +202,7 @@ test.describe("axe: /styleguide (every primitive and UI component)", () => {
     await expect(page.getByRole("dialog", { name: "Rest timer" })).toBeHidden();
     await surface.getByRole("button", { name: "PR toast" }).click();
     await expect(page.getByRole("status").filter({ hasText: "New PR" })).toBeVisible();
+    await page.waitForTimeout(500); // let the toast's entry animation finish (axe reads mid-fade colours otherwise)
     const toastResults = await new AxeBuilder({ page }).include(".toast-region").analyze();
     expect(toastResults.violations).toEqual([]);
   });
