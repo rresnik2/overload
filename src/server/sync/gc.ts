@@ -29,6 +29,8 @@ const GC_PLAN: { entity: EntityName; guard: Record<string, unknown> }[] = [
 export interface GcSummary {
   users: number;
   deleted: Record<EntityName, number>;
+  /** Dead-letter rows (rejected mutations kept for debugging) older than the same cutoff. */
+  deadLetters: number;
   cutoff: string;
 }
 
@@ -63,5 +65,6 @@ export async function collectTombstones(now: Date = new Date(), ttlDays: number 
   for (const userId of users) {
     await prisma.$transaction((tx) => collectForUser(tx, userId, cutoff, deleted));
   }
-  return { users: users.size, deleted, cutoff: cutoff.toISOString() };
+  const { count: deadLetters } = await prisma.syncDeadLetter.deleteMany({ where: { createdAt: { lt: cutoff } } });
+  return { users: users.size, deleted, deadLetters, cutoff: cutoff.toISOString() };
 }

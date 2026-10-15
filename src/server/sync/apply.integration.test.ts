@@ -360,9 +360,13 @@ describe("garbage collection", () => {
     expect(early.deleted.workout).toBe(0);
     expect(await prisma.workout.count({ where: { id: ids.workout } })).toBe(1);
 
+    await prisma.syncDeadLetter.create({ data: { userId: userA, mutationId: "m-old", entity: "workout", entityId: "x", reason: "NOT_OWNER", payload: {} } });
+
     // 91 days later
     const later = new Date(Date.now() + 91 * 24 * 3600 * 1000);
     const summary = await collectTombstones(later, 90);
+    expect(summary.deadLetters).toBeGreaterThanOrEqual(1); // dead letters expire with the tombstones
+    expect(await prisma.syncDeadLetter.count({ where: { userId: userA, mutationId: "m-old" } })).toBe(0);
     expect(summary.deleted.workoutSet).toBeGreaterThanOrEqual(1);
     expect(summary.deleted.workoutExercise).toBeGreaterThanOrEqual(1);
     expect(summary.deleted.workout).toBeGreaterThanOrEqual(1);
