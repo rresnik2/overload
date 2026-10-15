@@ -87,7 +87,15 @@ try {
   const direct = connectionString(false);
   const pooled = connectionString(true);
   const url = `http://localhost:${port}`;
-  const next = upsertEnv(fs.existsSync(localFile) ? fs.readFileSync(localFile, "utf8") : "", {
+  // A new worktree starts from the owner's main .env.local so it inherits the other secrets (auth, Google,
+  // Resend, Anthropic); only the database, port and origin values below are overridden for this worktree.
+  const mainFile = main ? path.join(main, ".env.local") : null;
+  const base = fs.existsSync(localFile)
+    ? fs.readFileSync(localFile, "utf8")
+    : mainFile && fs.existsSync(mainFile)
+      ? fs.readFileSync(mainFile, "utf8")
+      : "";
+  const next = upsertEnv(base, {
     DATABASE_URL: pooled,
     DIRECT_URL: direct,
     PORT: String(port),
