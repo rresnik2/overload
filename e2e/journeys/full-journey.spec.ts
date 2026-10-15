@@ -66,7 +66,7 @@ test("sign up to insight: the full journey", async ({ page, context, request }) 
   await page.getByRole("button", { name: "Add exercise" }).first().click();
   const picker = page.getByRole("dialog");
   await picker.getByPlaceholder("Search exercises").fill("barbell bench press");
-  await picker.getByRole("button", { name: `Add ${BENCH}` }).first().click();
+  await picker.getByRole("button", { name: `Add ${BENCH}`, exact: true }).first().click(); // exact: rows also carry an "Add <name> to favorites" star
   await expect(page.getByRole("region", { name: BENCH })).toBeVisible();
   for (let n = 1; n <= 3; n++) {
     if (n > 1) await page.getByRole("region", { name: BENCH }).getByRole("button", { name: `Add set to ${BENCH}` }).click();
