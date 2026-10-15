@@ -5,11 +5,11 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "?") + (parts.length > 1 ? (parts[parts.length - 1]?.[0] ?? "") : "")).toUpperCase();
 }
 
-/** Ring-offset avatar from the portfolio (`ring-2 ring-vermilion ring-offset-6`), linking to settings. Initials when there is no photo. */
+/** Round avatar with a control-edge ring, linking to settings. Initials when there is no photo. */
 export function Avatar({ name, image }: { name: string; image?: string | null }) {
   return (
     <Link href="/settings" className="shell-avatar tap-target" aria-label={`${name}: account settings`}>
-      <span className="shell-avatar__disc ring-2 ring-vermilion ring-offset-6 ring-offset-base-100">
+      <span className="shell-avatar__disc">
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element -- arbitrary provider URL, not in next/image remotePatterns
           <img src={image} alt="" width={36} height={36} referrerPolicy="no-referrer" />

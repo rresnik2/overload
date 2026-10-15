@@ -5,7 +5,7 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "reac
 export type ButtonVariant = "primary" | "ink" | "ghost" | "danger";
 
 interface ButtonBaseProps {
-  /** primary = vermilion-deep fill, ink = ink fill, ghost = text with the animated vermilion underline, danger = destructive. Default "primary". */
+  /** primary = plate blue fill in display type, ink = high-contrast neutral fill, ghost = bordered secondary, danger = destructive. Default "primary". */
   variant?: ButtonVariant;
   /** Full-width block (e.g. a mobile form submit). Default false. */
   block?: boolean;
@@ -33,7 +33,7 @@ function Content({ icon, loading, children }: Pick<ButtonBaseProps, "icon" | "lo
   );
 }
 
-/** States: default, hover (hard shadow), active (press offset), focus-visible (vermilion ring), disabled, loading (disabled + aria-busy). */
+/** States: default, hover (brightens), active (drops 1px), focus-visible (outline), disabled, loading (disabled + aria-busy). */
 export function Button({ variant = "primary", block, loading = false, icon, className, children, type = "button", disabled, ...rest }: ButtonProps) {
   return (
     <button

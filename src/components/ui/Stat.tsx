@@ -3,15 +3,15 @@ import { Star } from "lucide-react";
 import type { ReactNode } from "react";
 
 export interface StatProps {
-  /** Small Newsreader label under the numeral ("Estimated 1RM"). */
+  /** Small caps label under the numeral ("Estimated 1RM"). */
   label: string;
-  /** The headline value. Instrument Serif has no tabular figures: only ever pass STATIC values here, never a live-updating number. */
+  /** The headline value (tabular figures, so a live-updating number keeps its width). */
   value: ReactNode;
-  /** Trailing unit in the label font ("kg"). */
+  /** Trailing unit in the label style ("kg"). */
   unit?: string;
   /** sm | md (default) | lg. */
   size?: "sm" | "md" | "lg";
-  /** PR variant: a filled vermilion star next to the numeral and an accessible "Personal record" note. */
+  /** PR variant: a filled plate-red star next to the numeral and an accessible "Personal record" note. */
   pr?: boolean;
   /** Skeleton while data loads (keeps the layout stable). */
   loading?: boolean;
@@ -20,7 +20,7 @@ export interface StatProps {
   className?: string;
 }
 
-/** Big Instrument Serif numeral + small Newsreader label, like the portfolio's "91 Lighthouse". Server-renderable. */
+/** Big condensed italic numeral (the readout style) + small caps label. Server-renderable. */
 export function Stat({ label, value, unit, size = "md", pr = false, loading = false, note, className }: StatProps) {
   return (
     <div className={clsx("stat-o", `stat-o--${size}`, pr && "stat-o--pr", loading && "stat-o--loading", className)} aria-busy={loading || undefined}>

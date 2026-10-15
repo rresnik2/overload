@@ -1,4 +1,4 @@
-/* View transitions and motion (stream B): the portfolio's page slides. Honours prefers-reduced-motion.
+/* View transitions and motion: the page slides (easing is --ease-out, spec section 09). Honours prefers-reduced-motion.
    <PageTransition> (components/shell) tags enter/exit with the classes below; links carry transitionTypes. */
 
 /* Only the named page content animates: stop the browser's default whole-document crossfade. */
@@ -58,9 +58,15 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
+  /* Calibrated Dial spec section 09: under reduced motion every duration and stagger is 0. */
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
 }
