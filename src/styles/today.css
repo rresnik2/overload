@@ -1,0 +1,21 @@
+/* /today layout (stream W3): the start card on top, volume and body cards side by side from tablet width up. */
+.today-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .today-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .today-grid__start,
+  .today-grid__insight {
+    grid-column: 1 / -1;
+  }
+}
+.today-loading {
+  min-height: 8rem;
+  border: 2px solid var(--color-base-content);
+  background: var(--color-base-200);
+  opacity: 0.5;
+}
