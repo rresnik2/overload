@@ -36,7 +36,7 @@ describe("GET /api/cron/insights", () => {
   it("answers 401 without the secret and never runs the job", async () => {
     vi.stubEnv("CRON_SECRET", SECRET);
     const { GET, runner } = await route();
-    for (const headers of [{}, { authorization: "Bearer nope" }, { authorization: SECRET }]) {
+    for (const headers of [{}, { authorization: "Bearer nope" }, { authorization: SECRET }] as Record<string, string>[]) {
       const res = await GET(new Request("http://localhost/api/cron/insights", { headers }));
       expect(res.status).toBe(401);
       expect(await res.json()).toEqual({ error: "unauthorized" });
