@@ -49,6 +49,15 @@ const byPosition = <T extends { position: string }>(a: T, b: T): number => (a.po
 const byFavoriteOrder = (a: ExerciseFavoriteRow, b: ExerciseFavoriteRow): number =>
   byPosition(a, b) || (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
+/** A position after `last`. A position that is not a valid fractional key (any string passes the schema) must not make starring throw for good. */
+function appendPosition(last: string | undefined): string {
+  try {
+    return generateKeyBetween(last ?? null, null);
+  } catch {
+    return generateKeyBetween(null, null);
+  }
+}
+
 /** Exercise ids of the alive favorites (a favorite whose exercise vanished still counts: harmless, and it can come back). */
 const favoriteExerciseIds = async (db: OverloadDb): Promise<Set<string>> => new Set(alive(await db.exerciseFavorite.toArray()).map((f) => f.exerciseId));
 
@@ -211,7 +220,7 @@ export function createRepo(getDb: GetDb): Repo {
           if (row) await applyPatch(db, "exerciseFavorite", row, { deletedAt: null });
           else {
             const last = alive(await db.exerciseFavorite.toArray()).sort(byFavoriteOrder).at(-1);
-            await favorites.create({ exerciseId, position: generateKeyBetween(last?.position ?? null, null) }, { id });
+            await favorites.create({ exerciseId, position: appendPosition(last?.position) }, { id });
           }
           return true;
         });

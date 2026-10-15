@@ -41,16 +41,22 @@ export async function listFavoriteExerciseIds(ctx: UserCtx): Promise<Set<string>
 }
 
 /**
- * The library list for the signed-in user: catalog + their own custom exercises. The visible rows are fetched once and the
- * shared keyword search, filters, facets and paging run in memory (see ./library), so the library and the offline picker
- * return the same results for the same query.
+ * The library list for the signed-in user: catalog + their own custom exercises. Only the columns the search and the facets
+ * read are fetched for the ~900 visible rows (not the instructions and photo lists); the shared keyword search, filters,
+ * facets and paging run in memory (see ./library) and just the page's rows are then loaded in full.
  */
 export async function listLibrary(ctx: UserCtx, query: LibraryQuery = {}): Promise<LibraryResult> {
-  const [rows, favoriteIds] = await Promise.all([
-    prisma.exercise.findMany({ where: visibleTo(ctx), include: { muscles: true } }),
+  const [slim, favoriteIds] = await Promise.all([
+    prisma.exercise.findMany({
+      where: visibleTo(ctx),
+      select: { id: true, slug: true, name: true, aliases: true, modality: true, equipment: true, standardLift: true, mechanic: true, muscles: { select: { muscle: true, role: true } } },
+    }),
     listFavoriteExerciseIds(ctx),
   ]);
-  return applyLibraryQuery(rows.map(exerciseToRow), query, favoriteIds);
+  const page = applyLibraryQuery(slim, query, favoriteIds);
+  const rows = await prisma.exercise.findMany({ where: { AND: [visibleTo(ctx), { id: { in: page.exercises.map((e) => e.id) } }] }, include: { muscles: true } });
+  const byId = new Map(rows.map((r) => [r.id, exerciseToRow(r)]));
+  return { ...page, exercises: page.exercises.flatMap((e) => byId.get(e.id) ?? []) };
 }
 
 // ───────────────────────────── detail ─────────────────────────────

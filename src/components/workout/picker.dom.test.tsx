@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { activateUserDb, resetAllDbs } from "@/client/db/active";
 import { repo } from "@/client/repo";
 import { FavoriteButton } from "@/components/exercises/FavoriteButton";
@@ -48,6 +48,7 @@ const EXERCISES = [
 ];
 const id = (sourceId: string) => catalogExerciseId(sourceId);
 
+const original = { showModal: HTMLDialogElement.prototype.showModal, close: HTMLDialogElement.prototype.close };
 beforeAll(() => {
   // jsdom has no <dialog> modal support; the picker only needs `open`.
   HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
@@ -56,6 +57,10 @@ beforeAll(() => {
   HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
     this.removeAttribute("open");
   };
+});
+afterAll(() => {
+  HTMLDialogElement.prototype.showModal = original.showModal;
+  HTMLDialogElement.prototype.close = original.close;
 });
 
 beforeEach(async () => {
@@ -86,6 +91,18 @@ describe("FavoriteButton", () => {
     await user.click(on);
     expect(await screen.findByRole("button", { name: "Add Barbell Squat to favorites" })).toHaveAttribute("aria-pressed", "false");
     expect(await repo.favorites.isFavorite(id("Barbell_Squat"))).toBe(false);
+  });
+
+  it("starred right after sign-in, before the catalog reached the local database: it syncs, retries and the star lands", async () => {
+    activateUserDb("user-fresh");
+    const user = userEvent.setup();
+    render(<FavoriteButton exerciseId={id("Barbell_Squat")} name="Barbell Squat" />);
+    const button = await screen.findByRole("button", { name: "Add Barbell Squat to favorites" });
+    await user.click(button); // NOT_FOUND: the exercise is not in this fresh database yet
+    expect(await repo.favorites.isFavorite(id("Barbell_Squat"))).toBe(false);
+    await repo.catalog.replace({ version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: EXERCISES }); // the first sync delivers it
+    await waitFor(async () => expect(await repo.favorites.isFavorite(id("Barbell_Squat"))).toBe(true), { timeout: 4000 });
+    expect(await screen.findByRole("button", { name: "Remove Barbell Squat from favorites" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("paints the server-rendered state first (no active database yet)", () => {

@@ -116,6 +116,14 @@ describe("favorites", () => {
     expect(await repo.favorites.isFavorite(mine.id)).toBe(true);
   });
 
+  it("an unusable position on an existing favorite never blocks starring another exercise", async () => {
+    const { repo, squat, press } = await withCatalog();
+    await repo.favorites.toggle(squat.id);
+    await device.db.exerciseFavorite.update(favoriteId("user-1", squat.id), { position: "zz" }); // not a valid fractional-index key
+    expect(await repo.favorites.toggle(press.id)).toBe(true);
+    expect((await repo.favorites.list()).map((e) => e.name).sort()).toEqual(["Barbell Squat", "Incline Dumbbell Press"]);
+  });
+
   it("refuses to star an exercise that does not exist locally", async () => {
     const { repo } = await withCatalog();
     const error = await repo.favorites.toggle("0192a5b0-0005-7000-8000-0000000000aa").then(

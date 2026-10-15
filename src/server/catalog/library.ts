@@ -5,7 +5,10 @@ import "server-only";
 // one fixture list through both code paths.
 import type { ExerciseRow } from "@/contracts/entities";
 import { MODALITY_VALUES, type Equipment, type Modality, type Muscle } from "@/contracts/enums";
-import { buildSearchIndex, searchExercises } from "@/lib/search/exercise-search";
+import { buildSearchIndex, searchExercises, type SearchableExercise } from "@/lib/search/exercise-search";
+
+/** What the library needs from a row to search, filter and facet it (a full ExerciseRow, or the slim columns listLibrary selects). */
+export type LibraryRow = SearchableExercise;
 
 export interface LibraryQuery {
   modality?: Modality | null;
@@ -19,8 +22,8 @@ export interface LibraryQuery {
   pageSize?: number;
 }
 
-export interface LibraryResult {
-  exercises: ExerciseRow[];
+export interface LibraryResult<T extends LibraryRow = ExerciseRow> {
+  exercises: T[];
   /** Exercises matching every filter. */
   total: number;
   page: number;
@@ -37,14 +40,14 @@ export interface LibraryResult {
  * `visible` = catalog + the caller's own custom exercises (alive); the caller decides visibility, never this function.
  * With text, results are in rank order (favorites win ties); without, in name order.
  */
-export function applyLibraryQuery(visible: readonly ExerciseRow[], query: LibraryQuery, favoriteIds: ReadonlySet<string>): LibraryResult {
+export function applyLibraryQuery<T extends LibraryRow>(visible: readonly T[], query: LibraryQuery, favoriteIds: ReadonlySet<string>): LibraryResult<T> {
   const pageSize = query.pageSize ?? 48;
   const byId = new Map(visible.map((e) => [e.id, e]));
   const text = query.text?.trim() ?? "";
 
   const muscleFiltered = query.muscle ? visible.filter((e) => e.muscles.some((m) => m.muscle === query.muscle)) : visible;
   const ranked = searchExercises(buildSearchIndex(muscleFiltered), text, { favoriteIds: text ? favoriteIds : undefined });
-  const shared = ranked.map((h) => byId.get(h.id) as ExerciseRow).filter((e) => !query.favoritesOnly || favoriteIds.has(e.id));
+  const shared = ranked.map((h) => byId.get(h.id) as T).filter((e) => !query.favoritesOnly || favoriteIds.has(e.id));
 
   const modalityScoped = query.modality ? shared.filter((e) => e.modality === query.modality) : shared;
   const matching = query.equipment ? modalityScoped.filter((e) => e.equipment === query.equipment) : modalityScoped;

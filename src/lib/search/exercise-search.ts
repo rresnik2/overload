@@ -146,6 +146,9 @@ const MAIN_LIFT_PHRASES: readonly (readonly string[])[] = [
 
 const IRREGULAR_SINGULARS: Readonly<Record<string, string>> = { calves: "calf" };
 
+/** Own-property lookup: user-typed words such as "constructor" must never resolve through Object.prototype. */
+const own = <T>(table: Readonly<Record<string, T>>, key: string): T | undefined => (Object.hasOwn(table, key) ? table[key] : undefined);
+
 /** Search terms per equipment (the label first, then synonyms). */
 const EQUIPMENT_TERMS: Readonly<Record<Equipment, readonly string[]>> = {
   BARBELL: ["barbell"],
@@ -219,7 +222,7 @@ export function tokenizeQuery(query: string): string[] {
 /** Light plural folding for query words ("curls" -> "curl", "presses" -> "press", "calves" -> "calf"); words of <= 3 letters never fold. */
 export function singularize(word: string): string {
   if (word.length <= 3) return word;
-  const irregular = IRREGULAR_SINGULARS[word];
+  const irregular = own(IRREGULAR_SINGULARS, word);
   if (irregular) return irregular;
   if (/(sses|shes|ches|xes|zes)$/.test(word)) return word.slice(0, -2);
   if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
@@ -334,9 +337,9 @@ interface TokenMatch {
 const MUSCLE_GROUPS: readonly Group[] = ["primary", "secondary"];
 
 function patternsFor(token: string): Pattern[] {
-  const expansions = ABBREVIATIONS[token];
+  const expansions = own(ABBREVIATIONS, token);
   if (expansions) {
-    const groups = token in MUSCLE_ABBREVIATIONS ? MUSCLE_GROUPS : undefined;
+    const groups = Object.hasOwn(MUSCLE_ABBREVIATIONS, token) ? MUSCLE_GROUPS : undefined;
     return [{ words: [token], exactOnly: true, folded: false }, ...expansions.map((words) => ({ words, exactOnly: false, folded: true, groups }))];
   }
   const stem = singularize(token);
@@ -361,8 +364,7 @@ function matchPattern(pattern: Pattern, words: readonly string[], joined: readon
     if (!best) return null;
     if (best === "prefix" && kind === "exact") kind = "prefix";
   }
-  if (pattern.folded) return "folded";
-  return pattern.words.length === 1 ? kind : "prefix";
+  return pattern.folded ? "folded" : kind;
 }
 
 function matchToken(item: IndexedExercise, token: string, patterns: readonly Pattern[]): TokenMatch | null {
@@ -377,7 +379,7 @@ function matchToken(item: IndexedExercise, token: string, patterns: readonly Pat
     }
     if (best) return { tier: GROUP_TIER[group], group, kind: best };
   }
-  if (token.length >= MIN_TYPO_LENGTH && !ABBREVIATIONS[token]) {
+  if (token.length >= MIN_TYPO_LENGTH && !Object.hasOwn(ABBREVIATIONS, token)) {
     for (const group of GROUPS) {
       if (item.words[group].some((w) => nearWord(token, w))) return { tier: TIER_TYPO, group, kind: "typo" };
     }
@@ -424,8 +426,8 @@ function compareStrings(a: string, b: string): number {
  * (score 0, no favorite boost): filters-only behaviour. Deterministic for equal input.
  */
 export function searchExercises(index: SearchIndex, query: string, opts: SearchOptions = {}): ExerciseHit[] {
-  const queryNorm = normalizeText(query);
   const tokens = tokenizeQuery(query);
+  const queryNorm = tokens.join(" "); // de-duplicated and capped, like the words that are matched
   const order = (a: IndexedExercise, b: IndexedExercise) => a.nameLength - b.nameLength || compareStrings(a.nameNorm, b.nameNorm) || compareStrings(a.id, b.id);
 
   let hits: { item: IndexedExercise; score: number }[];

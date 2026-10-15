@@ -366,6 +366,28 @@ describe("ranking", () => {
   });
 });
 
+describe("words that are also Object.prototype properties", () => {
+  it("are ordinary words, never an abbreviation or a crash", () => {
+    const list = [ex("1", "Constructor Curl"), ex("2", "Hammer Curl")];
+    for (const word of ["constructor", "valueof", "tostring", "hasownproperty", "proto", "__proto__"]) {
+      expect(() => search(list, word), word).not.toThrow();
+    }
+    expect(ids(search(list, "constructor"))).toEqual(["1"]);
+    expect(ids(search(list, "constructor curl"))).toEqual(["1"]);
+    expect(search(list, "constructor zzzz")).toEqual([]);
+    expect(singularize("constructor")).toBe("constructor");
+    expect(tokenizeQuery("constructor")).toEqual(["constructor"]);
+  });
+});
+
+describe("the prefix tier ignores repeated words", () => {
+  it("'press press' still earns the name-prefix tier of 'Press Something'", () => {
+    const hits = search([ex("a", "Press Something"), ex("b", "Leg Press")], "press press");
+    expect(tierOf(hits.find((h) => h.id === "a")?.score ?? 0)).toBe(TIER_PREFIX);
+    expect(tierOf(hits.find((h) => h.id === "b")?.score ?? 0)).toBe(TIER_NAME);
+  });
+});
+
 describe("empty query", () => {
   it("returns every indexed exercise in name order with score 0 and no favorite boost", () => {
     const list = [ex("2", "Zeta"), ex("1", "Alpha"), ex("3", "Mu")];
