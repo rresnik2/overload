@@ -7,7 +7,7 @@ import { seedCatalog } from "./catalog";
 loadEnv({ path: [".env.local", ".env"], quiet: true });
 
 async function main() {
-  const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
   if (!connectionString) throw new Error("Set DIRECT_URL or DATABASE_URL in .env.local before seeding.");
   const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
   try {

@@ -10,8 +10,8 @@ loadEnv({ path: [".env.local", ".env"], quiet: true });
 // needs a string. A placeholder keeps them working with no database; `migrate deploy` against the
 // placeholder fails with a plain connection error instead of silently using the wrong database.
 const url =
-  process.env.DIRECT_URL ??
-  process.env.DATABASE_URL ??
+  process.env.DIRECT_URL ||
+  process.env.DATABASE_URL ||
   "postgresql://placeholder:placeholder@localhost:5432/placeholder";
 
 export default defineConfig({
@@ -23,6 +23,6 @@ export default defineConfig({
   datasource: {
     url,
     // Only needed by `prisma migrate diff --from-migrations` (CI drift check uses a Postgres service container).
-    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL,
+    shadowDatabaseUrl: process.env.SHADOW_DATABASE_URL || undefined,
   },
 });
