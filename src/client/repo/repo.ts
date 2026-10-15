@@ -246,6 +246,9 @@ export function createRepo(getDb: GetDb): Repo {
           return out;
         });
       },
+      async forSeries(key) {
+        return alive(await getDb().workoutSet.where("seriesKey").equals(key).toArray()) as WorkoutSetRow[];
+      },
       async lastTime({ exerciseId, machineProfileId, beforeLocalDate }): Promise<LastTimeEntry | undefined> {
         const before = beforeLocalDate ?? todayLocal();
         const candidates = alive(await getDb().workoutSet.where("seriesKey").equals(seriesKey(exerciseId, machineProfileId)).toArray()).filter(

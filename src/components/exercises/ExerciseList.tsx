@@ -15,10 +15,12 @@ export interface ExerciseListProps {
   showImages?: boolean;
   /** Shown when `exercises` is empty. */
   empty?: { title: string; description?: ReactNode; action?: ReactNode };
+  /** Heading level of each card name (see ExerciseCard). */
+  headingLevel?: 2 | 3;
   className?: string;
 }
 
-export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true, empty, className }: ExerciseListProps) {
+export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true, empty, headingLevel, className }: ExerciseListProps) {
   if (exercises.length === 0) {
     return (
       <EmptyState
@@ -32,7 +34,7 @@ export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true
     <ul className={clsx("exercise-list", className)}>
       {exercises.map((exercise, index) => (
         <li key={exercise.id}>
-          <ExerciseCard exercise={exercise} href={hrefFor?.(exercise)} actions={actionsFor?.(exercise)} showImage={showImages} priorityImage={index < 3} />
+          <ExerciseCard exercise={exercise} href={hrefFor?.(exercise)} actions={actionsFor?.(exercise)} showImage={showImages} priorityImage={index < 3} headingLevel={headingLevel} />
         </li>
       ))}
     </ul>

@@ -173,6 +173,20 @@
       ]
     }
   },
-  "integration": ["src/app/(app)/today/**", "e2e/_support/**", "e2e/journeys/**", "e2e/isolation/**", "change-requests/applied/**"],
+  "integration": [
+    "src/app/(app)/today/**",
+    "src/components/today/**",
+    "src/styles/today.css",
+    "src/server/isolation.integration.test.ts",
+    "e2e/_support/**",
+    "e2e/journeys/**",
+    "e2e/isolation/**",
+    "e2e/budgets/**",
+    "e2e/today.spec.ts",
+    "tools/lighthouse/**",
+    "src/lib/app-url.ts",
+    "src/lib/app-url.test.ts",
+    "change-requests/applied/**"
+  ],
   "unrestricted": ["W3"]
 }

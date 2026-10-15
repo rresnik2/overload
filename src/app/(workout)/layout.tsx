@@ -10,6 +10,7 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { PrefsProvider } from "@/components/workout/prefs";
 import { loadWorkoutPrefs } from "@/components/workout/prefs.server";
 import { requireSessionInfo } from "@/server/auth/session";
+import { redirectIfNotOnboarded } from "@/server/profile/guard";
 import { metadata as appMetadata } from "../(app)/layout";
 
 // Same icons and iOS splash screens as the (app) group.
@@ -17,6 +18,7 @@ export const metadata: Metadata = appMetadata;
 
 export default async function WorkoutLayout({ children }: { children: ReactNode }) {
   const { ctx } = await requireSessionInfo();
+  await redirectIfNotOnboarded(ctx);
   const prefs = await loadWorkoutPrefs(ctx);
   return (
     <SyncProvider userId={ctx.id}>

@@ -220,3 +220,19 @@
   border-color: var(--color-error);
   box-shadow: 6px 6px 0 var(--color-error);
 }
+
+/* Sign out of this device (settings layout footer). */
+.settings-signout {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--color-base-content);
+}
+
+.auth-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+}

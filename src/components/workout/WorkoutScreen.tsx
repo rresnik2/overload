@@ -106,6 +106,7 @@ export function WorkoutScreen() {
 
   return (
     <>
+      <h1 className="sr-only">Workout</h1>
       {active.workout ? (
         <ActiveWorkout
           key={active.workout.id}

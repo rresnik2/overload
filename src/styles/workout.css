@@ -297,9 +297,12 @@ body:has(.wk-rest) .toast-region {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  color: var(--color-vermilion);
+  color: var(--color-base-content); /* vermilion is for icons and rules, never small text */
   font-weight: 700;
   font-size: 0.95rem;
+}
+.wk-set__pr svg {
+  color: var(--color-vermilion);
 }
 .wk-set__ghost {
   flex: 1;

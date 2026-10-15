@@ -1,5 +1,5 @@
 // Live PR detection for the logging screens: which completed sets of a workout set a record against the sets before them.
-import { requireActiveDb } from "@/client/db/active";
+import { repo } from "@/client/repo";
 import type { PrCandidate, PrSetInput } from "@/contracts/prs";
 import type { PrType, WeightUnit } from "@/contracts/enums";
 import type { WorkoutSetRow } from "@/contracts/entities";
@@ -8,12 +8,8 @@ import { formatWeight } from "@/lib/units";
 
 /** Every live set of the given progression series (all workouts). One indexed read per series: the PR history. */
 export async function seriesHistory(seriesKeys: Iterable<string>): Promise<WorkoutSetRow[]> {
-  const db = requireActiveDb();
   const out: WorkoutSetRow[] = [];
-  for (const key of new Set(seriesKeys)) {
-    const rows = await db.workoutSet.where("seriesKey").equals(key).toArray();
-    for (const row of rows) if (!row.deletedAt) out.push(row);
-  }
+  for (const key of new Set(seriesKeys)) out.push(...(await repo.sets.forSeries(key)));
   return out;
 }
 

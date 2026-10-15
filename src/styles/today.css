@@ -1,0 +1,31 @@
+/* /today layout (stream W3): the start card on top, volume and body cards side by side from tablet width up. */
+.today-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .today-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .today-grid__start,
+  .today-grid__insight {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The cards' text links ("Body metrics", "All progress", "Open insights") must look like links before hover: an underline in
+   vermilion (a rule, not text colour) and a 44px touch target. Replaces the hover-only animated underline inside this grid. */
+.today-grid a.link,
+.today-grid a.link-underline {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: underline;
+  text-decoration-color: var(--color-vermilion);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.25em;
+}
+.today-grid a.link-underline::after {
+  display: none;
+}

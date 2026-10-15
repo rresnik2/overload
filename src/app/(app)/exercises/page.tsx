@@ -56,6 +56,7 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
       <ExerciseList
         exercises={result.exercises}
         hrefFor={(exercise) => `${BASE_PATH}/${exercise.id}`}
+        headingLevel={2}
         empty={{
           title: "No exercises match",
           description: "Nothing fits those filters. Try another search or clear a filter.",

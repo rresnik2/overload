@@ -26,6 +26,9 @@ function db(): Promise<Prisma> {
   return client;
 }
 
+/** The worktree's database through the app's prisma client (for specs that assert what the server stored). */
+export const testDb = db;
+
 let production: Promise<boolean> | undefined;
 
 /** True when the server under test is a production build: its mailbox endpoint is disabled. Probed once per worker. */

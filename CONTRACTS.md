@@ -285,6 +285,8 @@ export interface Repo {
     /** Ordered by position. */
     forWorkoutExercise(workoutExerciseId: string): Promise<WorkoutSetRow[]>;
     forWorkout(workoutId: string): Promise<WorkoutSetRow[]>;
+    /** Every live (non-deleted) set of one progression series, any workout, unordered. Index: workoutSet.seriesKey. */
+    forSeries(seriesKey: string): Promise<WorkoutSetRow[]>;
     lastTime(args: {
       exerciseId: string;
       machineProfileId: string | null;

@@ -176,7 +176,7 @@ const effortCheck: InsightRule = (input) => {
         { label: "Median RIR", value: r1(typical) },
         { label: "Sets with RIR logged", value: rirs.length },
       ],
-      citations: ["robinson2024", "refalo2023", "zourdos2016"],
+      citations: ["robinson2024", "refalo2023", "zourdos2021"],
     }),
   ];
 };
