@@ -3,6 +3,7 @@ import { Dumbbell, Play } from "lucide-react";
 import { HardCard } from "@/components/primitives/HardCard";
 import { Button } from "@/components/ui/Button";
 import type { WorkoutRow, TemplateRow } from "@/contracts/entities";
+import { useNow } from "./hooks";
 import { formatClock } from "./labels";
 
 export interface StartWorkoutCardProps {
@@ -16,7 +17,7 @@ export interface StartWorkoutCardProps {
   onResume: () => void;
   /** Disables the buttons while a start is in flight. */
   busy?: boolean;
-  /** Epoch ms for the elapsed clock of the active workout (default: Date.now() at render). */
+  /** Epoch ms for the elapsed clock of the active workout (default: a live clock). */
   now?: number;
   /** Max templates listed (default 4). */
   maxTemplates?: number;
@@ -27,8 +28,9 @@ export interface StartWorkoutCardProps {
  * Wave 3 /today both feed it from `repo` and wire the callbacks.
  */
 export function StartWorkoutCard({ activeWorkout, templates, onStartEmpty, onStartFromTemplate, onResume, busy = false, now, maxTemplates = 4 }: StartWorkoutCardProps) {
+  const tick = useNow(1000, activeWorkout !== null && now === undefined);
   if (activeWorkout) {
-    const elapsed = (now ?? Date.now()) - new Date(activeWorkout.startedAt).getTime();
+    const elapsed = (now ?? tick) - new Date(activeWorkout.startedAt).getTime();
     return (
       <HardCard as="section" className="wk-start" aria-label="Workout in progress">
         <p className="meta-line">In progress</p>

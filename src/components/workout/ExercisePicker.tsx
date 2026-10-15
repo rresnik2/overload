@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { ExerciseList } from "@/components/exercises/ExerciseList";
 import { Button } from "@/components/ui/Button";
@@ -32,13 +32,6 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
   const [limit, setLimit] = useState(PAGE);
   const [chosen, setChosen] = useState<ExerciseRow | null>(null);
   const query = text.trim();
-
-  useEffect(() => {
-    if (open) return;
-    setChosen(null);
-    setText("");
-    setLimit(PAGE);
-  }, [open]);
 
   const results = useLive(
     () => repo.exercises.search({ text: query || undefined, modality: query ? undefined : tab, limit: limit + 1 }),

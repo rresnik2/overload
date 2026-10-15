@@ -108,6 +108,7 @@ export function WorkoutScreen() {
     <>
       {active.workout ? (
         <ActiveWorkout
+          key={active.workout.id}
           workout={active.workout}
           onFinish={(summary) => active.workout && setFinish({ phase: "confirm", workoutId: active.workout.id, summary })}
           onSaveTemplate={setTemplateFor}

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Sheet";
@@ -13,17 +13,18 @@ export interface SaveTemplateModalProps {
 
 /** "Save workout as template": a name and an optional folder. */
 export function SaveTemplateModal({ open, defaultName = "", onSave, onClose }: SaveTemplateModalProps) {
+  return (
+    <Modal open={open} onClose={onClose} title="Save as template">
+      {open ? <SaveTemplateForm defaultName={defaultName} onSave={onSave} onClose={onClose} /> : null}
+    </Modal>
+  );
+}
+
+function SaveTemplateForm({ defaultName, onSave, onClose }: Required<Pick<SaveTemplateModalProps, "defaultName" | "onSave" | "onClose">>) {
   const [name, setName] = useState(defaultName);
   const [folder, setFolder] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    if (open) {
-      setName(defaultName);
-      setFolder("");
-      setError(null);
-    }
-  }, [open, defaultName]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,19 +41,17 @@ export function SaveTemplateModal({ open, defaultName = "", onSave, onClose }: S
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Save as template">
-      <form className="wk-form" onSubmit={submit} noValidate>
-        <Field label="Template name" value={name} onChange={(e) => setName(e.target.value)} error={error} required />
-        <Field label="Folder (optional)" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="Push / Pull / Legs" />
-        <div className="wk-form__actions">
-          <Button type="submit" loading={busy}>
-            Save template
-          </Button>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
-      </form>
-    </Modal>
+    <form className="wk-form" onSubmit={submit} noValidate>
+      <Field label="Template name" value={name} onChange={(e) => setName(e.target.value)} error={error} required />
+      <Field label="Folder (optional)" value={folder} onChange={(e) => setFolder(e.target.value)} placeholder="Push / Pull / Legs" />
+      <div className="wk-form__actions">
+        <Button type="submit" loading={busy}>
+          Save template
+        </Button>
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }

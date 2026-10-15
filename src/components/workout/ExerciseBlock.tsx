@@ -40,7 +40,7 @@ export interface ExerciseBlockProps {
 export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true }: ExerciseBlockProps) {
   const { exercise, machine, sets, last } = item;
   const firstOpen = sets.find((s) => s.completedAt == null);
-  let working = 0;
+  const workingNumber = sets.map((_, i) => sets.slice(0, i + 1).filter((x) => x.setType !== "WARMUP").length);
   return (
     <section className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id}>
       {supersetLabel ? <p className="wk-exercise__superset">Superset {supersetLabel}</p> : null}
@@ -90,13 +90,12 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
 
       <ol className="wk-sets">
         {sets.map((set, index) => {
-          if (set.setType !== "WARMUP") working += 1;
           const ghost = showGhost ? ghostSet(last, sets, set) : null;
           const unit = unitForSet(set, machine, prefs.unit);
           return (
             <SetRow
               key={set.id}
-              label={set.setType === "WARMUP" ? "W" : String(working)}
+              label={set.setType === "WARMUP" ? "W" : String(workingNumber[index])}
               ordinal={index + 1}
               set={set}
               exercise={exercise}

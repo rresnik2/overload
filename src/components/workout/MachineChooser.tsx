@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { Button } from "@/components/ui/Button";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
@@ -28,17 +28,14 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
     return { profiles: [...linked, ...free], last };
   }, [exercise.id]);
   const [picked, setPicked] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    if (!data || picked !== null) return;
-    const initial = data.last ?? (data.profiles.length === 1 ? data.profiles[0] : undefined);
-    if (initial) setPicked(initial.id);
-    else if (data.profiles.length === 0) setCreating(true);
-  }, [data, picked]);
+  const [wantsNew, setWantsNew] = useState(false);
 
   if (!data) return <p className="wk-muted">Loading machines…</p>;
-  const chosen = data.profiles.find((p) => p.id === picked);
+  // Default selection: the machine used last for this exercise, or the only one there is.
+  const initial = data.last ?? (data.profiles.length === 1 ? data.profiles[0] : undefined);
+  const selected = picked ?? initial?.id ?? null;
+  const chosen = data.profiles.find((p) => p.id === selected);
+  const creating = wantsNew || data.profiles.length === 0;
 
   if (creating) {
     return (
@@ -48,7 +45,7 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
           unit={unit}
           exerciseId={exercise.id}
           submitLabel="Save and add"
-          onCancel={data.profiles.length > 0 ? () => setCreating(false) : onBack}
+          onCancel={data.profiles.length > 0 ? () => setWantsNew(false) : onBack}
           onSave={async (fields) => {
             onChoose(await repo.machineProfiles.create(fields));
           }}
@@ -65,7 +62,7 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
         {data.profiles.map((profile) => (
           <li key={profile.id}>
             <label className="wk-machine__option">
-              <input type="radio" name="machine" checked={picked === profile.id} onChange={() => setPicked(profile.id)} />
+              <input type="radio" name="machine" checked={selected === profile.id} onChange={() => setPicked(profile.id)} />
               <span>
                 <strong>{profile.name}</strong>
                 <span className="wk-muted">{[profile.gymName, profile.brand, data.last?.id === profile.id ? "last used" : null].filter(Boolean).join(" · ")}</span>
@@ -78,7 +75,7 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
         <Button disabled={!chosen} onClick={() => chosen && onChoose(chosen)}>
           {confirmLabel}
         </Button>
-        <Button variant="ink" onClick={() => setCreating(true)}>
+        <Button variant="ink" onClick={() => setWantsNew(true)}>
           New machine
         </Button>
         {onBack ? (

@@ -75,14 +75,11 @@ export interface RestTimerApi {
 
 /** The persisted rest timer of a workout: absolute `endsAt` in localStorage, recomputed on every tick/visibility change. */
 export function useRestTimer(workoutId: string | null): RestTimerApi {
-  const [state, setState] = useState<RestState | null>(null);
+  // Read once on mount (the caller keys the screen by workout id); SSR never renders this because Dexie data gates the screen.
+  const [state, setState] = useState<RestState | null>(() => (workoutId ? loadRest(workoutId) : null));
   const running = state !== null && state.endsAt !== null;
   const now = useNow(250, running);
   const notified = useRef<number | null>(null);
-
-  useEffect(() => {
-    setState(workoutId ? loadRest(workoutId) : null);
-  }, [workoutId]);
 
   const commit = useCallback((next: RestState | null) => {
     setState(next);
