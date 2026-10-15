@@ -134,7 +134,7 @@ for (const theme of ["paper", "ink"] as const) {
     await expect(page.getByRole("button", { name: `Remove ${LEG_PRESS} from favorites`, exact: true }).first()).toHaveAttribute("aria-pressed", "true");
     await audit("/exercises (one starred)");
     await page.getByRole("link", { name: "Favorites" }).click();
-    await expect(page).toHaveURL(/fav=1/);
+    await expect(page).toHaveURL(/fav=1/, { timeout: 30_000 }); // a client navigation: allow a cold server render
     await audit("/exercises?fav=1");
 
     // detail
