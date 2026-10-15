@@ -1,6 +1,5 @@
 // The Anthropic client for the weekly narrative, behind a minimal interface so tests (and the e2e fake) can stand in for the SDK.
 import Anthropic from "@anthropic-ai/sdk";
-import { env } from "@/server/env";
 import { createFakeNarrativeClient } from "./fake-client";
 
 /** The one SDK call the pipeline makes. `Anthropic` satisfies it; unit tests pass a fake. */
@@ -10,6 +9,9 @@ export interface NarrativeClient {
   };
 }
 
+/** Same default as env.ts and .env.example. */
+const DEFAULT_MODEL = "claude-opus-5-5";
+
 let cached: NarrativeClient | undefined;
 
 /**
@@ -18,12 +20,13 @@ let cached: NarrativeClient | undefined;
  */
 export function getNarrativeClient(): NarrativeClient | null {
   if (process.env.INSIGHTS_E2E_FAKE === "1" && process.env.VERCEL_ENV !== "production") return (cached ??= createFakeNarrativeClient());
-  const { ANTHROPIC_API_KEY } = env();
-  if (!ANTHROPIC_API_KEY) return null;
+  // Not env(): it validates every variable at once and would take the insights down for an unrelated empty one.
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
+  if (!apiKey) return null;
   // Vercel Hobby functions stop at 60 s: one retry on transient errors, and a timeout that leaves room for the fallback.
-  return (cached ??= new Anthropic({ apiKey: ANTHROPIC_API_KEY, maxRetries: 1, timeout: 40_000 }));
+  return (cached ??= new Anthropic({ apiKey, maxRetries: 1, timeout: 40_000 }));
 }
 
 export function insightsModel(): string {
-  return process.env.INSIGHTS_E2E_FAKE === "1" && process.env.VERCEL_ENV !== "production" ? "fake-insights-model" : env().INSIGHTS_MODEL;
+  return process.env.INSIGHTS_E2E_FAKE === "1" && process.env.VERCEL_ENV !== "production" ? "fake-insights-model" : process.env.INSIGHTS_MODEL?.trim() || DEFAULT_MODEL;
 }
