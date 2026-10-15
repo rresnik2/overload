@@ -234,6 +234,17 @@ describe("derived set columns, cascades and queries", () => {
     expect((await repo.sets.forWorkoutExercise(we.id)).map((s) => s.position)).toEqual(["a0", "a1"]);
     expect((await repo.sets.forWorkout(workout.id)).map((s) => s.position)).toEqual(["a0", "a1"]);
   });
+
+  it("sets.forSeries returns the live sets of one series across workouts", async () => {
+    const { repo } = fresh();
+    const { we, exercise } = await seedWorkout(repo);
+    const kept = await repo.sets.create({ workoutExerciseId: we.id, position: "a0", reps: 5, weightKg: 50 });
+    const gone = await repo.sets.create({ workoutExerciseId: we.id, position: "a1", reps: 5, weightKg: 60 });
+    await repo.sets.remove(gone.id);
+    const key = (await repo.sets.get(kept.id))?.seriesKey as string;
+    expect((await repo.sets.forSeries(key)).map((s) => s.id)).toEqual([kept.id]);
+    expect(await repo.sets.forSeries(`${exercise.id}:nope`)).toEqual([]);
+  });
 });
 
 describe("catalog and exercise search", () => {
@@ -369,6 +380,7 @@ describe("every method of the Repo contract", () => {
       "sets.remove": (r) => r.sets.remove("0192a5b0-0005-7000-8000-0000000000f0"),
       "sets.forWorkoutExercise": (r) => r.sets.forWorkoutExercise(we.id),
       "sets.forWorkout": (r) => r.sets.forWorkout(workout.id),
+      "sets.forSeries": (r) => r.sets.forSeries(`${exercise.id}:none`),
       "sets.lastTime": (r) => r.sets.lastTime({ exerciseId: exercise.id, machineProfileId: null, beforeLocalDate: "2027-01-01" }),
       "catalog.version": (r) => r.catalog.version(),
       "catalog.replace": (r) => r.catalog.replace({ version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [] }),
