@@ -23,10 +23,13 @@ export interface ExerciseCardProps {
   priorityImage?: boolean;
   /** Max muscle chips. Default 4. */
   maxMuscles?: number;
+  /** Heading level of the exercise name: 2 when the page title is the h1 above the list, 3 (default) under a section heading. */
+  headingLevel?: 2 | 3;
   className?: string;
 }
 
-export function ExerciseCard({ exercise, href, actions, showImage = true, priorityImage = false, maxMuscles = 4, className }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, href, actions, showImage = true, priorityImage = false, maxMuscles = 4, headingLevel = 3, className }: ExerciseCardProps) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const image = showImage ? exercise.images[0] : undefined;
   const body = (
     <>
@@ -37,7 +40,7 @@ export function ExerciseCard({ exercise, href, actions, showImage = true, priori
       ) : null}
       <div className="exercise-card__body">
         <ModalityBadge modality={exercise.modality} equipment={exercise.equipment} />
-        <h3 className="exercise-card__name">{exercise.name}</h3>
+        <Heading className="exercise-card__name">{exercise.name}</Heading>
         <MuscleChips muscles={exercise.muscles} max={maxMuscles} />
         {exercise.isCustom ? <p className="exercise-card__custom">Your exercise</p> : null}
       </div>

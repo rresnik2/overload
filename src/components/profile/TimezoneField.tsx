@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useSyncExternalStore } from "react";
 import { Field } from "@/components/auth/Field";
 
 function zones(): string[] {
@@ -10,9 +10,18 @@ function zones(): string[] {
   }
 }
 
+const NO_ZONES: string[] = [];
+let cachedZones: string[] | undefined;
+const subscribeNever = () => () => undefined;
+const browserZones = () => (cachedZones ??= zones());
+const serverZones = () => NO_ZONES;
+
 /** Free-text IANA zone with suggestions (validated server-side with isValidTimeZone). */
 export function TimezoneField({ value, onChange, error, name = "timezone" }: { value: string; onChange: (value: string) => void; error?: string | null; name?: string }) {
-  const options = useMemo(() => zones(), []);
+  // The list of zones differs between Node and the browser (WebKit names them differently), so hydrate with the empty server snapshot and
+  // switch to the browser's list afterwards: a server/client mismatch makes React re-render the whole document, which also drops the
+  // theme attribute from <html>.
+  const options = useSyncExternalStore(subscribeNever, browserZones, serverZones);
   return (
     <>
       <Field

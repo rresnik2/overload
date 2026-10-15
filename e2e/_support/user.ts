@@ -84,11 +84,11 @@ export async function completeOnboarding(page: Page, opts: OnboardingOptions = {
 }
 
 /**
- * Creates a verified, onboarded user in `page`'s browser context and leaves the page on /today, signed in.
- * Sign-up goes through the API (same rules as the form: the cookie jar is shared with `page`); verification and onboarding use the real UI.
+ * Creates a verified user in `page`'s browser context and leaves the page on /onboarding, signed in (not yet onboarded).
+ * Sign-up goes through the API (same rules as the form: the cookie jar is shared with `page`); verification uses the real UI.
  * Against a production build the verification link cannot be read, so the user is marked verified in the database and signs in instead.
  */
-export async function createUser(page: Page, opts: CreateUserOptions = {}): Promise<Credentials> {
+export async function createUserAtOnboarding(page: Page, opts: CreateUserOptions = {}): Promise<Credentials> {
   const email = uniqueEmail(opts.tag ?? "e2e");
   const password = newPassword();
   // Derived like playwright.config.ts does, so this also works from worker-scoped fixtures (which cannot read the test-scoped baseURL).
@@ -115,6 +115,12 @@ export async function createUser(page: Page, opts: CreateUserOptions = {}): Prom
   } else {
     await verifyEmail(page, email);
   }
-  await completeOnboarding(page, opts);
   return { email, password };
+}
+
+/** Creates a verified, onboarded user in `page`'s browser context and leaves the page on /today, signed in. */
+export async function createUser(page: Page, opts: CreateUserOptions = {}): Promise<Credentials> {
+  const creds = await createUserAtOnboarding(page, opts);
+  await completeOnboarding(page, opts);
+  return creds;
 }
