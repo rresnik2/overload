@@ -8,8 +8,11 @@ import { createSerwistRoute } from "@serwist/turbopack";
 const revision =
   process.env.VERCEL_GIT_COMMIT_SHA ?? (spawnSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).stdout?.trim() || "dev");
 
+// Everything here must be a public, unauthenticated 200: one failing entry aborts the worker install.
+const PRECACHE = ["/~offline", "/icons/icon-192.png", "/icons/icon-512.png", "/icons/apple-touch-icon.png", "/favicon.ico"];
+
 export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } = createSerwistRoute({
-  additionalPrecacheEntries: [{ url: "/~offline", revision }],
+  additionalPrecacheEntries: PRECACHE.map((url) => ({ url, revision })),
   swSrc: "src/app/sw.ts",
   useNativeEsbuild: true,
 });

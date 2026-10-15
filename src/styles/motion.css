@@ -1,1 +1,66 @@
-/* View transitions and motion; honour prefers-reduced-motion. Owner: stream B. (Empty in Phase 0.) */
+/* View transitions and motion (stream B): the portfolio's page slides. Honours prefers-reduced-motion.
+   <PageTransition> (components/shell) tags enter/exit with the classes below; links carry transitionTypes. */
+
+/* Only the named page content animates: stop the browser's default whole-document crossfade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes page-slide {
+  from {
+    translate: var(--slide-offset, 2.5rem) 0;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+
+/* Forward: old content leaves quickly to the left, new content arrives from the right after it. */
+::view-transition-old(.page-out) {
+  --slide-offset: -2.5rem;
+  animation:
+    var(--page-out) var(--ease-out) both page-fade reverse,
+    var(--page-out) var(--ease-out) both page-slide reverse;
+}
+::view-transition-new(.page-in) {
+  --slide-offset: 2.5rem;
+  animation:
+    var(--page-in) var(--ease-out) var(--page-out) both page-fade,
+    var(--page-in) var(--ease-out) var(--page-out) both page-slide;
+}
+/* Back: mirrored. */
+::view-transition-old(.page-out-back) {
+  --slide-offset: 2.5rem;
+  animation:
+    var(--page-out) var(--ease-out) both page-fade reverse,
+    var(--page-out) var(--ease-out) both page-slide reverse;
+}
+::view-transition-new(.page-in-back) {
+  --slide-offset: -2.5rem;
+  animation:
+    var(--page-in) var(--ease-out) var(--page-out) both page-fade,
+    var(--page-in) var(--ease-out) var(--page-out) both page-slide;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}

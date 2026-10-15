@@ -20,8 +20,8 @@
   /* Filled buttons: vermilion-deep. Paper text on #C8321F = 4.77:1 (AA). */
   --color-primary: #c8321f;
   --color-primary-content: #f4f2ed;
-  /* PROVISIONAL (stream B finalizes and validates with the dataviz skill): slate blue = cable, ochre = bodyweight. */
-  --color-secondary: #35566f;
+  /* Final (stream B): slate blue = cable (paper text 4.95:1), ochre = bodyweight (paper text 5.30:1). */
+  --color-secondary: #3d6b9e;
   --color-secondary-content: #f4f2ed;
   --color-accent: #8a5a00;
   --color-accent-content: #f4f2ed;
@@ -65,9 +65,9 @@
 
   --color-primary: #f26a55; /* ink text on #F26A55 = 6.1:1 */
   --color-primary-content: #141414;
-  --color-secondary: #8fb0cc;
+  --color-secondary: #6fa3dc; /* ink text 6.97:1 */
   --color-secondary-content: #141414;
-  --color-accent: #e0a94a;
+  --color-accent: #e0a94a; /* ink text 8.72:1 */
   --color-accent-content: #141414;
   --color-neutral: #edeae3;
   --color-neutral-content: #141414;
@@ -108,10 +108,57 @@
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root {
+/* Hard shadows re-resolve inside any [data-theme] subtree (the styleguide shows both themes side by side). */
+:root,
+[data-theme] {
   --shadow-hard: 6px 6px 0 var(--color-vermilion);
   --shadow-hard-pressed: 4px 4px 0 var(--color-vermilion);
+  --shadow-hard-sm: 3px 3px 0 var(--color-vermilion);
+}
 
+/* Data-viz palette (stream B, validated with the dataviz skill in both themes; stream F consumes these).
+   free weight = vermilion, machine = graphite, cable = slate blue, bodyweight = ochre. Machine is a deliberate neutral:
+   every chart pairs it with a dash/marker + direct label (never colour alone). Bands: 80% at 12%, 50% at 22% opacity. */
+:root,
+[data-theme="overload-paper"] {
+  --chart-free-weight: #e4402b;
+  --chart-machine: #555350;
+  --chart-cable: #4a7fb8;
+  --chart-bodyweight: #a8730a;
+  --chart-forecast: #6b6862; /* dashed forecast line: muted ink */
+  --chart-pr: #e4402b; /* filled star markers */
+  --chart-grid: #dcd8ce;
+  --chart-axis: #5c5a56;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --chart-free-weight: #e8573f;
+    --chart-machine: #8a867f;
+    --chart-cable: #4f8fe0;
+    --chart-bodyweight: #c28410;
+    --chart-forecast: #a8a49a;
+    --chart-pr: #f26a55;
+    --chart-grid: #2e2c29;
+    --chart-axis: #a8a49a;
+  }
+}
+[data-theme="overload-ink"] {
+  --chart-free-weight: #e8573f;
+  --chart-machine: #8a867f;
+  --chart-cable: #4f8fe0;
+  --chart-bodyweight: #c28410;
+  --chart-forecast: #a8a49a;
+  --chart-pr: #f26a55;
+  --chart-grid: #2e2c29;
+  --chart-axis: #a8a49a;
+}
+:root,
+[data-theme] {
+  --chart-band-80: 0.12; /* opacity of the 80% forecast band */
+  --chart-band-50: 0.22; /* opacity of the 50% forecast band */
+}
+
+:root {
   /* Motion: the portfolio's view-transition page slides. Disabled for reduced motion (motion.css, stream B). */
   --page-out: 0.18s;
   --page-in: 0.36s;
