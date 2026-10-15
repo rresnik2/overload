@@ -2,6 +2,8 @@
 import clsx from "clsx";
 import { Star } from "lucide-react";
 import { repo, useLive } from "@/client/repo";
+import { syncNow } from "@/client/sync";
+import { RepoError } from "@/contracts/repo";
 
 /**
  * The star toggle: a 44px icon button with `aria-pressed`, vermilion outline when off and a filled star when on.
@@ -16,6 +18,25 @@ export interface FavoriteButtonProps {
   className?: string;
 }
 
+const CATALOG_RETRIES = 5;
+
+/**
+ * Starring needs the exercise in the local database. Right after sign-in the catalog may still be on its way (it arrives with
+ * the first sync), so a NOT_FOUND triggers a sync and a retry instead of silently doing nothing.
+ */
+async function toggleFavorite(exerciseId: string): Promise<void> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await repo.favorites.toggle(exerciseId);
+      return;
+    } catch (error) {
+      if (!(error instanceof RepoError) || error.code !== "NOT_FOUND" || attempt >= CATALOG_RETRIES) throw error;
+      await syncNow("manual");
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+  }
+}
+
 export function FavoriteButton({ exerciseId, name, initial = false, className }: FavoriteButtonProps) {
   const live = useLive(() => repo.favorites.isFavorite(exerciseId), [exerciseId]);
   const pressed = live ?? initial;
@@ -26,7 +47,7 @@ export function FavoriteButton({ exerciseId, name, initial = false, className }:
       aria-pressed={pressed}
       aria-label={pressed ? `Remove ${name} from favorites` : `Add ${name} to favorites`}
       onClick={() => {
-        repo.favorites.toggle(exerciseId).catch((error: unknown) => console.warn("[favorites] could not toggle", error));
+        toggleFavorite(exerciseId).catch((error: unknown) => console.warn("[favorites] could not toggle", error));
       }}
     >
       <Star aria-hidden="true" focusable="false" strokeWidth={2.25} />
