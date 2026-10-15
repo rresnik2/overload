@@ -346,6 +346,23 @@ describe("NumberStrip", () => {
     vi.restoreAllMocks();
   });
 
+  it("drags with the mouse, snaps to the nearest item on release and ignores the click that follows", () => {
+    render(<StripHarness initial={5} itemSize={40} />);
+    const sc = strip();
+    expect(sc.scrollLeft).toBe(160);
+    fireEvent.pointerDown(sc, { pointerId: 1, pointerType: "mouse", button: 0, clientX: 300 });
+    fireEvent.pointerMove(sc, { pointerId: 1, pointerType: "mouse", clientX: 298 }); // under the 3px threshold: still a click
+    expect(sc).not.toHaveAttribute("data-dragging");
+    fireEvent.pointerMove(sc, { pointerId: 1, pointerType: "mouse", clientX: 220 });
+    expect(sc).toHaveAttribute("data-dragging", "true");
+    expect(sc.scrollLeft).toBe(160 + 80);
+    fireEvent.pointerUp(sc, { pointerId: 1, pointerType: "mouse", clientX: 220 });
+    expect(sc).not.toHaveAttribute("data-dragging");
+    expect(screen.getByTestId("out")).toHaveTextContent("7");
+    fireEvent.click(sc.querySelectorAll(".numstrip__item")[0]!);
+    expect(screen.getByTestId("out")).toHaveTextContent("7");
+  });
+
   it("rests with nothing selected while the value is null, and the first key sets one", async () => {
     render(<StripHarness initial={null} />);
     expect(strip()).not.toHaveAttribute("aria-valuenow");
