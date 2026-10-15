@@ -120,8 +120,8 @@ export const MAD_FLOOR_FRACTION = 0.02;
  * shared (roberts2020sex) and the sex/lift arguments of the forecast do not change it.
  */
 export const FORECAST_PRIOR_SLOPE = 0.16;
-/** Prior sd of the relative slope: half the mean, so about 6 well-spread sessions start to move the posterior. */
-export const FORECAST_PRIOR_SLOPE_SD = 0.08;
+/** Prior sd of the relative slope: about 3x the mean. Lifters differ a lot (Steele n = 14,690): a few weeks of data must not move the forecast far, while 16 weeks of data can. */
+export const FORECAST_PRIOR_SLOPE_SD = 0.5;
 /** Prior sd of the (relative) level at t = 0: effectively flat, the data decide the level. */
 export const FORECAST_PRIOR_LEVEL_SD = 1;
 /**
