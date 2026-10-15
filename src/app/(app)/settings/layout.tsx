@@ -1,6 +1,7 @@
 // Settings frame: sub-navigation + the onboarding guard for every settings page. Stream B owns the shell around it.
 import type { ReactNode } from "react";
 import { SettingsNav } from "@/components/profile/SettingsNav";
+import { SignOutButton } from "@/components/profile/SignOutButton";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { requireUser } from "@/server/auth/session";
 import { redirectIfNotOnboarded } from "@/server/profile/guard";
@@ -13,6 +14,7 @@ export default async function SettingsLayout({ children }: { children: ReactNode
       <PageHeader title="Settings" />
       <SettingsNav />
       {children}
+      <SignOutButton />
     </div>
   );
 }
