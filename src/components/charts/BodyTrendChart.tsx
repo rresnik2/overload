@@ -4,18 +4,10 @@
 import { CartesianGrid, ComposedChart, Line, ResponsiveContainer, Scatter, Tooltip, XAxis, YAxis } from "recharts";
 import { fromKg, type WeightUnit } from "@/lib/units";
 import type { BodyFatPoint, WeightPoint } from "@/server/queries/body.shape";
-import { dayNumber, formatDay, unitLabel } from "./format";
+import { dayNumber, formatDay, METHOD_LABEL, unitLabel } from "./format";
 import { Mark } from "./markers";
 
 const COLOR = "var(--chart-bodyweight)";
-export const METHOD_LABEL: Record<string, string> = {
-  DEXA: "DEXA",
-  BIA: "BIA scale",
-  CALIPERS: "Calipers",
-  NAVY_TAPE: "Navy tape",
-  SCALE: "Scale estimate",
-  BMI_ESTIMATE: "BMI estimate",
-};
 
 interface WRow {
   t: number;

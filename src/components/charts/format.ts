@@ -67,3 +67,13 @@ export function modalityShape(modality: Modality): MarkerShape {
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
 }
+
+/** Display names of the body-fat methods. */
+export const METHOD_LABEL: Record<string, string> = {
+  DEXA: "DEXA",
+  BIA: "BIA scale",
+  CALIPERS: "Calipers",
+  NAVY_TAPE: "Navy tape",
+  SCALE: "Scale estimate",
+  BMI_ESTIMATE: "BMI estimate",
+};

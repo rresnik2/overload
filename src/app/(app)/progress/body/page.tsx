@@ -1,0 +1,29 @@
+// Body: weight trend, body fat (with its method), FFMI as a range, circumferences and the logging form with the Navy calculator.
+import Link from "next/link";
+import { BodyLog } from "@/components/body/BodyLog";
+import { BodySections } from "@/components/body/BodySections";
+import { PageHeader } from "@/components/primitives/PageHeader";
+import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { requireUser } from "@/server/auth/session";
+import { loadBodyView } from "@/server/queries/body";
+
+export const metadata = { title: "Body" };
+
+export default async function BodyPage() {
+  const view = await loadBodyView(await requireUser());
+  return (
+    <>
+      <PageHeader
+        title="Body"
+        meta={["Progress", "Last 12 months"]}
+        description="Weight trend, body fat, lean mass and tape measurements."
+        actions={<Link href="/progress" className="btn btn-outline">All progress</Link>}
+      />
+      <BodySections view={view} unit={view.unit} />
+      <section aria-labelledby="body-log" className="progress-section">
+        <SectionHeader id="body-log" index={5} title="Log a measurement" />
+        <BodyLog today={view.today} unit={view.unit} sex={view.sex} heightCm={view.heightCm} entries={view.entries} />
+      </section>
+    </>
+  );
+}
