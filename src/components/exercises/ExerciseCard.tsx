@@ -19,18 +19,20 @@ export interface ExerciseCardProps {
   actions?: ReactNode;
   /** Show the first photo. Default true. */
   showImage?: boolean;
+  /** Load the photo eagerly (cards above the fold). Default false. */
+  priorityImage?: boolean;
   /** Max muscle chips. Default 4. */
   maxMuscles?: number;
   className?: string;
 }
 
-export function ExerciseCard({ exercise, href, actions, showImage = true, maxMuscles = 4, className }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, href, actions, showImage = true, priorityImage = false, maxMuscles = 4, className }: ExerciseCardProps) {
   const image = showImage ? exercise.images[0] : undefined;
   const body = (
     <>
       {image ? (
         <div className="exercise-card__photo">
-          <ExerciseImage path={image} alt="" />
+          <ExerciseImage path={image} alt="" priority={priorityImage} />
         </div>
       ) : null}
       <div className="exercise-card__body">

@@ -30,9 +30,9 @@ export function ExerciseList({ exercises, hrefFor, actionsFor, showImages = true
   }
   return (
     <ul className={clsx("exercise-list", className)}>
-      {exercises.map((exercise) => (
+      {exercises.map((exercise, index) => (
         <li key={exercise.id}>
-          <ExerciseCard exercise={exercise} href={hrefFor?.(exercise)} actions={actionsFor?.(exercise)} showImage={showImages} />
+          <ExerciseCard exercise={exercise} href={hrefFor?.(exercise)} actions={actionsFor?.(exercise)} showImage={showImages} priorityImage={index < 3} />
         </li>
       ))}
     </ul>
