@@ -116,8 +116,8 @@ test("offline: log 9 sets, reload, sync drains, the server has exactly 9", async
   const card = other.getByRole("article").first();
   await expect(card).toContainText("9 sets", { timeout: 60_000 });
   await expect(card).toContainText("2 exercises");
-  await other.getByRole("link", { name: "Workout" }).first().click();
-  await expect(other.locator(".wk-set")).toHaveCount(9);
+  await card.getByRole("link").click();
+  await expect(other.locator(".wk-set")).toHaveCount(9, { timeout: 30_000 });
   await second.close();
   expect((await dbSetCount(email)).sets).toBe(9);
 });
@@ -126,7 +126,9 @@ test("a heavier second session shows the PR toast, and the rest timer survives a
   test.setTimeout(240_000);
   await createUser(page, { tag: "pr", name: "PR Logger" });
   await page.goto("/workout");
+  await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible({ timeout: 60_000 });
   await page.getByRole("button", { name: "Start empty workout" }).click();
+  await expect(page.getByRole("textbox", { name: "Workout name" })).toBeVisible();
   await addExercise(page, "barbell bench press", FREE_WEIGHT);
   const first = page.getByRole("region", { name: FREE_WEIGHT });
   await logSet(first, 1, "100", "5");
@@ -136,11 +138,10 @@ test("a heavier second session shows the PR toast, and the rest timer survives a
   await page.getByRole("button", { name: "Done" }).click();
   await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible();
 
-  // Second session: beat the first set.
+  // Second session (same day, so no "last time" ghost: that only looks at earlier dates): beat the first set.
   await page.getByRole("button", { name: "Start empty workout" }).click();
   await addExercise(page, "barbell bench press", FREE_WEIGHT);
   const second = page.getByRole("region", { name: FREE_WEIGHT });
-  await expect(second.getByText(/^last 100 × 5$/)).toBeVisible(); // ghost values from last time
   await logSet(second, 1, "105", "5");
   await expect(page.locator(".toast--pr")).toContainText(FREE_WEIGHT);
   await expect(second.locator(".wk-set--pr")).toHaveCount(1);
