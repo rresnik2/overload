@@ -7,7 +7,7 @@ import { syncNow } from "@/client/sync";
 import { RepoError } from "@/contracts/repo";
 
 /**
- * The star toggle: a 44px icon button with `aria-pressed`, vermilion outline when off and a filled star when on.
+ * The star toggle: a 44px icon button with `aria-pressed`, neutral outline when off and a filled star when on.
  * State is the local database (`repo.favorites`), so it works offline and syncs like any other write. `initial` is the
  * server-rendered state, used until the local database answers (and during SSR) so the first paint does not flicker.
  */
