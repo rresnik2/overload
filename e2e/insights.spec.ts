@@ -1,10 +1,9 @@
 // Stream G: /insights and /learn.
-// The model is mocked at the SDK boundary: the server must run with INSIGHTS_E2E_FAKE=1 (src/server/insights/client.ts swaps in an
-// offline stand-in that writes a grounded narrative from the facts it receives). This file sets the variable before Playwright starts
-// its own web server; if you reuse a server you started yourself, start it with `INSIGHTS_E2E_FAKE=1 pnpm dev -p 3003`.
-//   PORT=3003 pnpm exec playwright test e2e/insights.spec.ts --project=chromium
+// The model is mocked at the SDK boundary: the SERVER must run with INSIGHTS_E2E_FAKE=1 (src/server/insights/client.ts swaps in an
+// offline stand-in that writes a grounded narrative from the facts it receives). Playwright's own web server inherits it from the shell:
+//   INSIGHTS_E2E_FAKE=1 PORT=3003 pnpm exec playwright test e2e/insights.spec.ts --project=chromium
+// (E2E_PROD=1 works the same). Against a server without the flag the tests that would call the model are SKIPPED, never run for real.
 // Each user gets a 6-week generated lifting history (the same generator the demo-user seed uses), written straight to the database.
-process.env.INSIGHTS_E2E_FAKE ??= "1";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type Browser, type BrowserContext } from "@playwright/test";
@@ -163,7 +162,9 @@ test.describe("/insights", () => {
     await context.close();
   });
 
-  test("generate writes the narrative; regenerating with unchanged facts uses no regeneration", async ({ page, writer }) => {
+  test("generate writes the narrative; regenerating with unchanged facts uses no regeneration", async ({ page, request, writer }) => {
+    const probe = await request.get("/api/cron/insights");
+    test.skip(probe.headers()["x-insights-fake-model"] !== "1", "server is not running the fake model: start it with INSIGHTS_E2E_FAKE=1");
     await page.goto("/insights");
     await expect(page.getByTestId("regenerations-left")).toHaveText("3 of 3 regenerations left this week");
     await page.getByRole("button", { name: "Write this week's review" }).click();
