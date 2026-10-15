@@ -1,60 +1,18 @@
 // Stream A end-to-end: sign up -> verify through the mocked inbox -> onboarding -> /today; sign in; password reset;
 // and the injected-userId check on the profile Server Action.
 // Needs the dev server on PORT with an empty RESEND_API_KEY (or any *.test address, which never leaves the outbox).
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser } from "@playwright/test";
 import { linkTo, waitForEmail } from "./helpers/mailbox";
+import { isProductionServer } from "./_support/db";
+import { completeOnboarding, createUser, newPassword, resetRateLimitsIfProduction, signUpThroughForm, uniqueEmail, verifyEmail } from "./_support/user";
 
 // Multi-step flows against a dev server that compiles routes on first hit (WebKit is the slowest).
 test.describe.configure({ timeout: 90_000 });
 
-const uniqueEmail = (tag: string) => `${tag}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`;
-const newPassword = () => `pw-${Math.random().toString(36).slice(2)}-Aa1!`;
+// Production builds enforce the real auth rate limits (10 sign-ins a minute per IP); every test starts with fresh counters.
+test.beforeEach(({ page }) => resetRateLimitsIfProduction(page));
 
-async function signUpAndVerify(page: Page, email: string, password: string, name = "Auth Tester") {
-  await page.goto("/sign-up");
-  await page.getByLabel("Name").fill(name);
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/verify-email/);
-  await expect(page.getByText(`We sent a confirmation link to ${email}`)).toBeVisible();
-
-  const message = await waitForEmail(page.request, email, /confirm your overload email/i);
-  await page.goto(linkTo(message, "/api/auth/verify-email"));
-  // Verification signs the user in and /continue sends brand-new users to onboarding.
-  await expect(page).toHaveURL(/\/onboarding$/);
-}
-
-async function completeOnboarding(page: Page, opts: { unit?: "Kilograms" | "Pounds"; weight?: string } = {}) {
-  const unit = opts.unit ?? "Kilograms";
-  await expect(page.getByRole("heading", { name: "Units and region" })).toBeVisible();
-  await page.getByLabel(unit).check();
-  await page.getByLabel("Time zone").fill("America/Chicago");
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "About you" })).toBeVisible();
-  await page.getByLabel("Male", { exact: true }).check();
-  await page.getByLabel("Birth date").fill("1992-04-18");
-  if (unit === "Pounds") {
-    await page.getByLabel("Height (ft)").fill("5");
-    await page.getByLabel("Height (in)").fill("10");
-  } else {
-    await page.getByLabel("Height (cm)").fill("178");
-  }
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Training" })).toBeVisible();
-  await page.getByLabel("Intermediate").check();
-  await page.getByLabel("Build muscle").check();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Starting point" })).toBeVisible();
-  await page.getByLabel(/^Bodyweight/).fill(opts.weight ?? "82.5");
-  await page.getByLabel(/Body fat/).fill("16");
-  await page.getByRole("button", { name: "Finish" }).click();
-  await expect(page).toHaveURL(/\/today$/);
-  await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-}
+const MAILBOX_SKIP = "reads the mocked inbox, which a production build does not expose (covered by the `next dev` run)";
 
 test("anonymous visitors are sent to sign-in", async ({ page }) => {
   await page.goto("/settings/profile");
@@ -62,9 +20,11 @@ test("anonymous visitors are sent to sign-in", async ({ page }) => {
 });
 
 test("sign up, verify by email, onboard, land on /today, then sign out and in again", async ({ page, context }) => {
+  test.skip(await isProductionServer(page.request), MAILBOX_SKIP);
   const email = uniqueEmail("flow");
   const password = newPassword();
-  await signUpAndVerify(page, email, password);
+  await signUpThroughForm(page, email, password);
+  await verifyEmail(page, email);
   await completeOnboarding(page);
 
   // Settings reflect what onboarding wrote.
@@ -79,7 +39,7 @@ test("sign up, verify by email, onboard, land on /today, then sign out and in ag
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/today$/);
+  await expect(page).toHaveURL(/\/today$/, { timeout: 30_000 });
 });
 
 test("sign-in before verification asks for the email link", async ({ page }) => {
@@ -99,10 +59,8 @@ test("sign-in before verification asks for the email link", async ({ page }) => 
 });
 
 test("password reset through the mocked inbox", async ({ page, context }) => {
-  const email = uniqueEmail("reset");
-  const password = newPassword();
-  await signUpAndVerify(page, email, password);
-  await completeOnboarding(page);
+  test.skip(await isProductionServer(page.request), MAILBOX_SKIP);
+  const { email, password } = await createUser(page, { tag: "reset", name: "Auth Tester" });
   await context.clearCookies();
 
   await page.goto("/forgot-password");
@@ -126,16 +84,13 @@ test("password reset through the mocked inbox", async ({ page, context }) => {
   await expect(page.getByRole("form", { name: "Sign in" }).getByRole("alert")).toContainText(/do not match/i);
   await page.getByLabel("Password").fill(fresh);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/today$/);
+  await expect(page).toHaveURL(/\/today$/, { timeout: 30_000 });
 });
 
 async function newOnboardedUser(browser: Browser, tag: string) {
   const context = await browser.newContext();
   const page = await context.newPage();
-  const email = uniqueEmail(tag);
-  const password = newPassword();
-  await signUpAndVerify(page, email, password, tag);
-  await completeOnboarding(page);
+  const { email, password } = await createUser(page, { tag, name: tag });
   return { context, page, email, password };
 }
 

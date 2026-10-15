@@ -173,6 +173,6 @@
       ]
     }
   },
-  "integration": ["src/app/(app)/today/**", "e2e/journeys/**", "e2e/isolation/**"],
+  "integration": ["src/app/(app)/today/**", "e2e/_support/**", "e2e/journeys/**", "e2e/isolation/**", "change-requests/applied/**"],
   "unrestricted": ["W3"]
 }

@@ -3,6 +3,8 @@
 // ONLY when process.env.NODE_ENV !== "production" (so run this against `pnpm dev`, not a production build).
 // Test credentials are generated here for this run only.
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { isProductionServer } from "./_support/db";
+import { createUser } from "./_support/user";
 
 type Overload = {
   repo: {
@@ -17,11 +19,6 @@ type Overload = {
   };
   syncNow(reason?: string): Promise<{ ok: boolean; pushed: number; pulled: number; rejected: number; skipped?: boolean; error?: string }>;
 };
-
-const credentials = () => ({
-  email: `sync-${Date.now()}-${Math.floor(Math.random() * 1e6)}@example.test`,
-  password: `pw-${Math.random().toString(36).slice(2)}-Aa1!`,
-});
 
 async function ready(page: Page) {
   await page.waitForFunction(() => Boolean((window as unknown as { __overload?: unknown }).__overload), undefined, { timeout: 60_000 });
@@ -63,34 +60,25 @@ async function syncAll(page: Page) {
   }
 }
 
-async function signUp(page: Page, email: string, password: string) {
-  await page.goto("/sign-up");
-  await page.getByLabel("Name").fill("Sync Tester");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/today$/);
-  await ready(page);
-}
-
 async function signIn(browser: Browser, email: string, password: string) {
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto("/sign-in");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/today$/);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/today$/, { timeout: 30_000 });
   await ready(page);
   return { context, page };
 }
 
-test("two browser contexts of one user converge in both directions; an offline edit syncs after going online", async ({ browser }) => {
+test("two browser contexts of one user converge in both directions; an offline edit syncs after going online", async ({ browser, request }) => {
+  test.skip(await isProductionServer(request), "the window.__overload hook only exists in development builds (covered by the `next dev` run)");
   test.setTimeout(180_000);
-  const { email, password } = credentials();
   const context1 = await browser.newContext();
   const page1 = await context1.newPage();
-  await signUp(page1, email, password);
+  const { email, password } = await createUser(page1, { tag: "sync", name: "Sync Tester" });
+  await ready(page1);
   const { context: context2, page: page2 } = await signIn(browser, email, password);
 
   // 1. Device 1 logs a set while "at the gym" and syncs.
