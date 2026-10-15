@@ -8,12 +8,13 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { waitUntil } from "@vercel/functions";
+import { resolveAppUrl } from "@/lib/app-url";
 import { prisma } from "@/server/db";
 import { sendEmail } from "@/server/email/send";
 import { passwordResetEmail, verificationEmail } from "@/server/email/templates";
 import { authRateLimitRules } from "@/server/profile/auth-rate-limits";
 
-const baseURL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+const baseURL = resolveAppUrl();
 // `next build` evaluates this module without runtime secrets; Better Auth refuses a missing secret in production,
 // so give the BUILD phase (only) a throwaway value. At runtime a missing BETTER_AUTH_SECRET still fails loudly.
 const secret =

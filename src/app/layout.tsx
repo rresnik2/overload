@@ -3,6 +3,7 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 import type { Metadata, Viewport } from "next";
 import { Instrument_Serif, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
+import { resolveAppUrl } from "@/lib/app-url";
 import { THEME_COLORS, themeInitScript } from "@/lib/theme";
 import "@/styles/globals.css";
 
@@ -24,7 +25,7 @@ const newsreader = Newsreader({
   display: "swap",
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+const appUrl = resolveAppUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
