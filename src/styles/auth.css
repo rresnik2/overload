@@ -230,3 +230,9 @@
   padding-top: 1.5rem;
   border-top: 2px solid var(--color-base-content);
 }
+
+.auth-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+}

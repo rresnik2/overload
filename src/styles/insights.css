@@ -367,3 +367,10 @@
 .learn-index__card p {
   margin: 0;
 }
+
+/* Source links are list items of their own: give each a 44px line so they are easy to hit on a phone. */
+.insight-card li > a.link-underline {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+}

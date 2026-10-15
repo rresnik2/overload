@@ -478,3 +478,13 @@ body:has(.shell-backdrop) {
   background: var(--color-base-100);
   border: 1px solid var(--color-base-content);
 }
+
+/* Touch targets (W3 accessibility review): 44px minimum for the brand link and daisyUI's .btn (40px by default). */
+.shell-brand {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-target);
+}
+.btn {
+  min-height: var(--tap-target);
+}
