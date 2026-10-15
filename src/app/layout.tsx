@@ -1,27 +1,19 @@
 // ROOT LAYOUT. FROZEN after Phase 0 (change-request protocol). Streams add UI through route-group layouts, not here.
 import { SerwistProvider } from "@serwist/turbopack/react";
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Newsreader } from "next/font/google";
+import { Archivo } from "next/font/google";
 import type { ReactNode } from "react";
 import { resolveAppUrl } from "@/lib/app-url";
 import { THEME_COLORS, themeInitScript } from "@/lib/theme";
 import "@/styles/globals.css";
 
-// Display: Instrument Serif has a single 400 weight (regular + italic): never set it bold.
-const instrument = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  variable: "--font-instrument",
-  display: "swap",
-});
-
-// Body/UI: Newsreader variable (weights 200-800) with its optical-size axis.
-const newsreader = Newsreader({
+// One family for display and body: Archivo, variable in weight (100-900) and width (wdth 62-125). Display type sets
+// font-stretch: 62% with italic 850; body stays at 100%. --font-display and --font-body both resolve to it (theme.css).
+const archivo = Archivo({
   subsets: ["latin"],
   style: ["normal", "italic"],
-  axes: ["opsz"],
-  variable: "--font-newsreader",
+  axes: ["wdth"],
+  variable: "--font-archivo",
   display: "swap",
 });
 
@@ -53,7 +45,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // suppressHydrationWarning: the inline script below sets data-theme/color-scheme before React hydrates.
-    <html lang="en" suppressHydrationWarning className={`${instrument.variable} ${newsreader.variable}`}>
+    <html lang="en" suppressHydrationWarning className={archivo.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
