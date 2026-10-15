@@ -50,6 +50,7 @@ enum TrainingGoal {
   HYPERTROPHY
   STRENGTH
   GENERAL
+  FAT_LOSS
 }
 
 enum BodyFatMethod {

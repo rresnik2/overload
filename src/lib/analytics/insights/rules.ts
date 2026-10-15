@@ -1,12 +1,19 @@
-// The ten insight rules + the runner. Each rule is a pure function AnalyticsInput -> InsightCard[]; the runner
+// The eleven insight rules + the runner. Each rule is a pure function AnalyticsInput -> InsightCard[]; the runner
 // concatenates them in INSIGHT_RULE_IDS order, so the same input always gives the same cards in the same order.
 // Language is neutral and non-medical; machine series are never compared with barbell numbers; hyperplasia is not a mode.
 import { INSIGHT_RULE_IDS, type AnalyticsInput, type InsightCard, type InsightRule, type InsightRuleId, type RunInsightRules } from "@/contracts/analytics";
 import type { Muscle } from "@/contracts/enums";
-import { addDays } from "@/lib/dates";
+import { addDays, diffDays } from "@/lib/dates";
 import { defaultIncrement } from "@/lib/units";
 import {
   CUT_PROTEIN_G_PER_KG,
+  FALLING_WEIGHT_NOTICE_PCT_PER_WEEK,
+  LOSS_RATE_TARGET_MAX_PCT_PER_WEEK,
+  LOSS_RATE_TARGET_MIN_PCT_PER_WEEK,
+  LOSS_STALL_PCT_PER_WEEK,
+  LOSS_STALL_WEEKS,
+  RATE_MIN_WEIGH_INS,
+  RATE_WINDOW_DAYS,
   CUT_WEIGHT_LOSS_FRACTION_4W,
   DEFAULT_REP_RANGE,
   DEFAULT_VOLUME_GOAL,
@@ -328,6 +335,8 @@ const onTrackVsPopulation: InsightRule = (input) => {
     });
     if (!cmp || cmp.verdict === "on-track") continue;
     const ahead = cmp.verdict === "ahead";
+    // Holding strength is the aim while losing weight, so "slower than the curve" is not a finding for that goal.
+    if (!ahead && input.profile.goal === "FAT_LOSS") continue;
     cards.push(
       makeCard({
         id: `insight:on-track-vs-population:${s.seriesKey}`,
@@ -403,22 +412,120 @@ const cutStrengthDrop: InsightRule = (input) => {
     if (change <= -NOISE_THRESHOLD) dropping += 1;
   }
   if (dropping < 2 || dropping * 2 < evaluated) return [];
+  const weightLoss = input.profile.goal === "FAT_LOSS";
   return [
     makeCard({
       id: "insight:cut-strength-drop",
       ruleId: "cut-strength-drop",
-      severity: "warning",
-      title: "Strength is dropping during the cut",
-      body: `Your bodyweight trend is down ${r1(past.trendKg - now.trendKg)} kg (${r1(lossFraction * 100)}%) over four weeks and ${dropping} of ${evaluated} free-weight lifts fell by more than the ~5% noise range. If keeping strength matters, consider slowing the cut and keeping protein around ${CUT_PROTEIN_G_PER_KG} g per kg of bodyweight per day.`,
+      severity: weightLoss ? "suggestion" : "warning",
+      title: weightLoss ? "Strength is dipping while you lose weight" : "Strength is dropping during the cut",
+      body: weightLoss
+        ? `Your goal is to lose weight and keep your muscle, so holding strength is the aim. Your bodyweight trend is down ${r1(past.trendKg - now.trendKg)} kg (${r1(lossFraction * 100)}%) over four weeks and ${dropping} of ${evaluated} free-weight lifts fell by more than the ~5% noise range. A small dip can happen, but if it keeps up, consider slowing the pace, keeping your heavy sets heavy and keeping protein around ${CUT_PROTEIN_G_PER_KG} g per kg of bodyweight per day.`
+        : `Your bodyweight trend is down ${r1(past.trendKg - now.trendKg)} kg (${r1(lossFraction * 100)}%) over four weeks and ${dropping} of ${evaluated} free-weight lifts fell by more than the ~5% noise range. If keeping strength matters, consider slowing the cut and keeping protein around ${CUT_PROTEIN_G_PER_KG} g per kg of bodyweight per day.`,
       evidence: [
         { label: "Bodyweight trend change (4 wk)", value: r1(now.trendKg - past.trendKg), unit: "kg" },
         { label: "Lifts with a clear drop", value: dropping },
         { label: "Lifts compared", value: evaluated },
         { label: "Protein reference", value: CUT_PROTEIN_G_PER_KG, unit: "g/kg" },
       ],
-      citations: ["grgic2020"],
+      citations: ["grgic2020", "morton2018"],
     }),
   ];
+};
+
+/**
+ * Rate of change of the smoothed bodyweight trend over `days`, in percent of the starting trend per week (negative =
+ * losing). Null without a weigh-in on or before the window start, a recent weigh-in, and enough weigh-ins inside it.
+ */
+function weightRate(input: AnalyticsInput, days: number) {
+  const series = bodyweightSeries(input);
+  const trend = bodyweightTrend(series);
+  if (trend.length < 2) return null;
+  const now = trend[trend.length - 1]!;
+  if (diffDays(now.localDate, input.today) > 7) return null;
+  const cutoff = addDays(input.today, -days);
+  const past = [...trend].reverse().find((p) => p.localDate <= cutoff);
+  if (!past) return null;
+  if (series.filter((p) => p.localDate > cutoff).length < RATE_MIN_WEIGH_INS) return null;
+  const weeks = diffDays(past.localDate, now.localDate) / 7;
+  if (weeks <= 0) return null;
+  const changeKg = now.trendKg - past.trendKg;
+  return { pctPerWeek: (changeKg / past.trendKg) * 100 / weeks, changeKg, weeks };
+}
+
+/**
+ * 11. Rate of bodyweight change against ~0.5-1 % of bodyweight per week (helms2014). For a weight-loss goal: too fast,
+ * on pace, or stalled. For any other goal: only when the trend is falling. Never calorie or medical advice.
+ */
+const weightChangeRate: InsightRule = (input) => {
+  const goal = input.profile.goal;
+  const evidenceFor = (rate: { pctPerWeek: number; changeKg: number; weeks: number }) => [
+    { label: "Bodyweight trend rate", value: r1(rate.pctPerWeek), unit: "% per week" },
+    { label: "Bodyweight trend change", value: r1(rate.changeKg), unit: "kg" },
+    { label: "Weeks measured", value: r1(rate.weeks) },
+    { label: "Reference pace", value: `${bandText(LOSS_RATE_TARGET_MIN_PCT_PER_WEEK, LOSS_RATE_TARGET_MAX_PCT_PER_WEEK)}% of bodyweight per week` },
+  ];
+  const rate = weightRate(input, RATE_WINDOW_DAYS);
+  const loss = rate ? -rate.pctPerWeek : 0;
+  const range = bandText(LOSS_RATE_TARGET_MIN_PCT_PER_WEEK, LOSS_RATE_TARGET_MAX_PCT_PER_WEEK);
+
+  if (rate && loss > LOSS_RATE_TARGET_MAX_PCT_PER_WEEK) {
+    return [
+      makeCard({
+        id: "insight:weight-change-rate",
+        ruleId: "weight-change-rate",
+        severity: goal === "FAT_LOSS" ? "warning" : "suggestion",
+        title: "Bodyweight is falling faster than about 1% a week",
+        body: `Your bodyweight trend is down ${r1(Math.abs(rate.changeKg))} kg over ${r1(rate.weeks)} weeks, about ${r1(loss)}% per week. A pace of about ${range}% of bodyweight per week is the range suggested for keeping muscle while losing weight; faster than that risks muscle and strength.${goal === "FAT_LOSS" ? " Slowing the pace is the lever to pull." : " If this is not intended, it is worth a look."}`,
+        evidence: evidenceFor(rate),
+        citations: ["helms2014"],
+      }),
+    ];
+  }
+  if (goal === "FAT_LOSS") {
+    if (rate && loss >= LOSS_RATE_TARGET_MIN_PCT_PER_WEEK) {
+      return [
+        makeCard({
+          id: "insight:weight-change-rate",
+          ruleId: "weight-change-rate",
+          severity: "celebration",
+          title: "Weight is coming down at a steady pace",
+          body: `Your bodyweight trend is down about ${r1(loss)}% per week over ${r1(rate.weeks)} weeks, inside the ${range}% range suggested for keeping muscle while losing weight. Keep your heavy sets heavy; holding strength is the sign it is working.`,
+          evidence: evidenceFor(rate),
+          citations: ["helms2014"],
+        }),
+      ];
+    }
+    const stall = weightRate(input, LOSS_STALL_WEEKS * 7);
+    if (stall && -stall.pctPerWeek < LOSS_STALL_PCT_PER_WEEK) {
+      return [
+        makeCard({
+          id: "insight:weight-change-rate",
+          ruleId: "weight-change-rate",
+          severity: "suggestion",
+          title: "Your weight trend has been flat for about three weeks",
+          body: `Your smoothed bodyweight trend moved ${r1(Math.abs(stall.pctPerWeek))}% per week over ${r1(stall.weeks)} weeks, under ${LOSS_STALL_PCT_PER_WEEK}%. Day-to-day weight swings are normal, and this uses a smoothed trend, but a flat trend this long is worth a look. Regular weigh-ins make the trend more reliable, and you can change your goal in Settings any time.`,
+          evidence: evidenceFor(stall),
+          citations: ["helms2014"],
+        }),
+      ];
+    }
+    return [];
+  }
+  if (rate && loss >= FALLING_WEIGHT_NOTICE_PCT_PER_WEEK) {
+    return [
+      makeCard({
+        id: "insight:weight-change-rate",
+        ruleId: "weight-change-rate",
+        severity: "info",
+        title: "Your bodyweight trend is falling",
+        body: `Your bodyweight trend is down about ${r1(loss)}% per week over ${r1(rate.weeks)} weeks. If that is intended, about ${range}% of bodyweight per week is the range suggested for keeping muscle while losing weight (Helms 2014). If it is not intended, keep an eye on it. You can pick the Lose weight goal in Settings for guidance built around it.`,
+        evidence: evidenceFor(rate),
+        citations: ["helms2014"],
+      }),
+    ];
+  }
+  return [];
 };
 
 /** One entry per rule id, in INSIGHT_RULE_IDS order. */
@@ -433,7 +540,8 @@ export const INSIGHT_RULES: Record<InsightRuleId, InsightRule> = {
   "on-track-vs-population": onTrackVsPopulation,
   "ffmi-context": ffmiContext,
   "cut-strength-drop": cutStrengthDrop,
+  "weight-change-rate": weightChangeRate,
 };
 
-/** Run all ten rules (each may emit 0..n cards). Deterministic. */
+/** Run all eleven rules (each may emit 0..n cards). Deterministic. */
 export const runInsightRules: RunInsightRules = (input: AnalyticsInput) => INSIGHT_RULE_IDS.flatMap((id) => INSIGHT_RULES[id](input));
