@@ -63,8 +63,12 @@ test("browse the library: tabs, equipment and muscle filters, search, detail pag
   await page.locator('select[name="equipment"]').selectOption("dumbbell");
   await page.getByRole("button", { name: "Apply" }).click();
   await expect(page).toHaveURL(/equipment=dumbbell/);
-  await expect.poll(async () => (await badges(page).allInnerTexts()).filter((t) => !t.toLowerCase().includes("dumbbell"))).toEqual([]);
-  expect(await cards(page).count()).toBeGreaterThan(0);
+  await expect
+    .poll(async () => {
+      const texts = await badges(page).allInnerTexts();
+      return texts.length > 0 && texts.every((t) => t.toLowerCase().includes("dumbbell"));
+    })
+    .toBe(true);
 
   // Muscle filter + search.
   await page.locator('select[name="muscle"]').selectOption("biceps");
