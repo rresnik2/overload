@@ -1,6 +1,7 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { Star } from "lucide-react";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { MUSCLE_VALUES } from "@/contracts/enums";
 import { EQUIPMENT_LABEL, MODALITY_LABEL, MUSCLE_LABEL } from "./labels";
 import { libraryHref, toSlug, type LibraryFilters } from "./library-url";
@@ -38,12 +39,14 @@ export function ExerciseFilters({ basePath, filters, tabs, equipmentOptions, cla
             <span className="exercise-tab__count num">{tab.count}</span>
           </Link>
         ))}
+        <InfoHint term="modalityTabs" />
       </nav>
       <div className="exercise-filters__chips">
         <Link href={favoritesHref} className={clsx("exercise-chip", filters.fav && "exercise-chip--active")} aria-current={filters.fav ? "true" : undefined}>
           <Star aria-hidden="true" focusable="false" strokeWidth={2.25} />
           Favorites
         </Link>
+        <InfoHint term="favorites" />
       </div>
       <form method="get" action={basePath} className="exercise-filter-form" role="search">
         {filters.modality ? <input type="hidden" name="modality" value={toSlug(filters.modality)} /> : null}

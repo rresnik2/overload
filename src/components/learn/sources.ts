@@ -38,6 +38,13 @@ export const SOURCES: Record<string, Source> = Object.fromEntries([
   s("bazvalle2022", "Baz-Valle 2022", "A Systematic Review of The Effects of Different Resistance Training Volumes on Muscle Hypertrophy", "https://doi.org/10.2478/hukin-2022-0017", "review"),
   s("pelland2025", "Pelland 2025", "The Resistance Training Dose Response: Meta-Regressions Exploring the Effects of Weekly Volume and Frequency on Muscle Hypertrophy and Strength Gains", "https://doi.org/10.1007/s40279-025-02344-w", "review"),
   s("remmert2025", "Remmert 2025 (preprint)", "Is There Too Much of a Good Thing? Meta-Regressions of the Effect of Per-Session Volume on Hypertrophy and Strength", "https://doi.org/10.51224/SRXIV.537", "preprint"),
+  // goals (verified through the NCBI E-utilities and OpenAlex in stream UX)
+  s("schoenfeld2017load", "Schoenfeld 2017 (load)", "Strength and Hypertrophy Adaptations Between Low- vs. High-Load Resistance Training: A Systematic Review and Meta-analysis", "https://doi.org/10.1519/JSC.0000000000002200", "review"),
+  s("singer2024", "Singer 2024", "Give it a rest: a systematic review with Bayesian meta-analysis on the effect of inter-set rest interval duration on muscle hypertrophy", "https://doi.org/10.3389/fspor.2024.1429789", "review"),
+  s("steele2022", "Steele 2022 (preprint)", "Long-term time-course of strength adaptation to minimal dose resistance training: Retrospective longitudinal growth modelling of a large cohort through training records", "https://doi.org/10.31236/osf.io/eq485", "preprint"),
+  s("helms2014", "Helms 2014", "Evidence-based recommendations for natural bodybuilding contest preparation: nutrition and supplementation", "https://doi.org/10.1186/1550-2783-11-20", "review"),
+  s("murphy2022", "Murphy & Koehler 2022", "Energy deficiency impairs resistance training gains in lean mass but not strength: A meta-analysis and meta-regression", "https://doi.org/10.1111/sms.14075", "review"),
+  s("morton2018", "Morton 2018", "A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength in healthy adults", "https://doi.org/10.1136/bjsports-2017-097608", "review"),
   // machines
   s("haugen2023", "Haugen 2023", "Effect of free-weight vs. machine-based strength training on maximal strength, hypertrophy and jump performance: a systematic review and meta-analysis", "https://doi.org/10.1186/s13102-023-00713-4", "review"),
   s("acsm2026", "ACSM 2026 (news release)", "ACSM Unveils Landmark 2026 Resistance Training Guidelines, First Update in 17 Years", "https://www.newswise.com/articles/acsm-unveils-landmark-2026-resistance-training-guidelines-first-update-in-17-years", "news"),

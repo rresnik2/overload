@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/primitives/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Sheet";
+import { Term } from "@/components/ui/Term";
 import { useToast } from "@/components/ui/Toast";
 import { formatWeight } from "@/lib/units";
 import { useWorkoutActions } from "./actions";
@@ -54,8 +55,14 @@ export function HistoryDetail({ id }: { id: string }) {
       <p className="wk-stats num">
         <span>{workout.endedAt ? formatClock(new Date(workout.endedAt).getTime() - new Date(workout.startedAt).getTime()) : "In progress"}</span>
         <span>{summary.sets} sets</span>
-        <span>{formatWeight(summary.volumeKg, prefs.unit)} volume</span>
-        {summary.prSets > 0 ? <span>{summary.prSets} PR{summary.prSets === 1 ? "" : "s"}</span> : null}
+        <span>
+          {formatWeight(summary.volumeKg, prefs.unit)} <Term id="volumeLoad">volume</Term>
+        </span>
+        {summary.prSets > 0 ? (
+          <span>
+            {summary.prSets} <Term id="personalRecord">PR{summary.prSets === 1 ? "" : "s"}</Term>
+          </span>
+        ) : null}
       </p>
       {summary.prs.length > 0 ? (
         <ul className="wk-summary__prs" aria-label="Personal records">
@@ -126,7 +133,7 @@ export function HistoryDetail({ id }: { id: string }) {
         onClose={() => setTemplating(false)}
         onSave={async (name, folder) => {
           await saveWorkoutAsTemplate(repo, workout.id, name, folder);
-          toast({ kind: "success", title: "Template saved", description: name });
+          toast({ kind: "success", title: "Template saved", description: name, action: { label: "View templates", onClick: () => router.push("/templates") } });
         }}
       />
     </div>

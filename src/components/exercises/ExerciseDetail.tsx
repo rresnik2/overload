@@ -1,5 +1,7 @@
 import clsx from "clsx";
 import { HardCard } from "@/components/primitives/HardCard";
+import { InfoHint } from "@/components/ui/InfoHint";
+import type { TermId } from "@/lib/glossary";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
 import type { ExerciseRow } from "@/contracts/entities";
 import { ExerciseImage } from "./ExerciseImage";
@@ -18,6 +20,14 @@ export interface ExerciseDetailProps {
   series?: SeriesSummary[];
   className?: string;
 }
+
+const LOAD_TERM: Partial<Record<ExerciseRow["loadType"], TermId>> = {
+  TOTAL: "loadTotal",
+  PER_IMPLEMENT: "loadPerHand",
+  PLATES_PER_SIDE: "loadPerSide",
+  STACK: "loadStack",
+  BODYWEIGHT_PLUS: "bodyweightPlus",
+};
 
 function seriesLabel(series: SeriesSummary): string {
   if (!series.machineProfile) return "Default";
@@ -44,7 +54,10 @@ export function ExerciseDetail({ exercise, series, className }: ExerciseDetailPr
         <HardCard as="div">
           <dl className="exercise-facts">
             <div>
-              <dt>Type</dt>
+              <dt>
+                Type
+                <InfoHint term="modalityTabs" />
+              </dt>
               <dd>
                 <ModalityBadge modality={exercise.modality} />
               </dd>
@@ -58,7 +71,11 @@ export function ExerciseDetail({ exercise, series, className }: ExerciseDetailPr
               <dd>{TRACKING_LABEL[exercise.tracking]}</dd>
             </div>
             <div>
-              <dt>Weight is</dt>
+              <dt>
+                Weight is
+                {LOAD_TERM[exercise.loadType] ? <InfoHint term={LOAD_TERM[exercise.loadType] as TermId} /> : null}
+                {/assisted/i.test(exercise.name) ? <InfoHint term="assisted" /> : null}
+              </dt>
               <dd>
                 {LOAD_TYPE_LABEL[exercise.loadType]}
                 {exercise.bodyweightFactor !== null ? <span className="num"> (about {Math.round(exercise.bodyweightFactor * 100)}% of bodyweight moves)</span> : null}
@@ -83,7 +100,10 @@ export function ExerciseDetail({ exercise, series, className }: ExerciseDetailPr
           </dl>
           <p className="exercise-detail__help">{LOAD_TYPE_HELP[exercise.loadType]}</p>
           {isMachine ? (
-            <p className="exercise-detail__help">Machines differ by gym and brand, so each machine you use keeps its own progression and is never converted to free-weight numbers.</p>
+            <p className="exercise-detail__help">
+              Machines differ by gym and brand, so each machine you use keeps its own progression and is never converted to free-weight numbers.
+              <InfoHint term="machineWeights" />
+            </p>
           ) : null}
         </HardCard>
       </section>
@@ -106,7 +126,7 @@ export function ExerciseDetail({ exercise, series, className }: ExerciseDetailPr
 
       {series ? (
         <section aria-labelledby="ex-series" className="exercise-detail__section">
-          <SectionHeader id="ex-series" index={exercise.instructions.length > 0 ? 4 : 3} title="Your progression" />
+          <SectionHeader id="ex-series" index={exercise.instructions.length > 0 ? 4 : 3} title="Your progression" actions={<InfoHint term="progressSeries" />} />
           {series.length === 0 ? (
             <p className="exercise-detail__empty">You have not logged this exercise yet.</p>
           ) : (

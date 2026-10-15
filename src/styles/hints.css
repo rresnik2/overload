@@ -245,8 +245,19 @@
   font-size: 15px;
   line-height: 1.4;
 }
-.goal-card__summary--second {
-  opacity: 0.85;
+.goal-card-wrap {
+  position: relative;
+  display: flex;
+}
+.goal-card-wrap .goal-card {
+  flex: 1;
+  padding-inline-end: 2.5rem;
+}
+.goal-card__hint {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: 1;
 }
 
 /* A field label with its "i" beside it. */
@@ -254,4 +265,72 @@
   display: flex;
   align-items: center;
   gap: 0.125rem;
+}
+
+/* Exercise cards: the load line, and hints next to library tabs/chips. */
+.exercise-card__load {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.exercise-tabs {
+  align-items: center;
+}
+
+/* Chart frames: the title hint and the legend hint sit beside their text. */
+.chart-frame__head {
+  align-items: center;
+}
+.chart-legend-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+}
+.pr-legend {
+  margin: 0 0 1rem;
+  line-height: 1.7;
+}
+
+.insight-card__evidence-head {
+  display: flex;
+  align-items: center;
+  margin: 0.75rem 0 0.25rem;
+  font-weight: 600;
+}
+
+/* /learn comparison table */
+.learn__table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-base-content);
+}
+.learn__table-wrap:focus-visible {
+  outline: 2px solid var(--color-vermilion);
+  outline-offset: 2px;
+}
+.learn__table {
+  border-collapse: collapse;
+  inline-size: 100%;
+  min-inline-size: 52rem;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.learn__table th,
+.learn__table td {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--color-base-300);
+  text-align: start;
+  vertical-align: top;
+}
+.learn__table thead th {
+  background: var(--color-base-200);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.25rem;
+}
+.learn__table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  background: var(--color-base-200);
+  font-weight: 600;
+  min-inline-size: 9rem;
 }

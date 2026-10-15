@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { HardCard } from "@/components/primitives/HardCard";
 import type { ExerciseRow } from "@/contracts/entities";
 import { ExerciseImage } from "./ExerciseImage";
+import { LOAD_TYPE_LABEL } from "./labels";
 import { ModalityBadge } from "./ModalityBadge";
 import { MuscleChips } from "./MuscleChips";
 
@@ -46,6 +47,7 @@ export function ExerciseCard({ exercise, href, actions, showImage = true, priori
         <ModalityBadge modality={exercise.modality} equipment={exercise.equipment} />
         <Heading className="exercise-card__name">{exercise.name}</Heading>
         <MuscleChips muscles={exercise.muscles} max={maxMuscles} />
+        {exercise.loadType !== "TOTAL" && exercise.loadType !== "NONE" ? <p className="exercise-card__load">Weight: {LOAD_TYPE_LABEL[exercise.loadType].toLowerCase()}</p> : null}
         {exercise.isCustom ? <p className="exercise-card__custom">Your exercise</p> : null}
       </div>
     </>

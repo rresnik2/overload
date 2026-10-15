@@ -9,7 +9,8 @@ import { completeOnboardingAction } from "@/server/actions/profile";
 import { Field } from "@/components/auth/Field";
 import { FormAlert } from "@/components/auth/FormAlert";
 import { ChoiceGroup } from "./ChoiceGroup";
-import { EXPERIENCE_CHOICES, GOAL_CHOICES, SEX_CHOICES, UNIT_CHOICES } from "./choices";
+import { EXPERIENCE_CHOICES, SEX_CHOICES, UNIT_CHOICES } from "./choices";
+import { GoalCards } from "./GoalCards";
 import { TimezoneField } from "./TimezoneField";
 
 const STEPS = ["Units and region", "About you", "Training", "Starting point"] as const;
@@ -97,7 +98,7 @@ export function OnboardingWizard() {
         <h2 className="wizard-step__title">{STEPS[step]}</h2>
         {step === 0 ? (
           <>
-            <ChoiceGroup legend="Weight unit" name="unit" choices={UNIT_CHOICES} value={state.unit} onChange={(v) => set("unit", v)} help="Weights are stored in kilograms and shown in your unit. You can change this later." />
+            <ChoiceGroup legend="Weight unit" legendHint="units" name="unit" choices={UNIT_CHOICES} value={state.unit} onChange={(v) => set("unit", v)} help="Weights are stored in kilograms and shown in your unit. You can change this later." />
             <TimezoneField value={timezone} onChange={(v) => set("timezone", v)} error={fieldErrors.timezone} />
           </>
         ) : null}
@@ -105,13 +106,14 @@ export function OnboardingWizard() {
           <>
             <ChoiceGroup
               legend="Sex"
+              legendHint="sex"
               name="sex"
               choices={SEX_CHOICES}
               value={state.sex}
               onChange={(v) => set("sex", v)}
               help="Only used for formula coefficients and percentile comparisons. Prefer not to say hides percentiles."
             />
-            <Field label="Birth date" name="birthDate" type="date" value={state.birthDate} onChange={(e) => set("birthDate", e.target.value)} autoComplete="bday" required error={fieldErrors.birthDate} />
+            <Field label="Birth date" labelHint="bodyStats" name="birthDate" type="date" value={state.birthDate} onChange={(e) => set("birthDate", e.target.value)} autoComplete="bday" required error={fieldErrors.birthDate} />
             {imperial ? (
               <div className="settings-grid">
                 <Field label="Height (ft)" name="heightFt" type="number" inputMode="numeric" min={3} max={8} step={1} value={state.heightFt} onChange={(e) => set("heightFt", e.target.value)} required />
@@ -124,8 +126,8 @@ export function OnboardingWizard() {
         ) : null}
         {step === 2 ? (
           <>
-            <ChoiceGroup legend="Training experience" name="experience" choices={EXPERIENCE_CHOICES} value={state.experience} onChange={(v) => set("experience", v)} />
-            <ChoiceGroup legend="Main goal" name="goal" choices={GOAL_CHOICES} value={state.goal} onChange={(v) => set("goal", v)} />
+            <ChoiceGroup legend="Training experience" legendHint="experienceLevel" name="experience" choices={EXPERIENCE_CHOICES} value={state.experience} onChange={(v) => set("experience", v)} />
+            <GoalCards value={state.goal} onChange={(v) => set("goal", v)} error={fieldErrors.goal} />
           </>
         ) : null}
         {step === 3 ? (
@@ -143,8 +145,9 @@ export function OnboardingWizard() {
               required
               error={fieldErrors.weightKg}
               hint="Your first bodyweight entry. Charts and relative-strength scores start from it."
+              labelHint="bodyweightTrend"
             />
-            <Field label="Body fat % (optional)" name="bodyFat" type="number" inputMode="decimal" min={1} max={75} step={0.1} value={state.bodyFat} onChange={(e) => set("bodyFat", e.target.value)} error={fieldErrors.bodyFatPct} />
+            <Field label="Body fat % (optional)" labelHint="bodyFatMethods" name="bodyFat" type="number" inputMode="decimal" min={1} max={75} step={0.1} value={state.bodyFat} onChange={(e) => set("bodyFat", e.target.value)} error={fieldErrors.bodyFatPct} />
           </>
         ) : null}
         {error ? <FormAlert>{error}</FormAlert> : null}

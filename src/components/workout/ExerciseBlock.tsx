@@ -58,6 +58,7 @@ function SetLegend({ item, prefs, showGhost }: { item: ExerciseView; prefs: Work
         <span className="wk-legend__item">
           Weight
           <InfoHint term={loadTerm} />
+          {/assisted/i.test(exercise.name) ? <InfoHint term="assisted" /> : null}
         </span>
       ) : null}
       <span className="wk-legend__item">

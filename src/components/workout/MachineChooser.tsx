@@ -59,7 +59,7 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
     <div className="wk-machine">
       <h3 className="wk-machine__title">
         Which machine?
-        <InfoHint term="machineProfile" />
+        <InfoHint term="machineChooser" />
       </h3>
       <p className="wk-muted">{exercise.name}: each machine keeps its own progress.</p>
       <ul className="wk-machine__list" role="radiogroup" aria-label="Machine">

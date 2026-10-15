@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import { MODALITY_LABEL } from "@/components/exercises/labels";
 import { formatDate, unitLabel, weightText } from "@/components/charts/format";
 import { HardCard } from "@/components/primitives/HardCard";
+import { Term } from "@/components/ui/Term";
 import type { PrType } from "@/contracts/enums";
 import type { WeightUnit } from "@/lib/units";
 import { PR_TYPE_LABEL, PR_VALUE_KIND, type PrBoard, type PrEntry } from "@/server/queries/prs.shape";
@@ -37,6 +38,10 @@ export function PrBoardView({ board, unit }: { board: PrBoard; unit: WeightUnit 
         </section>
       ) : null}
 
+      <p className="pr-legend">
+        What the records mean: <Term id="prE1rm">best estimated max</Term>, <Term id="prMaxLoad">heaviest weight</Term>, <Term id="prRepMax">rep max</Term>, <Term id="prMaxReps">most reps</Term>, <Term id="prSetVolume">best set volume</Term> and{" "}
+        <Term id="prSessionVolume">best session volume</Term>.
+      </p>
       <h2 id="pr-by-lift" className="progress-subhead pr-by-lift">By exercise</h2>
       <div className="pr-grid" aria-labelledby="pr-by-lift" role="group">
         {board.series.map((b) => (

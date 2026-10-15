@@ -98,10 +98,6 @@ const entries = {
     term: "Rest",
     short: "How long to rest after this set, in seconds. The rest timer uses it when you finish the set.",
   },
-  supersetKey: {
-    term: "Superset key",
-    short: "A letter or number that groups exercises into a superset. Exercises with the same key are shown and done together.",
-  },
   template: {
     term: "Template",
     short: "A saved workout plan with its exercises, sets, rep ranges and rest. Start one to fill in a new workout for you.",
@@ -316,7 +312,7 @@ const entries = {
   },
   goalHypertrophy: {
     term: "Build muscle",
-    short: "Grow muscle size. Aim for about 10 to 20 hard sets per muscle a week, mostly in the 6 to 12 rep range, with most sets stopping 0 to 3 reps short of your limit.",
+    short: "Grow muscle size. Aim for about 10 to 20 hard sets per muscle a week, mostly 8 to 12 reps, with most sets stopping 0 to 3 reps short of your limit.",
     learn: "choosing-a-goal",
   },
   goalStrength: {

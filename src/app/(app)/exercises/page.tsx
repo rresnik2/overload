@@ -7,6 +7,7 @@ import { MODALITY_LABEL, MODALITY_ORDER } from "@/components/exercises/labels";
 import { LIBRARY_PAGE_SIZE, libraryHref, parseLibraryParams } from "@/components/exercises/library-url";
 import { Pagination } from "@/components/exercises/Pagination";
 import { PageHeader } from "@/components/primitives/PageHeader";
+import { PageIntro } from "@/components/ui/PageIntro";
 import { requireUser } from "@/server/auth/session";
 import { listLibrary } from "@/server/catalog/queries";
 
@@ -52,6 +53,7 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
           </Link>
         }
       />
+      <PageIntro id="exercises">Browse or search every exercise. Tap the star to favorite one, and open an exercise to see how its weight is logged and how you are progressing on it.</PageIntro>
       <ExerciseFilters basePath={BASE_PATH} filters={filters} tabs={tabs} equipmentOptions={result.equipmentOptions} />
       <p className="library-count num" role="status">
         {result.total} {result.total === 1 ? "exercise" : "exercises"}

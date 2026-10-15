@@ -26,6 +26,7 @@ export function TimezoneField({ value, onChange, error, name = "timezone" }: { v
     <>
       <Field
         label="Time zone"
+        labelHint="timezone"
         name={name}
         type="text"
         list="timezone-options"

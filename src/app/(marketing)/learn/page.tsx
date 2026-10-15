@@ -4,7 +4,7 @@ import { ARTICLES } from "@/components/learn/articles";
 import { HardCard } from "@/components/primitives/HardCard";
 import { PageHeader } from "@/components/primitives/PageHeader";
 
-export const metadata = { title: "Learn", description: "The evidence behind Overload's insights: hypertrophy, e1RM, RIR, volume and machines." };
+export const metadata = { title: "Learn", description: "The evidence behind Overload's insights: hypertrophy, e1RM, RIR, volume, goals and machines." };
 
 export default function LearnIndexPage() {
   return (

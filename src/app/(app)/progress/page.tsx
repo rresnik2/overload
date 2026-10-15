@@ -6,6 +6,9 @@ import { formatDate } from "@/components/charts/format";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { InfoHint } from "@/components/ui/InfoHint";
+import { PageIntro } from "@/components/ui/PageIntro";
+import { Term } from "@/components/ui/Term";
 import { BigThreeCard, SeriesCards } from "@/components/progress/OverviewSections";
 import { requireUser } from "@/server/auth/session";
 import { loadProgressOverview } from "@/server/queries/progress";
@@ -31,6 +34,9 @@ export default async function ProgressPage() {
           </>
         }
       />
+      <PageIntro id="progress">
+        Each card is one exercise (or one machine). Open it to see your <Term id="e1rm">estimated max</Term> over time. Weekly sets show how much work each muscle got.
+      </PageIntro>
       {overview.cards.length === 0 ? (
         <EmptyState
           title="Nothing to chart yet"
@@ -40,13 +46,13 @@ export default async function ProgressPage() {
       ) : (
         <>
           <section aria-labelledby="ov-lifts" className="progress-section">
-            <SectionHeader id="ov-lifts" index={1} title="Your lifts" />
+            <SectionHeader id="ov-lifts" index={1} title="Your lifts" actions={<InfoHint term="progressSeries" />} />
             <SeriesCards cards={overview.cards} unit={unit} />
             <BigThreeCard bigThree={overview.bigThree} unit={unit} />
           </section>
 
           <section aria-labelledby="ov-sets" className="progress-section">
-            <SectionHeader id="ov-sets" index={2} title="Weekly sets" />
+            <SectionHeader id="ov-sets" index={2} title="Weekly sets" actions={<><InfoHint term="weeklySets" /><InfoHint term="targetBand" /></>} />
             {thisWeek ? <WeeklySetsChart weekStart={thisWeek.weekStart} muscles={thisWeek.muscles} title={`This week (from ${formatDate(thisWeek.weekStart)})`} /> : null}
             {lastWeek ? <WeeklySetsChart weekStart={lastWeek.weekStart} muscles={lastWeek.muscles} title={`Last week (from ${formatDate(lastWeek.weekStart)})`} /> : null}
           </section>

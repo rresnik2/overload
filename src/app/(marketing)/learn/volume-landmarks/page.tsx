@@ -38,6 +38,7 @@ export default function Page() {
           <li>Build muscle: 10 to 20 fractional sets per week.</li>
           <li>Get stronger: 4 to 10 fractional sets per week. The research on strength points to sharper diminishing returns after roughly this range.</li>
           <li>General fitness: 4 to 20. This is an assumption, because the research does not define a general-fitness band; it only flags very low or very high weeks.</li>
+          <li>Lose weight: 10 to 20, the same as building muscle. This is also an assumption: the research brief gives no lower &ldquo;maintenance&rdquo; floor, so Overload does not tell you to cut your sets.</li>
         </ul>
       </LearnSection>
 

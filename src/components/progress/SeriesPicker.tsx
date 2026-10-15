@@ -1,5 +1,6 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { MODALITY_LABEL } from "@/components/exercises/labels";
 import { modalityColor, modalityShape, plural } from "@/components/charts/format";
 import type { SeriesRef } from "@/server/queries/progress.shape";
@@ -38,6 +39,7 @@ export function SeriesPicker({ exerciseId, series, selectedKey }: { exerciseId: 
           );
         })}
       </ul>
+      <InfoHint term="progressSeries" />
     </nav>
   );
 }

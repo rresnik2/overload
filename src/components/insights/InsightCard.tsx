@@ -1,8 +1,26 @@
 import clsx from "clsx";
 import type { ReactNode } from "react";
 import type { InsightCard as InsightCardData } from "@/contracts/analytics";
+import { InfoHint } from "@/components/ui/InfoHint";
+import type { InsightRuleId } from "@/contracts/analytics";
 import { CITATIONS } from "@/lib/analytics/constants";
+import type { TermId } from "@/lib/glossary";
 import { SEVERITY_LABEL } from "./labels";
+
+/** Which glossary terms explain each rule's evidence. Exhaustive: a new rule id fails the type check until it has hints. */
+const RULE_HINTS: Record<InsightRuleId, readonly TermId[]> = {
+  "volume-band": ["hardSet", "fractionalSets", "targetBand"],
+  "stalled-lift": ["stall", "deload"],
+  "double-progression": ["doubleProgression"],
+  "effort-check": ["proximityToFailure", "rir"],
+  "frequency-session-cap": ["weeklySets"],
+  "rep-range-goal": ["repRange", "trainingGoal"],
+  "relative-strength-percentile": ["e1rm"],
+  "on-track-vs-population": ["forecastBands"],
+  "ffmi-context": ["ffmi", "bodyFatMethods"],
+  "cut-strength-drop": ["bodyweightTrend", "trainingGoal"],
+  "weight-change-rate": ["rateOfLoss", "bodyweightTrend"],
+};
 
 export interface InsightCardProps {
   card: InsightCardData;
@@ -35,6 +53,13 @@ export function InsightCard({ card, defaultOpen = false, className }: InsightCar
       </summary>
       <div className="insight-card__body">
         <p>{card.body}</p>
+        {card.evidence.length > 0 ? (
+          <p className="insight-card__evidence-head">
+            Evidence
+            <InfoHint term="insightEvidence" />
+            {RULE_HINTS[card.ruleId]?.map((term) => <InfoHint key={term} term={term} />)}
+          </p>
+        ) : null}
         {card.evidence.length > 0 ? (
           <dl className="insight-card__evidence" aria-label="Evidence">
             {card.evidence.map((e, i) => (
