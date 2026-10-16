@@ -3,7 +3,8 @@
 // Signed-in screens use the seeded demo user (`pnpm exec tsx prisma/seed/fixtures.ts`) for realistic data, plus throwaway users for the
 // empty, onboarding and active-workout states.
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { devices, expect, test, type Page } from "@playwright/test";
+import { logSetByTyping } from "../_support/logging";
 import { createUser, createUserAtOnboarding, resetRateLimitsIfProduction } from "../_support/user";
 import { THEME_NAMES } from "@/lib/theme";
 
@@ -89,12 +90,13 @@ for (const theme of THEMES) {
       await expectNoViolations(page, "/history/<id>", theme);
     });
 
-    test("onboarding, an empty /today, and the active workout screen", async ({ page }) => {
+    test("onboarding, an empty /today, and the active workout screen", async ({ page, isMobile }) => {
       await createUserAtOnboarding(page, { tag: "axe-onboard" });
       await expect(page.getByRole("heading", { name: "Units and region" })).toBeVisible(COLD);
       await expectNoViolations(page, "/onboarding", theme);
 
-      const other = await page.context().browser()!.newContext();
+      // The second user gets the same device as this project, so a phone run audits the phone layout.
+      const other = await page.context().browser()!.newContext(isMobile ? devices["iPhone 15"] : {});
       const fresh = await other.newPage();
       await fresh.addInitScript((t) => localStorage.setItem("overload-theme", t), theme);
       await createUser(fresh, { tag: "axe-fresh" });
@@ -112,9 +114,7 @@ for (const theme of THEMES) {
       await picker.getByRole("button", { name: /^Add Barbell Bench Press(?!.* to favorites)/ }).first().click(); // not the row's star ("Add <name> to favorites")
       await expect(fresh.getByRole("region", { name: /Barbell Bench Press/ })).toBeVisible(COLD);
       const block = fresh.getByRole("region", { name: /Barbell Bench Press/ });
-      await block.getByRole("textbox", { name: /^Set 1 weight/ }).fill("60");
-      await block.getByRole("textbox", { name: "Set 1 reps" }).fill("8");
-      await block.getByRole("button", { name: "Complete set 1" }).click();
+      await logSetByTyping(block, 1, "60", "8", isMobile);
       await expect(fresh.getByTestId("rest-clock")).toBeVisible(COLD);
       await expectNoViolations(fresh, "/workout (set logged, rest timer running)", theme);
       await other.close();
