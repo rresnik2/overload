@@ -128,6 +128,7 @@ body:has(.wk-rest) .toast-region {
 /* ---- active workout ------------------------------------------------------ */
 .wk-active {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
 }
 .wk-bar {
@@ -214,6 +215,7 @@ body:has(.wk-rest) .toast-region {
 /* ---- exercise block ------------------------------------------------------ */
 .wk-exercise {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   padding: var(--space-5);
   background: var(--color-base-200);
@@ -279,6 +281,7 @@ body:has(.wk-rest) .toast-region {
 /* ---- set row ------------------------------------------------------------- */
 .wk-sets {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   margin: 0;
   padding: 0;
@@ -513,6 +516,7 @@ body:has(.wk-rest) .toast-region {
 /* ---- the active-set panel (phones and tablets) ------------------------------ */
 .wk-panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   padding: 0;
   border: 0;
@@ -559,18 +563,27 @@ body:has(.wk-rest) .toast-region {
   flex: 1;
   min-width: 0;
   margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0 var(--space-3);
   font-size: 12.5px;
   line-height: 1.4;
   color: var(--color-muted);
 }
+.wk-panel__meta .wk-set__badge {
+  height: 1.5rem;
+  min-width: 1.5rem;
+  margin-right: var(--space-2);
+  font-size: 12px;
+  vertical-align: middle;
+}
+.wk-panel__meta .wk-set__pr {
+  margin-right: var(--space-2);
+  font-size: 12.5px;
+  vertical-align: middle;
+}
 .wk-panel__metarow .wk-set__type {
   margin-left: 0;
   flex: none;
-  max-width: 7.5rem;
+  max-width: 6.5rem;
+  font-size: 16px;
 }
 .wk-panel__row {
   display: flex;
@@ -720,8 +733,7 @@ body:has(.wk-rest) .wk-panel__logrow {
 }
 .eq__art {
   height: var(--picture-h);
-  display: grid;
-  place-items: center;
+  min-width: 0;
   transition: opacity 160ms var(--ease-out);
 }
 .eq--ghost .eq__art {
@@ -737,6 +749,9 @@ body:has(.wk-rest) .wk-panel__logrow {
   width: 96px;
 }
 .eq--preview .eq__art {
+  height: auto;
+}
+.eq--preview svg {
   height: auto;
 }
 .eq__caption {
