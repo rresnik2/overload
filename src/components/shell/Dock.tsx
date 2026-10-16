@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { DOCK_ITEMS, isActive, MORE_ITEMS, START_WORKOUT } from "./nav";
+import { LinkPending } from "./LinkPending";
 import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -24,6 +25,7 @@ export function Dock() {
       <Link key={item.href} href={item.href} className={clsx(active && "dock-active")} aria-current={active ? "page" : undefined} transitionTypes={["nav-forward"]}>
         <NavIcon name={item.icon} />
         <span className="dock-label">{item.label}</span>
+        <LinkPending />
       </Link>
     );
   };

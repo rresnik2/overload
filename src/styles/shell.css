@@ -556,3 +556,40 @@ body:has(.shell-backdrop) {
     min-width: max-content;
   }
 }
+
+/* ---- pending indicator (components/shell/LinkPending): fixed size, only opacity changes, so it cannot shift the layout ---- */
+.link-pending {
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+.link-pending[data-placement="top"] {
+  top: 0.35rem;
+}
+.link-pending[data-placement="bottom"] {
+  left: 0;
+  right: 0;
+  bottom: -0.15em;
+}
+.link-pending[data-pending="true"] {
+  opacity: 1;
+  transition-delay: 80ms; /* a prefetched tap resolves faster than this and never flashes */
+}
+@media (prefers-reduced-motion: no-preference) {
+  .link-pending[data-pending="true"] {
+    animation: link-pending-pulse 900ms ease-in-out infinite alternate;
+  }
+}
+@keyframes link-pending-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
