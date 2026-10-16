@@ -143,6 +143,14 @@ describe("Dial", () => {
     expect(root().style.getPropertyValue("--dial-rim")).toBe("var(--plate-red)");
     expect(root().style.getPropertyValue("--dial-ink")).toBe("#16181a");
   });
+
+  it("stamps the plate face only when a stamp is given", () => {
+    const { container, rerender } = render(<DialHarness />);
+    const stamps = () => Array.from(container.querySelectorAll(".dial__rot .dial__stamp")).map((n) => n.textContent);
+    expect(stamps()).toEqual(["OVERLOAD"]);
+    rerender(<DialHarness stamp="KG" />);
+    expect(stamps()).toEqual(["OVERLOAD", "KG"]);
+  });
 });
 
 describe("Dial pointer turning", () => {
