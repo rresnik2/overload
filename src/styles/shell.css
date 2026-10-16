@@ -593,3 +593,110 @@ body:has(.shell-backdrop) {
     opacity: 1;
   }
 }
+
+/* ---- route skeletons (components/shell/Skeleton.tsx, the loading.tsx files). Every block has a fixed height so the swap to
+   the real page moves nothing; the heights below were measured from the rendered pages at 412 px and 1280 px. ---- */
+.skel-page {
+  --skel-row-h: 5.5rem;
+}
+.skel {
+  position: relative;
+  overflow: hidden;
+  height: var(--skel-h, 4rem);
+  border-radius: var(--radius-box);
+  background-color: var(--color-base-200);
+}
+.skel-rows,
+.skel-grid {
+  display: grid;
+  gap: var(--space-5);
+}
+.skel-grid {
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: var(--space-5);
+}
+@media (min-width: 768px) {
+  .skel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-7);
+  }
+}
+.skel-desc {
+  max-width: 60ch;
+  height: calc(var(--skel-lines, 2) * 1.5em);
+  margin-top: 0.5rem;
+}
+@media (min-width: 768px) {
+  .skel-desc {
+    height: calc(var(--skel-lines-wide, var(--skel-lines, 2)) * 1.5em);
+  }
+}
+.skel--action {
+  width: 8rem;
+  height: 2.5rem;
+}
+.skel--filters {
+  --skel-h: 9rem;
+  margin-bottom: var(--space-5);
+}
+.skel--card {
+  --skel-h: 179px;
+}
+.skel--chart {
+  --skel-h: 16rem;
+  margin-bottom: var(--space-5);
+}
+.skel--narrative {
+  --skel-h: 12rem;
+  margin-bottom: var(--space-5);
+}
+.skel--form {
+  --skel-h: 12rem;
+}
+.skel--title {
+  --skel-h: 4.5rem;
+  max-width: 24rem;
+  margin-bottom: var(--space-6);
+}
+/* /today cells (mobile first; the wider columns are shorter or taller as measured) */
+.skel--t-start {
+  --skel-h: 135px;
+}
+.skel--t-templates {
+  --skel-h: 155px;
+}
+.skel--t-body {
+  --skel-h: 184px;
+}
+.skel--t-tiles {
+  --skel-h: 243px; /* the cell is 268 / 278 px with its 25 px label above */
+}
+.skel--t-chart {
+  --skel-h: 356px;
+}
+.skel--t-sets {
+  --skel-h: 155px;
+}
+.skel--t-insight {
+  --skel-h: 143px;
+}
+@media (min-width: 768px) {
+  .skel--t-tiles {
+    --skel-h: 253px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-base-300) 55%, transparent), transparent);
+    transform: translateX(-100%);
+    animation: skel-sheen 1.4s ease-in-out infinite;
+  }
+}
+@keyframes skel-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}

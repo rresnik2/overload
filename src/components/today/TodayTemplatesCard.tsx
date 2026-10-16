@@ -1,5 +1,6 @@
 "use client";
 // /today: "Your templates": up to four templates, most recently started first, each with Start and Edit.
+import clsx from "clsx";
 import { Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -40,7 +41,7 @@ export function TodayTemplatesCard({ unit }: { unit: WeightUnit }) {
 
   const shown = data?.templates.slice(0, MAX_TEMPLATES) ?? [];
   return (
-    <section className="today-panel today-templates" aria-labelledby="today-templates-title">
+    <section className={clsx("today-panel today-templates", data === undefined && "today-templates--loading")} aria-labelledby="today-templates-title">
       <div className="today-templates__head">
         <h2 id="today-templates-title" className="type-display-s today-templates__title">
           Your templates

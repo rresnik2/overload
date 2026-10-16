@@ -167,6 +167,11 @@
 }
 
 /* "Your templates" card */
+/* The card renders before the local database answers. Without a reserved height it grew by 71 px when the answer arrived and pushed
+   every card below it down (Lighthouse CLS 0.144 on /today). 155 px is the height of the loaded card with no templates. */
+.today-templates--loading {
+  min-height: 155px;
+}
 .today-templates__head {
   display: flex;
   align-items: center;
