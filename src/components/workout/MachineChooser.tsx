@@ -45,6 +45,7 @@ export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel 
         <MachineProfileForm
           unit={unit}
           exerciseId={exercise.id}
+          plates={exercise.equipment === "MACHINE_PLATE_LOADED" || exercise.equipment === "SMITH_MACHINE"}
           submitLabel="Save and add"
           onCancel={data.profiles.length > 0 ? () => setWantsNew(false) : onBack}
           onSave={async (fields) => {
