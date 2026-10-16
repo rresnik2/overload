@@ -97,24 +97,3 @@ html[data-edge-peek] #main {
 html[data-edge-peek="settle"] #main {
   transition: translate 0.18s var(--ease-out);
 }
-
-/* Between exercises on /workout: the newly focused exercise slides in from the side the swipe came from. */
-@keyframes exercise-slide {
-  from {
-    opacity: 0;
-    translate: var(--slide-from, 1.5rem) 0;
-  }
-  to {
-    opacity: 1;
-    translate: 0 0;
-  }
-}
-.wk-exercise[data-slide] {
-  animation: exercise-slide 0.18s var(--ease-out) both;
-}
-.wk-exercise[data-slide="next"] {
-  --slide-from: 1.5rem;
-}
-.wk-exercise[data-slide="prev"] {
-  --slide-from: -1.5rem;
-}

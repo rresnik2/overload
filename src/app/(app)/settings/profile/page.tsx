@@ -1,6 +1,7 @@
 import { ProfileForm } from "@/components/profile/ProfileForm";
 import { HardCard } from "@/components/primitives/HardCard";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
+import { ExerciseTabSetting } from "@/components/profile/ExerciseTabSetting";
 import { ShowTipsToggle } from "@/components/profile/ShowTipsToggle";
 import { requireUser } from "@/server/auth/session";
 import { getProfileRow } from "@/server/profile/profile";
@@ -20,6 +21,9 @@ export default async function ProfileSettingsPage() {
       </HardCard>
       <HardCard>
         <ShowTipsToggle />
+      </HardCard>
+      <HardCard>
+        <ExerciseTabSetting />
       </HardCard>
     </section>
   );

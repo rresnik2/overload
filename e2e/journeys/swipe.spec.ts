@@ -1,5 +1,5 @@
-// Swipe navigation on phones (DIAL part SWIPE): between exercises in a workout, between the three main tabs, and the edge swipe back
-// of the installed iPhone app. Gestures are synthetic touch PointerEvents (e2e/_support/gestures.ts). Run on a production build:
+// Swipe navigation on phones (DIAL part SWIPE): between the three main tabs and the edge swipe back of the installed iPhone app; plus
+// the exercise tab on /workout (part B1b), which replaced the sideways exercise swipe. Gestures are synthetic touch PointerEvents (e2e/_support/gestures.ts). Run on a production build:
 //   PORT=3002 E2E_PROD=1 pnpm exec playwright test e2e/journeys/swipe.spec.ts --project=webkit-iphone --project=android-chrome
 import { expect, test as base, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { releaseSwipe, swipe } from "../_support/gestures";
@@ -221,7 +221,7 @@ test.describe("edge swipe back (installed iPhone app only)", () => {
   });
 });
 
-test.describe("between exercises in a workout", () => {
+test.describe("exercise tab on /workout", () => {
   const A = "Barbell Bench Press - Medium Grip";
   const B = "Barbell Curl";
   const C = "Barbell Full Squat";
@@ -249,42 +249,85 @@ test.describe("between exercises in a workout", () => {
     await addExercise(page, "barbell full squat", C);
   }
 
-  test("a swipe moves the dial panel through the exercises in order, the Prev/Next buttons do the same, and the ends do not wrap", async ({ page }) => {
+  const tab = (page: Page) => page.getByRole("navigation", { name: "Exercises" });
+
+  test("a sideways swipe no longer changes the exercise; the tab's next and previous buttons do, and the ends do not wrap", async ({ page }) => {
     await startWith3(page);
     const area = page.locator(".wk-exercise").first();
-    const switcher = page.getByRole("navigation", { name: "Switch exercise" });
-    await expect(switcher.getByText("1 of 3")).toBeVisible();
+    const t = tab(page);
+    await expect(t.getByRole("button", { name: /^Jump to an exercise, 1 of 3/ })).toHaveText("1/3");
     expect(await focusedName(page)).toBe(A);
-    await expect(switcher.getByRole("button", { name: /^Previous exercise/ })).toBeDisabled();
+    await expect(t.getByRole("button", { name: /^Previous exercise/ })).toBeDisabled();
 
-    // Swipe right at the first exercise: nothing before it.
+    await swipe(area, { dx: -140 });
     await swipe(area, { dx: 140 });
     await page.waitForTimeout(400);
     expect(await focusedName(page)).toBe(A);
 
-    await swipe(area, { dx: -140 });
-    await expect(switcher.getByText("2 of 3")).toBeVisible();
+    await t.getByRole("button", { name: `Next exercise: ${B}` }).click();
+    await expect(t.getByRole("button", { name: /^Jump to an exercise, 2 of 3/ })).toBeVisible();
     expect(await focusedName(page)).toBe(B);
-
-    await swipe(page.getByRole("region", { name: B }), { dx: -140 });
-    await expect(switcher.getByText("3 of 3")).toBeVisible();
+    await t.getByRole("button", { name: `Next exercise: ${C}` }).click();
     expect(await focusedName(page)).toBe(C);
-    await expect(switcher.getByRole("button", { name: "Next exercise" })).toBeDisabled();
-
-    // The end: no wrap.
-    await swipe(page.getByRole("region", { name: C }), { dx: -140 });
-    await page.waitForTimeout(400);
-    expect(await focusedName(page)).toBe(C);
-
-    await swipe(page.getByRole("region", { name: C }), { dx: 140 });
-    await expect(switcher.getByText("2 of 3")).toBeVisible();
-
-    // The buttons name their target and move by the same path.
-    await switcher.getByRole("button", { name: `Previous exercise: ${A}` }).click();
-    await expect(switcher.getByText("1 of 3")).toBeVisible();
+    await expect(t.getByRole("button", { name: "Next exercise" })).toBeDisabled();
+    await t.getByRole("button", { name: `Previous exercise: ${B}` }).click();
+    expect(await focusedName(page)).toBe(B);
+    await t.getByRole("button", { name: `Previous exercise: ${A}` }).click();
     expect(await focusedName(page)).toBe(A);
-    await switcher.getByRole("button", { name: `Next exercise: ${B}` }).click();
-    expect(await focusedName(page)).toBe(B);
+  });
+
+  test("the count opens the jump list; choosing a row focuses that exercise, scrolled in below the sticky bar", async ({ page }) => {
+    await startWith3(page);
+    const t = tab(page);
+    await t.getByRole("button", { name: /^Jump to an exercise/ }).click();
+    const list = page.getByRole("dialog", { name: "Jump to an exercise" });
+    await expect(list.getByRole("button", { name: new RegExp(A) })).toHaveAttribute("aria-current", "true");
+    await expect(list.getByRole("button", { name: new RegExp(`${B}.*0/3 sets`) })).toBeVisible();
+    await list.getByRole("button", { name: new RegExp(C) }).click();
+    await expect(list).toBeHidden();
+    expect(await focusedName(page)).toBe(C);
+    const region = page.getByRole("region", { name: C });
+    await expect
+      .poll(async () => {
+        const bar = await page.locator(".wk-topbar").boundingBox();
+        const box = await region.boundingBox();
+        return bar && box ? box.y >= bar.y + bar.height - 1 && box.y < bar.y + bar.height + 80 : false;
+      })
+      .toBe(true);
+    await t.getByRole("button", { name: `Previous exercise: ${B}` }).click();
+    await expect
+      .poll(async () => {
+        const bar = await page.locator(".wk-topbar").boundingBox();
+        const box = await page.getByRole("region", { name: B }).boundingBox();
+        return bar && box ? box.y >= bar.y + bar.height - 1 && box.y < bar.y + bar.height + 80 : false;
+      })
+      .toBe(true);
+  });
+
+  test("the tab sits on the right by default, on the left after Settings, clear of the dial and the Log set row, with no sideways overflow", async ({ page }) => {
+    await startWith3(page);
+    const t = tab(page);
+    const vw = page.viewportSize()?.width ?? 0;
+    await expect(t).toHaveAttribute("data-side", "right");
+    const right = await t.boundingBox();
+    expect(right && Math.abs(right.x + right.width - vw) < 2).toBe(true);
+    const face = await page.locator(".dial__face").first().boundingBox();
+    const log = await page.locator(".wk-panel__logrow").first().boundingBox();
+    const overlaps = (a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) =>
+      a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+    if (right && face) expect(overlaps(right, face)).toBe(false);
+    if (right && log) expect(overlaps(right, log)).toBe(false);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    for (const b of await t.getByRole("button").all()) expect((await b.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+
+    await page.goto("/settings/profile", COLD);
+    await page.getByRole("radio", { name: "Left" }).check();
+    await page.goto("/workout", COLD);
+    await expect(t).toHaveAttribute("data-side", "left", COLD);
+    const left = await t.boundingBox();
+    expect(left && left.x < 2).toBe(true);
+    const face2 = await page.locator(".dial__face").first().boundingBox();
+    if (left && face2) expect(overlaps(left, face2)).toBe(false);
   });
 
   test("a vertical scroll, a drag on the dial or on the number strip never changes the exercise", async ({ page }) => {
@@ -297,6 +340,7 @@ test.describe("between exercises in a workout", () => {
     expect(await focusedName(page)).toBe(A);
 
     const dial: Locator = page.locator(".dial").first();
+    await dial.scrollIntoViewIfNeeded();
     await expect(dial).toBeVisible();
     await swipe(dial, { dx: -160 });
     await swipe(dial, { dx: 160 });
@@ -306,6 +350,6 @@ test.describe("between exercises in a workout", () => {
     await swipe(strip, { dx: 160 });
     await page.waitForTimeout(400);
     expect(await focusedName(page)).toBe(A);
-    await expect(page.getByRole("navigation", { name: "Switch exercise" }).getByText("1 of 3")).toBeVisible();
+    await expect(tab(page).getByRole("button", { name: /^Jump to an exercise, 1 of 3/ })).toBeVisible();
   });
 });
