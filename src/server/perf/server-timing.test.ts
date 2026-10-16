@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { measureQuery, serverTimingHeader, type RequestStats } from "@/server/perf/server-timing";
+import { measureQuery, recordQuery, requestStats, serverTimingHeader, takeStats, type RequestStats } from "@/server/perf/server-timing";
 
 const fresh = (): RequestStats => ({ queries: 0, dbMs: 0, firstStart: Infinity, lastEnd: 0 });
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -21,6 +21,19 @@ describe("measureQuery", () => {
     const s = fresh();
     await expect(measureQuery(async () => { throw new Error("boom"); }, s)).rejects.toThrow("boom");
     expect(s.queries).toBe(1);
+  });
+
+  it("keys stats by request id and forgets them once taken", () => {
+    const a = requestStats("req-a");
+    expect(requestStats("req-a")).toBe(a);
+    expect(requestStats("req-b")).not.toBe(a);
+    recordQuery(a, 5, 100);
+    expect(takeStats("req-a").queries).toBe(1);
+    expect(takeStats("req-a").queries).toBe(0);
+  });
+
+  it("does not count a query outside a request (no id available)", async () => {
+    await expect(measureQuery(async () => 1)).resolves.toBe(1);
   });
 
   it("formats the header", () => {

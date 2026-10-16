@@ -6,9 +6,10 @@
 // request records one entry when it completes (`after()`), the server logs one line, and /api/perf/server-timing serves the
 // recent entries as JSON and as a Server-Timing header for the harness.
 //
-// Request scoping uses React `cache()`: the first caller in a request gets a fresh stats object, every later caller in the
-// same render (the Prisma client extension in db.ts, the probe) gets the same one.
-import { cache } from "react";
+// Request scoping: proxy.ts stamps every request with a unique x-overload-id header. The Prisma client extension (db.ts) reads it
+// with `headers()` in the caller's async context (Next's request store survives awaits there; Prisma's `$on("query")` listener
+// fires outside it and React `cache()` does not survive awaits, so both recorded nothing) and accumulates into a Map keyed by that
+// id. The root-layout probe takes the same entry when the response has finished.
 
 export const SERVER_TIMING_FLAG = "OVERLOAD_SERVER_TIMING";
 export const serverTimingEnabled = (): boolean => process.env[SERVER_TIMING_FLAG] === "1";
@@ -35,8 +36,37 @@ export interface TimingEntry {
 }
 
 const fresh = (): RequestStats => ({ queries: 0, dbMs: 0, firstStart: Infinity, lastEnd: 0 });
-// `cache` is a request-scoped memo in the react-server build; elsewhere (scripts, tests) it may be missing: then nothing is shared.
-export const requestStats: () => RequestStats = typeof cache === "function" ? cache(fresh) : fresh;
+
+const gs = globalThis as unknown as { __overloadReqStats?: Map<string, RequestStats> };
+const statsMap = (): Map<string, RequestStats> => (gs.__overloadReqStats ??= new Map());
+const MAX_LIVE = 200;
+
+/** The stats object for one request id (created on first use). Removed by `takeStats` when the request finishes. */
+export function requestStats(id: string): RequestStats {
+  const m = statsMap();
+  let s = m.get(id);
+  if (!s) {
+    if (m.size >= MAX_LIVE) m.delete(m.keys().next().value as string);
+    s = fresh();
+    m.set(id, s);
+  }
+  return s;
+}
+
+export function takeStats(id: string): RequestStats {
+  const s = requestStats(id);
+  statsMap().delete(id);
+  return s;
+}
+
+async function currentRequestId(): Promise<string | null> {
+  try {
+    const { headers } = await import("next/headers");
+    return (await headers()).get("x-overload-id");
+  } catch {
+    return null; // outside a request (scripts, tests, cache scopes): not counted
+  }
+}
 
 export function recordQuery(stats: RequestStats, durationMs: number, endedAtMs: number): void {
   stats.queries += 1;
@@ -46,17 +76,18 @@ export function recordQuery(stats: RequestStats, durationMs: number, endedAtMs: 
 }
 
 /**
- * Wraps one Prisma operation (the client extension in db.ts). The request's stats are resolved BEFORE the query runs, in the
- * caller's async context, where React's `cache()` scope is still reachable. Prisma's own `$on("query")` listener fires outside
- * that scope, which is why it recorded nothing.
+ * Wraps one Prisma operation (the client extension in db.ts). The request is identified BEFORE the query runs, in the caller's
+ * async context.
  */
-export async function measureQuery<T>(run: () => Promise<T>, stats: RequestStats = requestStats()): Promise<T> {
+export async function measureQuery<T>(run: () => Promise<T>, stats?: RequestStats): Promise<T> {
+  const id = stats ? null : await currentRequestId();
+  const target = stats ?? (id ? requestStats(id) : null);
   const start = Date.now();
   try {
     return await run();
   } finally {
     const end = Date.now();
-    recordQuery(stats, end - start, end);
+    if (target) recordQuery(target, end - start, end);
   }
 }
 

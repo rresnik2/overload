@@ -15,6 +15,7 @@ export function proxy(request: NextRequest) {
     const headers = new Headers(request.headers);
     headers.set("x-overload-path", request.nextUrl.pathname);
     headers.set("x-overload-start", String(Date.now()));
+    headers.set("x-overload-id", crypto.randomUUID());
     return NextResponse.next({ request: { headers } });
   }
   return NextResponse.next();
