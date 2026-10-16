@@ -31,7 +31,7 @@ test("exercise picker: typing 'bench press'", async ({ page }) => {
   const search = picker.getByPlaceholder("Search exercises");
 
   const cdp = await throttle(page);
-  await installProbe(page, { mutationRoot: '[role="dialog"]' });
+  await installProbe(page, { mutationRoot: "dialog[open]" });
   await page.waitForTimeout(800);
 
   const keys: { rep: number; key: string; updateMs: number | null; paintMs: number | null; longTasks: ReturnType<typeof longTaskStats> }[] = [];

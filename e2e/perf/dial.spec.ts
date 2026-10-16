@@ -30,6 +30,7 @@ test("dial drag: 10 detents", async ({ page }) => {
   await startWorkoutWithExercise(page, "barbell bench press", EXERCISE);
   const face = page.locator(".dial__face").first();
   await expect(face).toBeVisible();
+  await face.scrollIntoViewIfNeeded(); // the dial sits below the fold on a Pixel 7; touches outside the viewport do nothing
   const range = page.getByRole("slider", { name: /^Set 1 weight/ });
   const cdp = await throttle(page);
   await page.waitForTimeout(1000);

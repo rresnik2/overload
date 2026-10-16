@@ -280,7 +280,7 @@ export async function startWorkoutWithExercise(page: Page, search: string, name:
 export async function discardWorkout(page: Page): Promise<void> {
   try {
     await page.goto("/workout");
-    await page.getByRole("button", { name: "Workout options" }).click({ timeout: 30_000 });
+    await page.locator("summary[aria-label=\"Workout options\"]").click({ timeout: 30_000 });
     await page.getByRole("button", { name: "Discard workout" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
     await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible({ timeout: 30_000 });
