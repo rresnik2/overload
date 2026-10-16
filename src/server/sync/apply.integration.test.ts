@@ -513,6 +513,56 @@ describe("exerciseFavorite", () => {
   });
 });
 
+describe("machineProfile.equipment (gear profiles)", () => {
+  it("round-trips a dumbbell step and a kettlebell set through apply and pull; machines keep a null equipment", async () => {
+    const dev = new FakeDevice(ctxB, "devBgear");
+    const dumbbells = newId();
+    const bells = newId();
+    const machine = newId();
+    const owned = [8, 12, 16, 24];
+
+    const pushed = await dev.push(
+      [
+        dev.mutation("machineProfile", dumbbells, { name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 2.5 }),
+        dev.mutation("machineProfile", bells, { name: "Kettlebells", equipment: "KETTLEBELL", platesKg: owned }),
+        dev.mutation("machineProfile", machine, { name: "Leg press" }),
+      ],
+      0,
+    );
+    expect(statuses(pushed)).toEqual(["applied", "applied", "applied"]);
+    expect(rowOf(pushed, "machineProfile", dumbbells)).toMatchObject({ equipment: "DUMBBELL", pinStepKg: 2.5, gymName: null, exerciseId: null });
+    expect(rowOf(pushed, "machineProfile", bells)).toMatchObject({ equipment: "KETTLEBELL", platesKg: owned });
+    expect(rowOf(pushed, "machineProfile", machine)).toMatchObject({ equipment: null });
+
+    const stored = await prisma.machineProfile.findUniqueOrThrow({ where: { id: bells } });
+    expect(stored.equipment).toBe("KETTLEBELL");
+    expect(stored.platesKg.map((d) => d.toNumber())).toEqual(owned);
+
+    const pulled = await pullChanges(ctxB, 0);
+    const byId = new Map((pulled.changes.machineProfile as unknown as { id: string; equipment: string | null }[]).map((r) => [r.id, r]));
+    expect(byId.get(dumbbells)?.equipment).toBe("DUMBBELL");
+    expect(byId.get(bells)?.equipment).toBe("KETTLEBELL");
+    expect(byId.get(machine)?.equipment).toBeNull();
+  });
+
+  it("merges the gear step per field by HLC and rejects an unknown equipment value", async () => {
+    const dev = new FakeDevice(ctxB, "devBgear2");
+    const other = new FakeDevice(ctxB, "devBgear3");
+    const id = newId();
+    await dev.push([dev.mutation("machineProfile", id, { name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 2 })], 0);
+
+    const staleHlc = other.clock.tick();
+    const newer = await dev.push([dev.mutation("machineProfile", id, { pinStepKg: 1.25 })], 0);
+    expect(rowOf(newer, "machineProfile", id)).toMatchObject({ equipment: "DUMBBELL", pinStepKg: 1.25 });
+    const stale = await other.push([other.mutation("machineProfile", id, { pinStepKg: 5 }, staleHlc)], 0);
+    expect(statuses(stale)).toEqual(["noop"]);
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id } })).pinStepKg?.toNumber()).toBe(1.25);
+
+    const bad = await dev.push([dev.mutation("machineProfile", newId(), { name: "Nope", equipment: "SPACESHIP" })], 0);
+    expect(statuses(bad)).not.toContain("applied");
+  });
+});
+
 describe("machineProfile.platesKg (plate inventory)", () => {
   it("round-trips an array field through apply and pull, and treats null as the empty list", async () => {
     const dev = new FakeDevice(ctxB, "devBplates");

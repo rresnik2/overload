@@ -27,6 +27,9 @@ import type {
 import type { Equipment, Modality, Muscle, StandardLift } from "./enums";
 import type { CatalogResponse } from "./catalog";
 
+/** The equipment that has a gear profile (the user's own dumbbell step or kettlebell set). */
+export type GearEquipment = Extract<Equipment, "DUMBBELL" | "KETTLEBELL">;
+
 export type RepoErrorCode = "NOT_FOUND" | "INVALID" | "FORBIDDEN_FIELD" | "READONLY_CATALOG" | "CONFLICT";
 
 export class RepoError extends Error {
@@ -95,6 +98,11 @@ export interface Repo {
     forExercise(exerciseId: string): Promise<MachineProfileRow[]>;
     /** The profile most recently used for this exercise (drives the "default to last used" machine picker). */
     lastUsedFor(exerciseId: string): Promise<MachineProfileRow | undefined>;
+    /**
+     * The user's gear profile for dumbbells or kettlebells (a MachineProfile with `equipment` set and no exercise): the one for
+     * `gymName` when given and present, else the user-wide one (gymName null). Undefined until the first save.
+     */
+    gear(equipment: GearEquipment, gymName?: string | null): Promise<MachineProfileRow | undefined>;
   };
   bodyMetrics: EntityRepo<"bodyMetric"> & {
     /** Inclusive, ordered by measuredAt ascending. */

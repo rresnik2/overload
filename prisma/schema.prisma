@@ -325,6 +325,9 @@ model MachineProfile {
   /// Plate weights (kg) the gym owns, for bar and plate-loaded profiles. Empty means the standard set for the unit
   /// (the wire value is null; Prisma scalar lists cannot be null).
   platesKg   Decimal[]   @db.Decimal(6, 2)
+  /// Set (DUMBBELL or KETTLEBELL) on a "gear profile": the user's own dumbbell step or kettlebell set, not a machine.
+  /// Gear profiles have exerciseId null. gymName null is the user-wide default; a per-gym override later reuses gymName.
+  equipment  Equipment?
   notes      String?
 
   // sync mixin

@@ -14,6 +14,7 @@ import type {
 } from "@/contracts/entities";
 import { RepoError, type EntityRepo, type ExerciseSearch, type LastTimeEntry, type Repo } from "@/contracts/repo";
 import type { CatalogResponse } from "@/contracts/catalog";
+import { pickGear } from "@/lib/gear";
 import { favoriteId, seriesKey } from "@/lib/ids";
 import { buildSearchIndex, searchExercises, type SearchIndex } from "@/lib/search/exercise-search";
 import { valuesEqual } from "@/lib/sync/merge";
@@ -255,6 +256,11 @@ export function createRepo(getDb: GetDb): Repo {
           }
           return undefined;
         });
+      },
+      async gear(equipment, gymName) {
+        // The table is small and null cannot be a Dexie key, so scan rather than index (see pickGear for the per-gym fallback).
+        const rows = alive(await getDb().machineProfile.filter((r) => r.equipment === equipment && r.exerciseId == null).toArray());
+        return pickGear(rows, equipment, gymName);
       },
     },
 

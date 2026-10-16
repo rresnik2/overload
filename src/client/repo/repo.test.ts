@@ -169,6 +169,23 @@ describe("derived set columns, cascades and queries", () => {
     await rejects(repo.machineProfiles.update(bar.id, { platesKg: [500] }), "INVALID");
   });
 
+  it("gear(): finds the user-wide dumbbell or kettlebell profile, never a machine, and prefers a gym's own when asked", async () => {
+    const { repo } = fresh();
+    expect(await repo.machineProfiles.gear("DUMBBELL")).toBeUndefined();
+    const machine = await repo.machineProfiles.create({ name: "Leg press", pinStepKg: 5 });
+    const dumbbells = await repo.machineProfiles.create({ name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 2.5 });
+    const bells = await repo.machineProfiles.create({ name: "Kettlebells", equipment: "KETTLEBELL", platesKg: [8, 12, 16] });
+    expect((await repo.machineProfiles.gear("DUMBBELL"))?.id).toBe(dumbbells.id);
+    expect((await repo.machineProfiles.gear("KETTLEBELL"))?.platesKg).toEqual([8, 12, 16]);
+    expect((await repo.machineProfiles.gear("DUMBBELL", "Downtown gym"))?.id).toBe(dumbbells.id); // falls back to the user-wide one
+    const local = await repo.machineProfiles.create({ name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 5, gymName: "Downtown gym" });
+    expect((await repo.machineProfiles.gear("DUMBBELL", "Downtown gym"))?.id).toBe(local.id);
+    expect((await repo.machineProfiles.gear("DUMBBELL"))?.id).toBe(dumbbells.id);
+    await repo.machineProfiles.remove(bells.id);
+    expect(await repo.machineProfiles.gear("KETTLEBELL")).toBeUndefined();
+    expect(machine.equipment).toBeNull();
+  });
+
   it("deleting a workout tombstones its exercises and sets (and queues those tombstones); a template takes its exercises", async () => {
     const { repo } = fresh();
     const { workout, we } = await seedWorkout(repo);
@@ -363,6 +380,7 @@ describe("every method of the Repo contract", () => {
       "machineProfiles.remove": (r) => r.machineProfiles.remove(machine.id),
       "machineProfiles.forExercise": (r) => r.machineProfiles.forExercise(exercise.id),
       "machineProfiles.lastUsedFor": (r) => r.machineProfiles.lastUsedFor(exercise.id),
+      "machineProfiles.gear": (r) => r.machineProfiles.gear("DUMBBELL"),
       "bodyMetrics.get": (r) => r.bodyMetrics.get(bm.id),
       "bodyMetrics.list": (r) => r.bodyMetrics.list(),
       "bodyMetrics.create": (r) => r.bodyMetrics.create({ measuredAt: "2026-10-13T07:00:00.000Z", localDate: "2026-10-13" }),
