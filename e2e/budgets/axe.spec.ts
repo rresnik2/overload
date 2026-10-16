@@ -33,7 +33,7 @@ test.afterEach(() => {
 });
 
 async function expectNoViolations(page: Page, label: string, theme: string) {
-  await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", `overload-${theme}`);
+  await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", (theme === "ink" ? "overload-floor" : "overload-daylight"));
   await page.waitForTimeout(300); // let entry transitions finish: axe reads mid-fade colours otherwise
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
   for (const v of results.violations) found.push({ screen: `${label} (${theme})`, id: v.id, impact: v.impact, nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5) });
