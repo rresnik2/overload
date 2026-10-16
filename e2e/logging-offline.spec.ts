@@ -2,7 +2,7 @@
 //   PORT=3001 E2E_PROD=1 pnpm exec playwright test e2e/logging-offline.spec.ts --project=webkit-iphone
 // Go offline -> add a free-weight and a machine exercise (with a new MachineProfile) -> log 9 sets -> reload (still offline, data
 // still there) -> go online -> the outbox drains -> a second browser context and the database both show exactly 9 sets.
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { dialWeight, logSetByTyping, setRepsOnStrip } from "./_support/logging";
 import { resetRateLimitsIfProduction, createUser } from "./_support/user";
 
@@ -33,6 +33,16 @@ async function addExercise(page: Page, search: string, name: string) {
   await picker.getByRole("button", { name: `Add ${name}`, exact: true }).first().click();
 }
 
+/** Click "Add set": on a phone a PR toast and the fixed rest bar sit over the bottom of the page, so dismiss the toasts (a toast under the pointer pauses its timer) and centre the button first. */
+async function addSet(page: Page, block: Locator, name: string) {
+  const toasts = page.locator(".toast-region .toast");
+  for (let i = 0; i < 3 && (await toasts.count()) > 0; i++) await page.getByRole("button", { name: "Dismiss notification" }).first().click();
+  await expect(toasts).toHaveCount(0);
+  const button = block.getByRole("button", { name: `Add set to ${name}` });
+  await button.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await button.click();
+}
+
 /** Fill and complete set `n` (1-based) of an exercise block: typed into the row on a desktop, through the panel on a phone. */
 const logSet = logSetByTyping;
 
@@ -59,7 +69,7 @@ test("offline: log 9 sets, reload, sync drains, the server has exactly 9", async
   const bench = page.getByRole("region", { name: FREE_WEIGHT });
   await expect(bench).toBeVisible();
   for (let n = 1; n <= 5; n++) {
-    if (n > 1) await bench.getByRole("button", { name: `Add set to ${FREE_WEIGHT}` }).click();
+    if (n > 1) await addSet(page, bench, FREE_WEIGHT);
     await logSet(bench, n, String(60 + n * 2.5), String(10 - n), isMobile);
   }
 
@@ -72,7 +82,7 @@ test("offline: log 9 sets, reload, sync drains, the server has exactly 9", async
   await expect(crunch).toBeVisible();
   await expect(crunch.getByText("Gym A crunch")).toBeVisible();
   for (let n = 1; n <= 4; n++) {
-    if (n > 1) await crunch.getByRole("button", { name: `Add set to ${MACHINE}` }).click();
+    if (n > 1) await addSet(page, crunch, MACHINE);
     await logSet(crunch, n, String(30 + n * 5), "12", isMobile);
   }
   await expect(page.locator('.wk-set[data-state="completed"]')).toHaveCount(9);

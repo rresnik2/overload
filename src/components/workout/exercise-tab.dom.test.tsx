@@ -86,7 +86,7 @@ describe("ExerciseTab", () => {
     render(<Harness start={1} />);
     await user.click(screen.getByRole("button", { name: /^Jump to an exercise/ }));
     const dialog = screen.getByRole("dialog", { name: "Jump to an exercise" });
-    const rows = within(dialog).getAllByRole("button", { name: /sets done$/ });
+    const rows = within(dialog).getAllByRole("button", { name: /sets? done$/ });
     expect(rows).toHaveLength(5);
     expect(rows[1]).toHaveAttribute("aria-current", "true");
     expect(rows[1]).toHaveTextContent("3/4 sets");

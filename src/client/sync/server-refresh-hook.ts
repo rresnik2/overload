@@ -2,7 +2,7 @@
 // Applies the decisions in server-refresh.ts: router.refresh() re-fetches the open page and drops the router cache.
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { decideOnNavigated, decideOnSynced, type ServerDataState } from "./server-refresh";
+import { decideOnNavigated, decideOnSynced, showsServerData, type ServerDataState } from "./server-refresh";
 import { useOnSynced } from "./hooks";
 
 const REFRESH_DELAY_MS = 400;
@@ -17,6 +17,11 @@ export function useRefreshServerDataOnSync(): void {
     if (timer.current) return; // coalesce a burst of syncs into one refresh
     timer.current = setTimeout(() => {
       timer.current = null;
+      // The user may have moved on during the delay: a page that shows no server data is not refreshed, the next one that does is.
+      if (!showsServerData(window.location.pathname)) {
+        sharedState.stale = true;
+        return;
+      }
       router.refresh();
     }, REFRESH_DELAY_MS);
   };
