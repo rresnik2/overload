@@ -190,6 +190,17 @@ describe("kettlebells", () => {
     expect(v).toHaveLength(16);
     expect(v.slice(6, 10)).toEqual([16, 18, 20, 24]);
   });
+  it("uses the bells the user owns, sorted, and inserts an off-list current value", () => {
+    const base = { equipment: "KETTLEBELL", loadType: "PER_IMPLEMENT", unit: "KG", step: 4, bar: null } as const;
+    expect(dialValues({ ...base, current: null, bells: [16, 8, 12, 8] })).toEqual([8, 12, 16]);
+    expect(dialValues({ ...base, current: 14, bells: [8, 12, 16] })).toEqual([8, 12, 14, 16]);
+    expect(dialValues({ ...base, current: null, bells: [] })).toEqual([...KETTLEBELL_SIZES.KG]);
+    expect(dialValues({ ...base, current: null, bells: null })).toEqual([...KETTLEBELL_SIZES.KG]);
+  });
+  it("owned bells in lb come from the caller's conversion", () => {
+    const lb = { equipment: "KETTLEBELL", loadType: "PER_IMPLEMENT", unit: "LB", step: 5, bar: null } as const;
+    expect(dialValues({ ...lb, current: null, bells: [18, 35, 53] })).toEqual([18, 35, 53]);
+  });
   it("lb bells keep the colour of their kg size; off-list sizes take the next size down", () => {
     expect(kettlebellStyle(53, "LB")).toEqual(kettlebellStyle(24, "KG"));
     expect(kettlebellStyle(24, "KG").fill).toBe("#2F9A4F");
@@ -276,6 +287,12 @@ describe("dialValues", () => {
     const lb = dialValues({ equipment: "DUMBBELL", loadType: "PER_IMPLEMENT", unit: "LB", step: 5, current: null, bar: null });
     expect(lb.slice(0, 3)).toEqual([5, 10, 15]);
     expect(lb.at(-1)).toBe(180);
+  });
+  it("dumbbells: the user's own step (2.5) overrides the default", () => {
+    const v = dialValues({ equipment: "DUMBBELL", loadType: "PER_IMPLEMENT", unit: "KG", step: 2, dumbbellStep: 2.5, current: null, bar: null });
+    expect(v.slice(0, 4)).toEqual([2.5, 5, 7.5, 10]);
+    expect(v.at(-1)).toBe(80);
+    expect(dialValues({ equipment: "DUMBBELL", loadType: "PER_IMPLEMENT", unit: "KG", step: 2, dumbbellStep: null, current: null, bar: null }).slice(0, 2)).toEqual([2, 4]);
   });
   it("plate-loaded machines count plates per side from 0", () => {
     const v = dialValues({ equipment: "MACHINE_PLATE_LOADED", loadType: "PLATES_PER_SIDE", unit: "KG", step: 5, current: null, bar: 30 });

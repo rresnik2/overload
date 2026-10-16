@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/primitives/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Modal, Sheet } from "@/components/ui/Sheet";
 import type { WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
+import { isGearEquipment } from "@/client/repo/gear";
 import { setWorkoutActive } from "@/lib/pwa";
 import { useWorkoutActions } from "./actions";
 import { ExerciseBlock } from "./ExerciseBlock";
@@ -38,6 +39,8 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const [picking, setPicking] = useState(false);
   const [changing, setChanging] = useState<ExerciseView | null>(null);
   const [editingBar, setEditingBar] = useState<ExerciseView | null>(null);
+  // The gear sheet (dumbbell step or kettlebells owned): the same kind of sheet as the bar one, for the exercise's equipment.
+  const [editingGear, setEditingGear] = useState<ExerciseView | null>(null);
   // Phones show the dial panel for one exercise at a time: the one the lifter tapped, else the first with a set still to do.
   const [focus, setFocus] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -54,7 +57,7 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const exercises = view?.exercises ?? [];
   const startRest = rest.start;
   const onSetCompleted = useCallback((_set: WorkoutSetRow, item: ExerciseView) => startRest(item.we.restSec ?? prefs.defaultRestSec), [startRest, prefs.defaultRestSec]);
-  const actionsFor = useWorkoutActions({ workoutId: workout.id, prefs, exercises, onSetCompleted, onChangeMachine: setChanging, onEditBar: setEditingBar });
+  const actionsFor = useWorkoutActions({ workoutId: workout.id, prefs, exercises, onSetCompleted, onChangeMachine: setChanging, onEditBar: setEditingBar, onEditGear: setEditingGear });
   const focusedId = (exercises.find((e) => e.we.id === focus) ?? exercises.find((e) => e.sets.some((s) => s.completedAt == null)))?.we.id ?? null;
   const labels = supersetLabels(exercises.map((e) => e.we));
 
@@ -190,6 +193,24 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
               if (editingBar.barProfile) await repo.machineProfiles.update(editingBar.barProfile.id, fields);
               else await repo.machineProfiles.create(fields);
               setEditingBar(null);
+            }}
+          />
+        ) : null}
+      </Sheet>
+
+      <Sheet open={editingGear !== null} onClose={() => setEditingGear(null)} title={editingGear?.exercise.equipment === "KETTLEBELL" ? "Kettlebells" : "Dumbbells"}>
+        {editingGear && isGearEquipment(editingGear.exercise.equipment) ? (
+          <MachineProfileForm
+            key={editingGear.exercise.equipment}
+            kind={editingGear.exercise.equipment === "KETTLEBELL" ? "kettlebells" : "dumbbells"}
+            initial={editingGear.gear ?? undefined}
+            unit={prefs.unit}
+            onCancel={() => setEditingGear(null)}
+            onSave={async (fields) => {
+              // The first save creates the user-wide gear profile; later saves update it.
+              if (editingGear.gear) await repo.machineProfiles.update(editingGear.gear.id, fields);
+              else await repo.machineProfiles.create(fields);
+              setEditingGear(null);
             }}
           />
         ) : null}

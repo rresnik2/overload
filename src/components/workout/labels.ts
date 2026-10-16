@@ -114,6 +114,9 @@ export const PANEL_COPY = {
   needValue: "Set a weight or reps first",
   perSide: "Per side",
   barAndPlates: "Bar and plates",
+  /** The gear link under the picture: "Dumbbells · 2 kg steps · Edit" / "Kettlebells · your 6 bells · Edit". */
+  gearDumbbells: (step: number, unit: WeightUnit) => `Dumbbells · ${fmt(step)} ${short(unit)} steps · Edit`,
+  gearKettlebells: (owned: number | null) => (owned ? `Kettlebells · your ${owned} ${owned === 1 ? "bell" : "bells"} · Edit` : "Kettlebells · standard sizes · Edit"),
   weightFor: (ordinal: number) => `Set ${ordinal} weight`,
   repsFor: (ordinal: number) => `Set ${ordinal} reps`,
   typeWeight: (ordinal: number) => `Set ${ordinal} weight, tap to type`,

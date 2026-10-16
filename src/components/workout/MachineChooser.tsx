@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
 import type { WeightUnit } from "@/contracts/enums";
+import { isMachineProfile } from "@/client/repo/gear";
 import { MachineProfileForm } from "./MachineProfileForm";
 
 export interface MachineChooserProps {
@@ -22,7 +23,8 @@ export interface MachineChooserProps {
  */
 export function MachineChooser({ exercise, unit, onChoose, onBack, confirmLabel = "Add exercise" }: MachineChooserProps) {
   const data = useLive(async () => {
-    const all = await repo.machineProfiles.list();
+    // Gear profiles (dumbbell step, kettlebells) have no exercise either but are not machines.
+    const all = (await repo.machineProfiles.list()).filter(isMachineProfile);
     const linked = all.filter((p) => p.exerciseId === exercise.id);
     const free = all.filter((p) => p.exerciseId === null);
     const last = (await repo.machineProfiles.lastUsedFor(exercise.id)) ?? null;

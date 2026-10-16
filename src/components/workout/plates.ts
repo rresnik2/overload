@@ -311,6 +311,17 @@ export interface DialValuesInput {
   bar: number | null;
   /** The plates the gym has (plateSet()); defaults to the standard set for `unit`. */
   plates?: readonly Plate[];
+  /** Kettlebells: the bells the user owns, in `unit` (the caller converts). Null, undefined or empty: the standard sizes. */
+  bells?: readonly number[] | null;
+  /** Dumbbells: the user's own step in `unit` (the caller converts). Overrides `step` for dumbbells. */
+  dumbbellStep?: number | null;
+}
+
+/** The owned bells, valid (> 0), unique and ascending; empty when the user has not set any. */
+export function sortedBells(bells: readonly number[] | null | undefined): number[] {
+  const out: number[] = [];
+  for (const b of bells ?? []) if (Number.isFinite(b) && b > 0 && !out.some((u) => sameWeight(u, b))) out.push(round(b, 3));
+  return out.sort((a, b) => a - b);
 }
 
 function insertValue(values: number[], v: number): number[] {
@@ -335,7 +346,8 @@ export function dialValues(input: DialValuesInput): number[] {
   const step = input.step > 0 && Number.isFinite(input.step) ? input.step : unit === "KG" ? 2.5 : 5;
   let values: number[];
   if (equipment === "KETTLEBELL") {
-    values = [...KETTLEBELL_SIZES[unit]];
+    const owned = sortedBells(input.bells);
+    values = owned.length > 0 ? owned : [...KETTLEBELL_SIZES[unit]];
   } else if (BAR_EQUIPMENT.includes(equipment) && loadType === "TOTAL") {
     const bar = input.bar ?? DEFAULT_BAR_WEIGHT[equipment]?.[unit] ?? 0;
     values = loadableTotals(bar, input.plates ?? PLATES[unit], DIAL_MAX.bar[unit]);
@@ -344,7 +356,8 @@ export function dialValues(input: DialValuesInput): number[] {
   } else if (loadType === "STACK") {
     values = range(input.bar !== null && input.bar >= 0 ? input.bar : step, step, DIAL_MAX.stack[unit]);
   } else if (equipment === "DUMBBELL") {
-    values = range(step, step, DIAL_MAX.dumbbell[unit]);
+    const dStep = input.dumbbellStep != null && input.dumbbellStep > 0 && Number.isFinite(input.dumbbellStep) ? input.dumbbellStep : step;
+    values = range(dStep, dStep, DIAL_MAX.dumbbell[unit]);
   } else {
     values = range(step, step, DIAL_MAX.other[unit]);
   }

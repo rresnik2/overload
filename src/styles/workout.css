@@ -1144,6 +1144,41 @@ body:has(.wk-rest) .wk-panel__logrow {
   height: 1.2rem;
   accent-color: var(--color-primary);
 }
+/* Gear form: a kettlebell chip with its remove button, and the "Add a weight" row. */
+.wk-bell {
+  display: inline-flex;
+  align-items: stretch;
+}
+.wk-bell .wk-plate-chip:has(+ .wk-bell__remove) {
+  border-right: 0;
+}
+.wk-bell__remove {
+  display: inline-grid;
+  place-items: center;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.wk-bell__remove:hover {
+  background: var(--color-base-200);
+}
+.wk-bell-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+.wk-bell-add .field {
+  flex: 1 1 9rem;
+}
+.wk-bell-add .ui-btn {
+  margin-top: 1.55rem;
+}
 .wk-form__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1213,8 +1248,19 @@ body:has(.wk-rest) .wk-panel__logrow {
   padding: 0;
   list-style: none;
 }
+.wk-gear {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: var(--space-6);
+}
+.wk-section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
 .wk-card {
   display: grid;
+  gap: 0.5rem;
   gap: 0.5rem;
 }
 .wk-card__head {

@@ -30,9 +30,11 @@ export interface WorkoutActionOptions {
   onChangeMachine?: (item: ExerciseView) => void;
   /** Live workout: open the "Bar and plates" sheet for a barbell exercise. */
   onEditBar?: (item: ExerciseView) => void;
+  /** Live workout: open the gear sheet (dumbbell step or kettlebells owned) for a dumbbell or kettlebell exercise. */
+  onEditGear?: (item: ExerciseView) => void;
 }
 
-export function useWorkoutActions({ workoutId, prefs, exercises, onSetCompleted, completeNewSetsAt, onChangeMachine, onEditBar }: WorkoutActionOptions) {
+export function useWorkoutActions({ workoutId, prefs, exercises, onSetCompleted, completeNewSetsAt, onChangeMachine, onEditBar, onEditGear }: WorkoutActionOptions) {
   const { toast } = useToast();
   const unit: WeightUnit = prefs.unit;
 
@@ -95,6 +97,7 @@ export function useWorkoutActions({ workoutId, prefs, exercises, onSetCompleted,
         }),
       onChangeMachine: onChangeMachine ? () => onChangeMachine(item) : undefined,
       onEditBar: onEditBar ? () => onEditBar(item) : undefined,
+      onEditGear: onEditGear ? () => onEditGear(item) : undefined,
     });
-  }, [guard, toast, announcePrs, onSetCompleted, unit, completeNewSetsAt, exercises, onChangeMachine, onEditBar]);
+  }, [guard, toast, announcePrs, onSetCompleted, unit, completeNewSetsAt, exercises, onChangeMachine, onEditBar, onEditGear]);
 }

@@ -27,7 +27,7 @@ export interface DialProps {
   /** Degrees per detent. Default 12. */
   detentDeg?: number;
   disabled?: boolean;
-  /** Fired once per detent in the direction turned, for haptics and sound. */
+  /** Fired once per detent in the direction turned, for a caller that wants to react to each step (no caller uses it yet). */
   onDetent?: (dir: 1 | -1) => void;
   className?: string;
 }

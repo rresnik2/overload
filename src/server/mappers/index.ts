@@ -111,6 +111,7 @@ export function machineProfileToRow(row: MachineProfile): MachineProfileRow {
     // A Prisma scalar list is never null: an empty list is the wire's null ("standard set").
     // Rows created before the column existed hold NULL (no DEFAULT in the migration); treat it like an empty list.
     platesKg: row.platesKg && row.platesKg.length > 0 ? row.platesKg.map(numRequired) : null,
+    equipment: row.equipment ?? null,
     notes: row.notes,
     ...syncMeta(row),
   };

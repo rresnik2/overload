@@ -154,7 +154,11 @@ const entries = {
   },
   weightDial: {
     term: "Weight dial",
-    short: "Turn the plate to change the weight one step at a time, or tap the number to type an exact weight. Each click is one step for this equipment.",
+    short: "Turn the plate to change the weight one step at a time, or tap the number to type an exact weight. The steps follow your gear: your plates, dumbbell step or kettlebells.",
+  },
+  gearProfile: {
+    term: "Dumbbells and kettlebells",
+    short: "Set your dumbbell step and the kettlebells you own once. The dial then only offers weights you can pick up, and it applies to every dumbbell and kettlebell exercise.",
   },
   barProfile: {
     term: "Bar weight",

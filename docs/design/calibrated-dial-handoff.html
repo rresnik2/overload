@@ -102,7 +102,7 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
     <li><a href="#content"><span class="n">10</span>Content rules</a></li>
     <li><a href="#edges"><span class="n">11</span>Edge cases</a></li>
     <li><a href="#a11y"><span class="n">12</span>Accessibility</a></li>
-    <li><a href="#haptics"><span class="n">13</span>Haptics</a></li>
+    <li><a href="#haptics"><span class="n">13</span>Haptics (dropped)</a></li>
     <li><a href="#questions"><span class="n">14</span>Decisions</a></li>
     <li><a href="#done"><span class="n">15</span>Definition of done</a></li>
   </ol>
@@ -152,11 +152,11 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
       <tr><td>Restyle partials off <code>vermilion</code> / <code>shadow-hard</code> / <code>font-display</code></td><td><code>shell</code> 20, <code>primitives</code> 30, <code>workout</code> 22, <code>insights</code> 13, <code>hints</code> 13, <code>catalog</code> 9, <code>progress</code> 9, <code>auth</code> 7, <code>today</code> 2 uses</td><td>Each partial’s owner</td><td>Edit</td></tr>
       <tr><td>Add <code>platesKg</code> (a list of plate weights, nullable) to <code>MachineProfile</code>: an additive schema field for the gym’s plate inventory (D6)</td><td><code>prisma/schema.prisma</code>, <code>src/contracts/entities.ts</code>, mappers</td><td>Coordinator</td><td><span class="tag cr">Change request</span></td></tr>
       <tr><td>Bar profiles: reuse <code>MachineProfile</code> for bars (<code>baseLoadKg</code> = bar weight, <code>platesKg</code> = plates owned), editable from the exercise and from Settings → Machines (D1, D6)</td><td><code>src/components/workout/</code>, <code>settings/machines</code></td><td>E2</td><td>Edit</td></tr>
-      <tr><td>Haptics helper behind <code>Dial.onDetent</code>, then a device test (D7)</td><td><code>src/components/workout/haptics.ts</code></td><td>E2</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Haptics helper behind <code>Dial.onDetent</code> (D7). Dropped after a device test: no haptics fired on iPhone or Android. The helper, its test and the toggle were deleted.</td><td>none (<code>haptics.ts</code> removed)</td><td>-</td><td>Dropped</td></tr>
+      <tr><td>Gear profiles: the user’s own dumbbell step and kettlebells, as a <code>MachineProfile</code> with <code>equipment</code> set (section 06)</td><td><code>prisma/schema.prisma</code> (additive), <code>src/contracts/</code>, <code>src/client/repo/gear.ts</code>, <code>src/components/workout/</code>, <code>settings/machines</code></td><td>DIAL (GEAR)</td><td><span class="tag new">New</span></td></tr>
       <tr><td>Today restyle plus new content: e1RM tiles for the four main lifts with 4-week change, and a bench e1RM chart (D4)</td><td><code>src/components/today/</code>; data from the analytics in <code>src/lib/analytics/</code></td><td>Integration (W3)</td><td>Edit + <span class="tag new">New</span></td></tr>
       <tr><td>New glossary terms: <code>weightDial</code> (“turn the plate, tap the number to type”), <code>barProfile</code> and <code>plateInventory</code></td><td><code>src/lib/glossary.ts</code></td><td>Integration (W3)</td><td>Edit</td></tr>
       <tr><td>Update the first step of “How logging works” for the dial on phones</td><td><code>src/components/workout/LoggingGuide.tsx</code></td><td>E2</td><td>Edit</td></tr>
-      <tr><td>Haptics toggle under “Show tips” in Settings → Profile</td><td><code>src/app/(app)/settings/profile/page.tsx</code>, <code>src/components/profile/</code></td><td>A</td><td>Edit</td></tr>
       <tr><td>Regenerate visual baselines</td><td><code>e2e/budgets/</code></td><td>Integration (W3)</td><td>Edit</td></tr>
     </tbody>
   </table></div>
@@ -164,7 +164,7 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
     <ul>
       <li><b>Glossary hints:</b> <code>InfoHint</code>, <code>Term</code>, <code>PageIntro</code> and <code>src/lib/glossary.ts</code>. <code>NumberStepper</code> gained <code>labelHint?: TermId</code>. <code>ExerciseBlock</code> renders a <code>SetLegend</code> line of hints (weight meaning, effort, set type, last time) above the sets.</li>
       <li><b>“How logging works”</b> (<code>LoggingGuide</code>) explains typing a weight. Its first step needs new copy for the dial.</li>
-      <li><b>Tips toggle:</b> Settings → Profile has a per-device “Show tips” toggle stored in <code>localStorage</code> (<code>src/components/ui/tips.ts</code>). The Haptics toggle follows the same pattern.</li>
+      <li><b>Tips toggle:</b> Settings → Profile has a per-device “Show tips” toggle stored in <code>localStorage</code> (<code>src/components/ui/tips.ts</code>).</li>
       <li><b>Today</b> gained a <code>PageIntro</code> and a <code>TodayTemplatesCard</code>. The new layout must place both.</li>
       <li><b><code>src/styles/hints.css</code></b> (integration) uses the old tokens 13 times and joins the restyle list.</li>
       <li><b><code>e2e/ux.spec.ts</code></b> runs on webkit-iphone. It expects the legend’s “What is Total weight?”, RIR and set-type hint buttons inside the exercise block, and counts <code>.wk-set</code> rows in a template workout.</li>
@@ -362,7 +362,7 @@ export interface DialProps {
   /** Degrees per detent. Default 12. */
   detentDeg?: number;
   disabled?: boolean;
-  /** Fired once per detent in the direction turned, for haptics and sound. */
+  /** Fired once per detent in the direction turned, for a caller that wants to react to each step (no caller uses it yet). */
   onDetent?: (dir: 1 | -1) =&gt; void;
   className?: string;
 }
@@ -421,9 +421,9 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td><code>EZ_BAR</code>, <code>TRAP_BAR</code></td><td>TOTAL</td><td>Same bar picture with that bar’s weight (D1)</td><td>same</td><td>KG</td><td>same</td></tr>
       <tr><td><code>SMITH_MACHINE</code></td><td>TOTAL</td><td>Bar picture. Bar weight comes from the machine profile’s <code>baseLoadKg</code>; if that’s unset, show plates only.</td><td>same</td><td>KG</td><td>“Bar weight not set” when unknown</td></tr>
       <tr><td><code>MACHINE_PLATE_LOADED</code></td><td>PLATES_PER_SIDE</td><td>One loading horn with plates</td><td>0 … 250 kg per side, step from <code>weightStep</code></td><td>KG / SIDE</td><td>“+ 30 kg base = 130 kg total” when <code>baseLoadKg</code> is set</td></tr>
-      <tr><td><code>DUMBBELL</code></td><td>PER_IMPLEMENT</td><td>A pair, or one when <code>isUnilateral</code></td><td>1 … 80 kg, step 2 kg / 5 lb</td><td>KG / HAND</td><td>Pair of 32 kg · 64 kg total / One 32 kg dumbbell</td></tr>
+      <tr><td><code>DUMBBELL</code></td><td>PER_IMPLEMENT</td><td>A pair, or one when <code>isUnilateral</code></td><td>1 … 80 kg, step 2 kg / 5 lb, or the user’s own step from the gear profile (below)</td><td>KG / HAND</td><td>Pair of 32 kg · 64 kg total / One 32 kg dumbbell</td></tr>
       <tr><td><code>DUMBBELL</code></td><td>TOTAL</td><td>One dumbbell held vertically (goblet)</td><td>same</td><td>KG</td><td>One 32 kg dumbbell</td></tr>
-      <tr><td><code>KETTLEBELL</code></td><td>PER_IMPLEMENT / TOTAL</td><td>A bell, or a pair when per-implement and two-handed</td><td><code>KETTLEBELL_SIZES</code> in kg and lb (D5)</td><td>KG (/ HAND)</td><td>● 24 kg bell</td></tr>
+      <tr><td><code>KETTLEBELL</code></td><td>PER_IMPLEMENT / TOTAL</td><td>A bell, or a pair when per-implement and two-handed</td><td><code>KETTLEBELL_SIZES</code> in kg and lb (D5), or the bells the user owns from the gear profile (below)</td><td>KG (/ HAND)</td><td>● 24 kg bell</td></tr>
       <tr><td><code>MACHINE_SELECTORIZED</code>, <code>CABLE</code></td><td>STACK</td><td>Weight stack with pin</td><td>step = machine <code>pinStepKg</code>, else 5 kg / 10 lb (cable 2.5 / 5)</td><td>KG</td><td>Pin 9 of 20 · 45 kg · 5 kg per plate</td></tr>
       <tr><td>Bodyweight-plus, <code>PLATE</code>, <code>MEDICINE_BALL</code>, other</td><td>any</td><td>None (rows collapse)</td><td><code>weightStep</code></td><td>KG</td><td>Bodyweight-plus: “Added to 82.5 kg bodyweight”</td></tr>
     </tbody>
@@ -435,6 +435,15 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
     <li><b>Plates owned.</b> The new nullable <code>platesKg</code> on the profile lists the plate weights the gym has, for example <code>[25, 20, 15, 10, 5, 2.5, 1.25, 0.5]</code>. Null means the standard set for the unit. Loading uses only those plates. Dial values are every total the inventory can make, from the bar weight up to the range cap, so a gym without 1.25 kg plates steps by 5 kg. Plates not in the table (0.5 kg, 1 lb) draw as chrome with width 4 and height 26.</li>
     <li><b>Editing.</b> A “Bar and plates” link under the barbell caption opens the profile sheet. The same profile is also listed in Settings → Machines. The sheet has a bar weight field (a <code>NumberStepper</code>) and a checkbox chip for each plate weight.</li>
     <li><b>Smith and plate-loaded machines</b> use the same profile: <code>baseLoadKg</code> is the sled or carriage weight, and <code>platesKg</code> drives the loading.</li>
+  </ul>
+
+  <h3>Gear profiles: dumbbell step and owned kettlebells</h3>
+  <ul>
+    <li><b>What it is.</b> A gear profile is a <code>MachineProfile</code> with the new nullable <code>equipment</code> set to <code>DUMBBELL</code> or <code>KETTLEBELL</code>, <code>exerciseId</code> null and <code>gymName</code> null. It is set once per equipment and applies to every dumbbell or kettlebell exercise. Machine lists (the machine chooser, the template editor, Settings → Machines) show only profiles with <code>equipment</code> null.</li>
+    <li><b>Dumbbells:</b> <code>pinStepKg</code> is the step the user sets (default 2 kg / 5 lb). The dial runs from one step to 80 kg / 180 lb in that step.</li>
+    <li><b>Kettlebells:</b> <code>platesKg</code> is the sorted list of bells the user owns (at most 20, each up to 100 kg). Null means the standard sizes above. The dial offers exactly those bells. A value from history that is not among them is still inserted in order.</li>
+    <li><b>Editing.</b> A link under the picture caption reads “Dumbbells · 2 kg steps · Edit” or “Kettlebells · your 6 bells · Edit” and opens the same kind of sheet as “Bar and plates”; the first save creates the profile. Settings → Machines and gear lists both under a Gear section.</li>
+    <li><b>Per gym later.</b> The same row shape with <code>gymName</code> set will override the user-wide profile for that gym. <code>pickGear(rows, equipment, gymName?)</code> and <code>repo.machineProfiles.gear(equipment, gymName?)</code> already take the optional gym and fall back to the user-wide profile, so no schema or lookup redesign is needed.</li>
   </ul>
 
   <h3>Barbell and plate-loaded</h3>
@@ -521,7 +530,7 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td>Hover (fine pointer)</td><td>Rim brightens 4% (<code>filter: brightness(1.04)</code>).</td></tr>
       <tr><td>Focus-visible</td><td>2 px <code>--color-base-content</code> outline, 4 px offset, round.</td></tr>
       <tr><td>Dragging</td><td>Cursor <code>grabbing</code>, pointer captured, <code>onDetent</code> fires per step.</td></tr>
-      <tr><td>At limit</td><td>Limit bump. No value change, no haptic tick.</td></tr>
+      <tr><td>At limit</td><td>Limit bump. No value change.</td></tr>
       <tr><td>Disabled</td><td>Opacity 0.4, no pointer events, <code>aria-disabled</code>. Used while the set is completed and not reopened.</td></tr>
       <tr><td rowspan="4">Readout</td><td>Default</td><td>A button showing the value, with a 2 px dotted underline in <code>--color-line-strong</code> as the cue that it can be tapped.</td></tr>
       <tr><td>Editing</td><td>Swaps to an input (150 px, <code>inputmode="decimal"</code>, at least 16 px, 2 px <code>--color-primary</code> border, text selected). Enter commits and Esc cancels; both return focus to the readout. Blur commits.</td></tr>
@@ -616,10 +625,9 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
 
 <!-- 13 -->
 <section id="haptics">
-  <h2><span class="n">13</span>Haptics (build, then test on devices)</h2>
-  <p>Feel: a light tick on each dial detent (through <code>onDetent</code>), a tick on effort and Log set taps, and a firmer double pulse when a set is logged. Throttle ticks to at most one every 35 ms. No ticks at a limit.</p>
-  <p>Build (D7): a small helper in <code>src/components/workout/haptics.ts</code> with <code>tick()</code> and <code>confirm()</code>. On Android browsers it calls the W3C Vibration API (<code>navigator.vibrate(6)</code>, and <code>[12, 60, 12]</code> for confirm). On iOS Safari it uses the <code>&lt;input type="checkbox" switch&gt;</code> technique from <code>ios-haptics</code>. Everywhere else it does nothing silently. Dependencies are frozen (CLAUDE.md rule 4), so the helper is written in the repo rather than added as a package. Add a “Haptics” on/off toggle (default on) under “Show tips” in Settings → Profile. Store it per device the same way <code>src/components/ui/tips.ts</code> does: a <code>localStorage</code> key (<code>overload:haptics-off</code>) read through <code>useSyncExternalStore</code>, with every read and write in try/catch. No schema change.</p>
-  <p>Then test on a real iPhone and a real Android phone, recording whether detent ticks, tap ticks and the confirm pulse fire. Nothing else depends on the result. If iOS only fires on genuine taps, keep tap ticks and drop detent ticks on iOS.</p>
+  <h2><span class="n">13</span>Haptics (dropped after a device test)</h2>
+  <p>The feature was built as specified in the first draft (an in-repo <code>tick()</code> / <code>confirm()</code> helper using the Vibration API on Android and the <code>&lt;input type="checkbox" switch&gt;</code> technique on iOS, with a Settings toggle). It was dropped after a device test: no haptics fired on an iPhone or on an Android phone. The helper (<code>haptics.ts</code> and its test), the Haptics toggle in Settings → Profile and every call in <code>ActiveSetPanel</code> were deleted.</p>
+  <p>What stays: <code>Dial.onDetent</code> remains as a generic callback (nothing uses it now), and the rest timer keeps its own separate vibration in <code>hooks.ts</code>. A stale <code>overload:haptics-off</code> key in <code>localStorage</code> is harmless and is never read.</p>
 </section>
 
 <!-- 14 -->
@@ -633,7 +641,7 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
     <li><b>D4 · Today: restyle plus new content.</b> Add the e1RM tiles (four main lifts, 4-week change) and the bench e1RM chart, as in the desktop mock.</li>
     <li><b>D5 · Kettlebells in lb: converted size list.</b> 9, 13, 18, 22, 26, 31, 35, 44, 53, 62, 70, 80, 88, 97, 106 lb.</li>
     <li><b>D6 · Plate inventory: included now.</b> A new nullable <code>platesKg</code> on <code>MachineProfile</code> (an additive change request). Loading and dial values follow it.</li>
-    <li><b>D7 · Haptics: build, then test on devices.</b> In-repo helper behind <code>onDetent</code>, with a device test afterwards (section 13).</li>
+    <li><b>D7 · Haptics: dropped after a device test.</b> It was built behind <code>onDetent</code>, but no haptics fired on iPhone or Android, so the feature was removed (section 13).</li>
   </ol>
 </section>
 
@@ -643,7 +651,6 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
   <ul>
     <li><code>plates.test.ts</code> covers: 102.5 kg → 25 + 15 + 1.25 per side; 20 kg → empty; 101 kg → inexact with 100 loaded; lb 225 → 45 + 45; a 15 kg bar profile; an inventory without 1.25 kg giving 5 kg steps in <code>loadableTotals</code>; 0.5 kg fractionals; kettlebell insertion of 18 kg and the lb size list; <code>pinFor</code> with and without base; <code>dialValues</code> inserting an off-step current value.</li>
     <li>Today shows the e1RM tiles and the bench chart from analytics data, with an empty state for lifts that have no history. Covered in <code>e2e/today.spec.ts</code>.</li>
-    <li>A device test of the haptics is done on an iPhone and an Android phone, and the results are recorded in the stream report.</li>
     <li><code>ui.dom.test.tsx</code> covers the <code>Dial</code> keyboard steps, limits, the hidden range staying in sync, <code>onDetent</code> direction, and the disabled state. <code>NumberStrip</code> covers keyboard steps and value sync.</li>
     <li><code>workout.dom.test.tsx</code> covers <code>ActiveSetPanel</code> writing through <code>weightPatch</code> in kg and lb, tap-to-type snapping, Log set advancing to the next set, and warm-up hiding effort.</li>
     <li><code>e2e/logging-offline.spec.ts</code> on an iPhone viewport: log a barbell set by dial (keyboard on the hidden range), go offline, log a dumbbell set, come back online, and the sets sync.</li>

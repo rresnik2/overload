@@ -2,7 +2,7 @@
 
 Owner request: replace the editorial look (paper, Instrument Serif, vermilion) with direction **A+B “Calibrated Dial”**: a rubber-floor dark palette built from competition plate colours, condensed italic Archivo, and a plate-face rotary dial for weight entry on phones, with an equipment picture that reacts as the dial turns.
 
-**The spec is the source of truth:** `docs/design/calibrated-dial-handoff.html` (tokens, layout, components and props, equipment pictures, dial behaviour, states, motion, content rules, edge cases, accessibility, haptics, decisions D1–D7, definition of done). The visual reference, with working SVG geometry and dial code you may port, is the `#dial` section of `docs/design/overload-directions-mockup.html` (search for `A+B · CALIBRATED DIAL`). Read the spec in full before writing code.
+**The spec is the source of truth:** `docs/design/calibrated-dial-handoff.html` (tokens, layout, components and props, equipment pictures, dial behaviour, states, motion, content rules, edge cases, accessibility, haptics (dropped), decisions D1–D7, definition of done). The visual reference, with working SVG geometry and dial code you may port, is the `#dial` section of `docs/design/overload-directions-mockup.html` (search for `A+B · CALIBRATED DIAL`). Read the spec in full before writing code.
 
 Ownership is unrestricted for this stream (`ownership.json`), but **each agent stays inside its own part below** so parallel branches merge cleanly. List every frozen file you changed in your report.
 
@@ -30,22 +30,25 @@ Ownership is unrestricted for this stream (`ownership.json`), but **each agent s
 - Add both to `/styleguide` (`src/app/styleguide/`).
 - Touch only those files.
 
-### Part PLATES: pure plate maths and the haptics helper (db key: none)
+### Part PLATES: pure plate maths (db key: none)
 - `src/components/workout/plates.ts` (pure: no react, no DOM) with the exports in spec §05 and the rules in §06 and decisions D1, D5, D6: `PLATES` (kg and lb sets, tones, heights, widths), `DEFAULT_BAR_WEIGHT`, `plateSet`, `loadBar`, `loadSide`, `loadableTotals`, `KETTLEBELL_SIZES` (kg and lb lists), `dialValues`, `pinFor`, plus small helpers the UI will need (kettlebell colour and ink by size, dumbbell and kettlebell scale factors, “inexact” caption data). Reuse `src/lib/units.ts` (`fromKg`, `toKg`, `round`, `defaultIncrement`).
 - `src/components/workout/plates.test.ts` covering every case listed in spec §15, plus property tests with `fast-check` (already a dependency) that loadouts never exceed the target and are exact whenever the target is in `loadableTotals`.
-- `src/components/workout/haptics.ts` per spec §13: `tick()`, `confirm()`, a 35 ms throttle, Android Vibration API, the iOS `<input type="checkbox" switch>` technique, silent no-op elsewhere, and a per-device enabled flag stored like `src/components/ui/tips.ts` (`overload:haptics-off`, `useSyncExternalStore`, try/catch). Unit tests with mocked `navigator.vibrate` and storage.
+- ~~`src/components/workout/haptics.ts` (spec §13)~~: **dropped after a device test (no haptics fired on iPhone or Android); the helper, its test and the Settings toggle were deleted.** `Dial.onDetent` stays as a generic callback.
 - Touch only those files.
 
 ## Wave 2 (after wave 1 is merged into `design/calibrated-dial`)
 
 ### Part LOGGING: the mobile set editor (db key: `E2`, port 3001)
-`EquipmentPicture`, `WeightReadout`, `ActiveSetPanel`, `SetRow` compact variant, the active-set switch in `ExerciseBlock` (keep `SetLegend`), `MachineProfileForm` `kind: "bar"` with plate checkboxes and the “Bar and plates” link (D1, D6), desktop typing-only with picture preview (D3), `LoggingGuide` copy for the dial, the Haptics toggle under “Show tips” in Settings → Profile, `workout.css` restyled off legacy tokens. DOM tests, `e2e/logging-offline.spec.ts` dial flow on webkit-iphone, `e2e/ux.spec.ts` still green.
+`EquipmentPicture`, `WeightReadout`, `ActiveSetPanel`, `SetRow` compact variant, the active-set switch in `ExerciseBlock` (keep `SetLegend`), `MachineProfileForm` `kind: "bar"` with plate checkboxes and the “Bar and plates” link (D1, D6), desktop typing-only with picture preview (D3), `LoggingGuide` copy for the dial, `workout.css` restyled off legacy tokens. DOM tests, `e2e/logging-offline.spec.ts` dial flow on webkit-iphone, `e2e/ux.spec.ts` still green.
 
 ### Part RESTYLE: every other partial (db key: `B`, port 3002)
 `shell`, `motion`, `primitives` (non-dial parts), `auth`, `catalog`, `progress`, `insights`, `hints` partials off `vermilion` / `shadow-hard` / Instrument Serif to the new tokens; chart palette per spec §03 validated with the `dataviz` skill; axe in both themes.
 
 ### Part TODAY: Today restyle and new content (db key: `W3`, port 3000)
 Spec §04 breakpoints and D4: `PageIntro`, start card, templates card, e1RM tiles for the four main lifts with 4-week change, bench e1RM chart, hard sets, insight, bodyweight; `today.css`; empty states; `e2e/today.spec.ts`.
+
+### Part GEAR (added after the phone test; db: the shared `wt-w3` branch)
+Gear profiles: `MachineProfile.equipment` (additive migration) marks the user-wide dumbbell step (`pinStepKg`) or owned kettlebells (`platesKg`), with `exerciseId` and `gymName` null. `src/client/repo/gear.ts` (`pickGear`, `isMachineProfile`), `repo.machineProfiles.gear(equipment, gymName?)`, `dialValues({ bells, dumbbellStep })`, `MachineProfileForm` `kind: "dumbbells" | "kettlebells"`, the gear link in the active-set panel, and Settings → Machines and gear. Machine lists filter `equipment == null`. Spec section 06 (“Gear profiles”). Haptics were removed in the same part.
 
 ## Wave 3 (coordinator)
 Merge, remove the legacy aliases once nothing references them, full `pnpm check` / `pnpm build`, e2e on chromium and webkit-iphone, regenerate and review visual baselines on a production build.

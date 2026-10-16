@@ -2,6 +2,7 @@
 import type { ExerciseRow, LocalDateString, MachineProfileRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
 import type { LastTimeEntry, Repo } from "@/contracts/repo";
 import type { PrCandidate } from "@/contracts/prs";
+import { isGearEquipment, type GearEquipment } from "@/client/repo/gear";
 import { isBarProfileExercise } from "./dial-setup";
 import { seriesHistory, workoutPrs } from "./prs";
 
@@ -11,6 +12,11 @@ export interface ExerciseView {
   machine: MachineProfileRow | null;
   /** The lifter's "bar and plates" profile for a barbell, EZ bar or trap bar exercise (D1, D6): a MachineProfile linked by exerciseId. */
   barProfile?: MachineProfileRow | null;
+  /**
+   * The user's gear profile for a DUMBBELL or KETTLEBELL exercise: their dumbbell step or the kettlebells they own. Null until
+   * they set it (the dial then uses the defaults). Loaded once per workout view, shared by every exercise of that equipment.
+   */
+  gear?: MachineProfileRow | null;
   sets: WorkoutSetRow[];
   /** The previous session of the same progression series (exercise, or exercise + machine). */
   last: LastTimeEntry | undefined;
@@ -61,13 +67,19 @@ export async function loadWorkoutView(repo: Repo, workoutId: string, opts: { wit
   const workout = await repo.workouts.get(workoutId);
   if (!workout) return null;
   const exercises: ExerciseView[] = [];
+  const gearCache = new Map<GearEquipment, MachineProfileRow | null>();
+  const gearFor = async (equipment: GearEquipment): Promise<MachineProfileRow | null> => {
+    if (!gearCache.has(equipment)) gearCache.set(equipment, (await repo.machineProfiles.gear(equipment)) ?? null);
+    return gearCache.get(equipment) ?? null;
+  };
   for (const we of await repo.workoutExercises.forWorkout(workoutId)) {
     const exercise = (await repo.exercises.get(we.exerciseId)) ?? missingExercise(we.exerciseId);
     const machine = we.machineProfileId ? ((await repo.machineProfiles.get(we.machineProfileId)) ?? null) : null;
     const barProfile = !machine && isBarProfileExercise(exercise) ? ((await repo.machineProfiles.forExercise(exercise.id))[0] ?? null) : null;
+    const gear = isGearEquipment(exercise.equipment) ? await gearFor(exercise.equipment) : null;
     const sets = await repo.sets.forWorkoutExercise(we.id);
     const last = opts.withLast === false ? undefined : await repo.sets.lastTime({ exerciseId: we.exerciseId, machineProfileId: we.machineProfileId, beforeLocalDate: workout.localDate });
-    exercises.push({ we, exercise, machine, barProfile, sets, last });
+    exercises.push({ we, exercise, machine, barProfile, gear, sets, last });
   }
   const sets = exercises.flatMap((e) => e.sets);
   const prs = sets.length > 0 ? workoutPrs(await seriesHistory(sets.map((s) => s.seriesKey)), workoutId) : new Map<string, PrCandidate[]>();

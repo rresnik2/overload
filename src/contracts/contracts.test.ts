@@ -125,6 +125,14 @@ describe("entity schemas", () => {
     expect(entities.machineProfilePatchSchema.parse({})).toEqual({});
   });
 
+  it("machine profile equipment: an optional gear marker, null by default, only real equipment values", () => {
+    const base = { name: "Dumbbells" };
+    expect(entities.machineProfileFieldsSchema.parse(base).equipment).toBeNull();
+    expect(entities.machineProfileFieldsSchema.parse({ ...base, equipment: "DUMBBELL", pinStepKg: 2.5 }).equipment).toBe("DUMBBELL");
+    expect(entities.machineProfileFieldsSchema.safeParse({ ...base, equipment: "SPACESHIP" }).success).toBe(false);
+    expect(entities.machineProfilePatchSchema.parse({ equipment: "KETTLEBELL" })).toEqual({ equipment: "KETTLEBELL" });
+  });
+
   it("profile updates are strict and have no userId", () => {
     expect(profileUpdateSchema.safeParse({ unitPreference: "LB", heightCm: 180 }).success).toBe(true);
     expect(profileUpdateSchema.safeParse({ userId: "someone-else" }).success).toBe(false);
