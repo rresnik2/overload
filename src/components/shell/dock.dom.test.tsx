@@ -10,6 +10,8 @@ vi.mock("next/link", () => ({
       {children}
     </a>
   ),
+  // LinkPending (rendered inside each dock link) reads the link's status.
+  useLinkStatus: () => ({ pending: false }),
 }));
 
 vi.mock("./ThemeToggle", () => ({ ThemeToggle: () => null }));
