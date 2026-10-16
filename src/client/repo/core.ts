@@ -23,13 +23,45 @@ export type AnyRow = { id: string; deletedAt: string | null; fieldHlc: Record<st
 
 export const nowIso = (): string => new Date().toISOString();
 
-/** Run `fn` in ONE read-write Dexie transaction over every table (joins an outer transaction when nested). */
-export function writeTx<T>(db: OverloadDb, fn: () => Promise<T>): Promise<T> {
-  return db.transaction("rw", db.tables, fn);
+/**
+ * Run `fn` in ONE read-write Dexie transaction (joins an outer transaction when nested). `tables` names the stores the body touches;
+ * a narrow scope lets reads and writes on other stores run alongside it. Omitted: every table.
+ */
+export function writeTx<T>(db: OverloadDb, fn: () => Promise<T>, tables?: readonly string[]): Promise<T> {
+  return db.transaction("rw", tables ? [...tables] : db.tables, fn);
 }
 
-export function readTx<T>(db: OverloadDb, fn: () => Promise<T>): Promise<T> {
-  return db.transaction("r", db.tables, fn);
+export function readTx<T>(db: OverloadDb, fn: () => Promise<T>, tables?: readonly string[]): Promise<T> {
+  return db.transaction("r", tables ? [...tables] : db.tables, fn);
+}
+
+/** What `deriveLocal` reads to mirror a set's derived columns. */
+const DERIVE_READS = ["workoutExercise", "workout", "exercise", "catalog", "machineProfile", "bodyMetric"] as const;
+/** Entities whose change re-derives the sets below them (`rederiveDependents`). */
+const REDERIVES_SETS: ReadonlySet<EntityName> = new Set<EntityName>(["workout", "workoutExercise", "machineProfile", "exercise", "bodyMetric"]);
+/** Rows `tombstone` also deletes. */
+const CASCADE: Partial<Record<EntityName, readonly EntityName[]>> = {
+  template: ["templateExercise"],
+  exercise: ["exerciseFavorite"],
+  workout: ["workoutExercise", "workoutSet"],
+  workoutExercise: ["workoutSet"],
+};
+
+/**
+ * Every store a create, update or remove of `entity` can touch: its own table, the outbox and the clock (`meta`), the tables its
+ * references are checked against (an exercise lives in `exercise` or `catalog`), the children a delete cascades to, and what the
+ * derived set columns read. Narrower than "all tables", so a set write does not lock the catalog, templates or favorites.
+ */
+export function writeScope(entity: EntityName): string[] {
+  const tables = new Set<string>(["meta", "outbox", entity]);
+  for (const ref of ENTITY_REFS[entity]) tables.add(ref.entity);
+  if (entity === "exercise" || ENTITY_REFS[entity].some((r) => r.entity === "exercise")) tables.add("catalog");
+  for (const child of CASCADE[entity] ?? []) tables.add(child);
+  if (entity === "workoutSet" || REDERIVES_SETS.has(entity)) {
+    tables.add("workoutSet");
+    for (const t of DERIVE_READS) tables.add(t);
+  }
+  return [...tables];
 }
 
 function failParse(entity: EntityName, error: z.ZodError): never {
