@@ -3,6 +3,7 @@
 // One user per worker (sign-up is rate-limited in production builds); the tests share its session and its data.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { logSetByTyping } from "./helpers/logging";
 import { completeOnboarding, createUser, createUserAtOnboarding } from "./_support/user";
 
 const COLD = { timeout: 45_000 };
@@ -159,7 +160,7 @@ test.describe("templates are easy to reach and use", () => {
     await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
   });
 
-  test("create, edit, duplicate and start a template; /today lists it; a finished workout can be saved as one", async ({ page }) => {
+  test("create, edit, duplicate and start a template; /today lists it; a finished workout can be saved as one", async ({ page, isMobile }) => {
     await startEmptyWorkout(page);
     await waitForCatalog(page);
     // leave the empty workout behind so templates can be started
@@ -212,9 +213,7 @@ test.describe("templates are easy to reach and use", () => {
     await expect(block.locator(".wk-set")).toHaveCount(4);
 
     // log a set and finish
-    await block.getByRole("textbox", { name: /^Set 1 weight/ }).fill("60");
-    await block.getByRole("textbox", { name: "Set 1 reps" }).fill("8");
-    await block.getByRole("button", { name: "Complete set 1" }).click();
+    await logSetByTyping(block, 1, "60", "8", isMobile);
     await page.getByRole("button", { name: "Finish", exact: true }).click();
     const sheet = page.getByRole("dialog");
     await expect(sheet.getByText(/checks it for personal records/)).toBeVisible();
