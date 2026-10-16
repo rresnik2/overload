@@ -7,9 +7,11 @@ import { ToastProvider } from "@/components/ui/Toast";
 import { Avatar } from "./Avatar";
 import { DesktopNav } from "./DesktopNav";
 import { Dock } from "./Dock";
+import { EdgeSwipeBack } from "./EdgeSwipeBack";
 import { InstallHint } from "./InstallHint";
 import { PageTransition } from "./PageTransition";
 import { PwaClient } from "./PwaClient";
+import { SwipeMain } from "./SwipeMain";
 import { START_WORKOUT } from "./nav";
 import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";
@@ -46,10 +48,11 @@ export function AppShell({ user, children }: AppShellProps) {
           </div>
         </div>
       </header>
-      <main id="main" className="shell-main" tabIndex={-1}>
+      <SwipeMain>
         <InstallHint />
         <PageTransition>{children}</PageTransition>
-      </main>
+      </SwipeMain>
+      <EdgeSwipeBack />
       <Dock />
       <PwaClient />
     </ToastProvider>

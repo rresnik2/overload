@@ -245,8 +245,8 @@
 
 :root {
   /* Motion: the portfolio's view-transition page slides. Disabled for reduced motion (motion.css, stream B). */
-  --page-out: 0.18s;
-  --page-in: 0.36s;
+  --page-out: 0.08s; /* out + in = about 200 ms in total */
+  --page-in: 0.12s;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   --tap-target: 44px;

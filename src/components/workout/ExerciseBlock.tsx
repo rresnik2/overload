@@ -1,7 +1,7 @@
 "use client";
 import clsx from "clsx";
 import { ArrowDown, ArrowUp, Link2, Link2Off, MoreHorizontal, Plus, Repeat, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ModalityBadge } from "@/components/exercises/ModalityBadge";
 import type { WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { PrCandidate } from "@/contracts/prs";
@@ -56,6 +56,8 @@ export interface ExerciseBlockProps {
   panel?: boolean;
   /** Phones: this is the exercise that shows the panel; the others show compact rows only. Default true. */
   focused?: boolean;
+  /** Phones: this exercise was just reached by a swipe or Prev/Next, from the side named; it slides in and scrolls into view. */
+  slide?: "next" | "prev";
   /** Phones: a compact row of this exercise was tapped. */
   onFocus?: () => void;
   /** Phones: "Logged ✓" is over and the next set is about to become active. */
@@ -115,7 +117,7 @@ function previewPicture({ item, set, unit, step, ghost }: { item: ExerciseView; 
 }
 
 /** One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove). */
-export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true, panel = false, focused = true, onFocus, onAdvance, bodyweightKg }: ExerciseBlockProps) {
+export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true, panel = false, focused = true, slide, onFocus, onAdvance, bodyweightKg }: ExerciseBlockProps) {
   const { exercise, machine, barProfile, sets, last } = item;
   const gear = item.gear ?? null;
   const firstOpen = sets.find((s) => s.completedAt == null);
@@ -131,8 +133,13 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
   const editBar = actions.onEditBar && !machine && isBarProfileExercise(exercise) ? actions.onEditBar : undefined;
   const editGear = actions.onEditGear && !machine && isGearEquipment(exercise.equipment) ? actions.onEditGear : undefined;
   const legend = <SetLegend item={item} prefs={prefs} showGhost={showGhost} />;
+  const sectionRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (slide && el && typeof el.scrollIntoView === "function") el.scrollIntoView({ block: "start", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [slide]);
   return (
-    <section className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id}>
+    <section ref={sectionRef} className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id} data-slide={slide}>
       {supersetLabel ? (
         <p className="wk-exercise__superset">
           <Term id="superset">Superset {supersetLabel}</Term>

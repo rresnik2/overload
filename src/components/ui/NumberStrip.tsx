@@ -235,7 +235,7 @@ export function NumberStrip({ label, labelHint, values, value, onChange, valueTe
   ) : null;
 
   return (
-    <div className={clsx("numstrip", disabled && "numstrip--disabled", className)} style={{ "--numstrip-size": `${itemSize}px` } as CSSProperties}>
+    <div data-no-swipe className={clsx("numstrip", disabled && "numstrip--disabled", className)} style={{ "--numstrip-size": `${itemSize}px` } as CSSProperties}>
       {hintRow}
       <div className="numstrip__window">
         <div
