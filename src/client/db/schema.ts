@@ -110,6 +110,8 @@ export class OverloadDb extends Dexie {
   exerciseFavorite!: Table<ExerciseFavoriteRow, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
+  /** Bumped by every write to `catalog` or `exercise`; the repo caches the merged exercise list against it. */
+  exercisesGeneration = 0;
 
   /** `options` is a test seam (an isolated fake-indexeddb factory per simulated device). */
   constructor(
@@ -123,6 +125,12 @@ export class OverloadDb extends Dexie {
     }
     // A new database has no workouts, so nothing is active.
     this.on("populate", (tx) => void tx.table("meta").put({ key: META_KEYS.activeWorkout, value: "" }));
+    // Any write to an exercise (the catalog or the user's own) invalidates the repo's in-memory exercise list and search index.
+    for (const table of [this.catalog, this.exercise]) {
+      table.hook("creating", () => void this.exercisesGeneration++);
+      table.hook("updating", () => void this.exercisesGeneration++);
+      table.hook("deleting", () => void this.exercisesGeneration++);
+    }
     // Any write to a workout row marks its transaction; writeTx then refreshes the pointer (./active-workout.ts).
     this.workout.hook("creating", function (_key, _row, transaction) {
       noteWorkoutWrite(transaction);

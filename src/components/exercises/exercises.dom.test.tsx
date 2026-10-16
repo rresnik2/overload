@@ -156,7 +156,8 @@ describe("ExerciseFilters", () => {
     expect(screen.getByRole("link", { name: /Machine/ })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: /All/ })).not.toHaveAttribute("aria-current");
     const form = screen.getByRole("search");
-    expect(form).toHaveAttribute("method", "get");
+    expect((form as HTMLFormElement).method).toBe("get"); // next/form renders no method attribute: a GET form, also without JavaScript
+    expect(form).toHaveAttribute("action", "/exercises");
     expect(form.querySelector('input[name="modality"]')).toHaveValue("machine");
     expect(form.querySelector('input[name="q"]')).toHaveValue("press");
     expect(screen.getByRole("option", { name: "Smith machine (2)" })).toBeInTheDocument();

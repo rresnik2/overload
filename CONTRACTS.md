@@ -358,7 +358,7 @@ export interface SyncProviderProps {
 }
 ```
 
-`SyncProvider` (`src/client/sync/provider.tsx`) takes `SyncProviderProps & { children: ReactNode }`; it opens the per-user Dexie database `overload-<userId>` and starts the engine. It is mounted once, in `src/app/(signed-in)/layout.tsx`, the parent of the `(app)` and `(workout)` route groups, so the engine keeps running when moving between them.
+`SyncProvider` (`src/client/sync/provider.tsx`) takes `SyncProviderProps & { children: ReactNode }`; it opens the per-user Dexie database `overload-<userId>` and starts the engine. It is mounted in `src/app/(app)/layout.tsx` and in `src/app/(workout)/layout.tsx`; providers lease the engine of their database (`src/client/sync/provider.tsx`), so moving between the two groups hands the running engine over instead of restarting it.
 
 PR detection (pure, shared by server rebuild and the client's live toast):
 
@@ -1092,6 +1092,9 @@ PWA coordination (`src/lib/pwa.ts`, frozen): E2 calls `setWorkoutActive(true/fal
 // PWA coordination flag between the workout screen (stream E2) and the service-worker update flow (stream B). PURE.
 // While a workout is in progress E2 calls setWorkoutActive(true); B's shell only posts SKIP_WAITING to a waiting
 // service worker when isWorkoutActive() is false ("a service-worker update never activates in the middle of a workout").
+// The sync engine reads the same flag for its workout policy (src/client/sync/engine.ts): while it is set, writes do not
+// trigger a sync and the other triggers are throttled to once every 5 minutes. Turning it off (finish or discard) syncs at once,
+// which is why changes to it are broadcast: `onWorkoutActiveChange` fires in this tab (custom event) and in other tabs (storage).
 export const ACTIVE_WORKOUT_STORAGE_KEY = "overload-active-workout";
 
 export function setWorkoutActive(active: boolean): void;

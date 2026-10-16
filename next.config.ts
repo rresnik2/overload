@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 30, static: 30 },
   },
   images: {
+    // Only the exercise photos use the optimizer (4:3, never wider than a phone column or a desktop card), so keep the candidate
+    // widths few and small: a 3x phone asks for 828 px at most instead of 1200+, and the optimizer never enlarges an original.
+    deviceSizes: [384, 640, 828],
+    imageSizes: [96, 192],
     remotePatterns: [
       // Catalog exercise images (free-exercise-db, Unlicense). See src/lib/catalog-images.ts.
       { protocol: "https", hostname: "raw.githubusercontent.com", pathname: "/yuhonas/free-exercise-db/**" },

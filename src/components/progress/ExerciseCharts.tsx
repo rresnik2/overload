@@ -1,9 +1,7 @@
-import { E1rmForecastChart } from "@/components/charts/E1rmForecastChart";
+import { E1rmForecastChart, TopSetChart, VolumeChart } from "@/components/charts/lazy";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { Term } from "@/components/ui/Term";
 import { ChartFrame, type LegendItem } from "@/components/charts/ChartFrame";
-import { TopSetChart } from "@/components/charts/TopSetChart";
-import { VolumeChart } from "@/components/charts/VolumeChart";
 import { modalityColor, unitLabel } from "@/components/charts/format";
 import { Stat } from "@/components/ui/Stat";
 import { SectionHeader } from "@/components/primitives/SectionHeader";

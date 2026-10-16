@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
-import { afterEach, describe, expect, it } from "vitest";
+import { liveQuery } from "dexie";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RepoError, type Repo } from "@/contracts/repo";
 import { catalogExerciseId } from "@/lib/ids";
 import { HLC_REGEX } from "@/contracts/sync";
@@ -345,6 +346,48 @@ describe("catalog and exercise search", () => {
     // a workout exercise can reference a catalog exercise
     const w = await repo.workouts.create(workoutInput());
     await repo.workoutExercises.create({ workoutId: w.id, exerciseId: squat.id, position: "a0" });
+  });
+});
+
+describe("exercise search keeps the exercise list in memory", () => {
+  const row = (name: string): ExerciseRow =>
+    ({ id: catalogExerciseId(name), isCustom: false, sourceId: name, slug: name.toLowerCase(), name, aliases: [], modality: "FREE_WEIGHT", equipment: "BARBELL", loadType: "TOTAL", tracking: "LOAD_REPS", bodyweightFactor: null, isUnilateral: false, mechanic: null, force: null, level: null, category: "STRENGTH", standardLift: null, instructions: [], images: [], muscles: [], hlc: "", fieldHlc: {}, version: 0, deletedAt: null, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }) as ExerciseRow;
+
+  it("reads the tables once for a run of keystrokes, and again after the catalog or a custom exercise changes", async () => {
+    const { repo, db } = fresh();
+    await repo.catalog.replace({ version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat"), row("Squid")] });
+    let reads = 0;
+    db.catalog.hook("reading", (r) => {
+      reads += 1;
+      return r;
+    });
+    for (const text of ["s", "sq", "squ", "squa"]) await repo.exercises.search({ text });
+    expect(reads).toBe(2); // loaded once (2 rows), not once per keystroke
+
+    const custom = await repo.exercises.create(exerciseInput({ slug: "squash", name: "Squash" }));
+    reads = 0;
+    expect((await repo.exercises.search({ text: "squ" })).map((e) => e.name).sort()).toEqual(["Squash", "Squat", "Squid"]);
+    expect(reads).toBe(2);
+
+    await repo.exercises.remove(custom.id);
+    expect((await repo.exercises.search({ text: "squ" })).map((e) => e.name).sort()).toEqual(["Squat", "Squid"]);
+
+    await repo.catalog.replace({ version: 2, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat")] });
+    expect((await repo.exercises.search({ text: "squ" })).map((e) => e.name)).toEqual(["Squat"]);
+  });
+
+  it("a live search still re-runs when the catalog or a custom exercise changes, although the list came from memory", async () => {
+    const { repo } = fresh();
+    await repo.catalog.replace({ version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat")] });
+    await repo.exercises.search({ text: "squ" }); // fills the cache
+    const seen: string[][] = [];
+    const subscription = liveQuery(() => repo.exercises.search({ text: "squ" })).subscribe((rows) => seen.push(rows.map((e) => e.name)));
+    await vi.waitFor(() => expect(seen.at(-1)).toEqual(["Squat"]));
+    await repo.catalog.replace({ version: 2, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat"), row("Squid")] });
+    await vi.waitFor(() => expect(seen.at(-1)).toEqual(["Squat", "Squid"]));
+    await repo.exercises.create(exerciseInput({ slug: "squash", name: "Squash" }));
+    await vi.waitFor(() => expect(seen.at(-1)?.sort()).toEqual(["Squash", "Squat", "Squid"]));
+    subscription.unsubscribe();
   });
 });
 

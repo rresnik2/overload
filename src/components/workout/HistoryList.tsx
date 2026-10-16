@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { HardCard } from "@/components/primitives/HardCard";
+import { Button } from "@/components/ui/Button";
 import type { WorkoutRow } from "@/contracts/entities";
 import { formatWeight } from "@/lib/units";
 import { formatClock } from "./labels";
@@ -16,13 +18,17 @@ interface Row {
   volumeKg: number;
 }
 
-/** Past workouts grouped by month of `localDate`, newest first. Reads Dexie only. */
+/** Workouts shown (and summed up) per page: each card reads that workout's sets, so a year of history is not loaded at once. */
+export const HISTORY_PAGE = 20;
+
+/** Past workouts grouped by month of `localDate`, newest first, a page at a time. Reads Dexie only. */
 export function HistoryList() {
   const prefs = useWorkoutPrefs();
-  const data = useLive(async () => {
+  const [limit, setLimit] = useState(HISTORY_PAGE);
+  const page = useLive(async () => {
     const workouts = await repo.workouts.inRange("0000-01-01", "9999-12-31");
     const rows: Row[] = [];
-    for (const workout of workouts) {
+    for (const workout of workouts.slice(0, limit)) {
       const sets = (await repo.sets.forWorkout(workout.id)).filter((s) => s.completedAt != null && s.setType !== "WARMUP");
       rows.push({
         workout,
@@ -31,8 +37,9 @@ export function HistoryList() {
         volumeKg: sets.reduce((sum, s) => sum + (s.effectiveLoadKg != null && s.reps != null ? s.effectiveLoadKg * s.reps : 0), 0),
       });
     }
-    return rows;
-  });
+    return { rows, total: workouts.length };
+  }, [limit]);
+  const data = page?.rows;
 
   if (!data) return <p className="wk-muted" role="status">Loading history…</p>;
   if (data.length === 0) {
@@ -79,6 +86,11 @@ export function HistoryList() {
           </ul>
         </section>
       ))}
+      {page.total > data.length ? (
+        <Button variant="ink" block onClick={() => setLimit((n) => n + HISTORY_PAGE)}>
+          Show earlier workouts ({page.total - data.length} more)
+        </Button>
+      ) : null}
     </>
   );
 }

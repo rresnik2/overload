@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import TodayLoading from "@/app/(signed-in)/(app)/today/loading";
+import TodayLoading from "@/app/(app)/today/loading";
 import { Skel, SkeletonHeader, SkeletonPage } from "./Skeleton";
 
 describe("route skeletons", () => {

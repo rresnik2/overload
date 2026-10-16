@@ -52,12 +52,35 @@ const byFavoriteOrder = (a: ExerciseFavoriteRow, b: ExerciseFavoriteRow): number
   byPosition(a, b) || (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 
 /** The search index over every exercise, rebuilt only when an exercise (or the catalog) changed: typing re-runs `search` per keystroke. */
-let indexCache: { key: string; index: SearchIndex } | null = null;
-function searchIndexFor(db: OverloadDb, all: readonly ExerciseRow[]): SearchIndex {
-  const key = `${db.name}|${all.map((e) => `${e.id}:${e.version}:${e.updatedAt}`).join(",")}`;
-  if (indexCache?.key !== key) indexCache = { key, index: buildSearchIndex(all) };
-  return indexCache.index;
+const indexCache = new WeakMap<OverloadDb, { generation: number; index: SearchIndex }>();
+function searchIndexFor(db: OverloadDb, all: readonly ExerciseRow[], generation: number): SearchIndex {
+  const hit = indexCache.get(db);
+  if (hit?.generation === generation) return hit.index;
+  const index = buildSearchIndex(all);
+  indexCache.set(db, { generation, index });
+  return index;
 }
+
+/**
+ * Every exercise (the catalog, about 870 rows with their muscle lists, plus the user's own) kept in memory between keystrokes
+ * instead of being read and cloned out of IndexedDB each time. `db.exercisesGeneration` (bumped by a hook on both tables) says
+ * when it is stale. Callers must treat the rows as read-only.
+ */
+const exerciseListCache = new WeakMap<OverloadDb, { generation: number; rows: ExerciseRow[] }>();
+// `dx` (a Dexie.Promise) keeps the caller in its transaction/live-query zone even on a cache hit, where nothing here touches Dexie.
+const allExercises = dx(async function allExercises(db: OverloadDb, load: () => Promise<ExerciseRow[]>): Promise<{ rows: ExerciseRow[]; generation: number }> {
+  const generation = db.exercisesGeneration; // read before the data: a write that lands in between only makes the entry look stale
+  const hit = exerciseListCache.get(db);
+  if (hit?.generation === generation) {
+    // Not needed for the answer, but a live query only re-runs for tables it read: count() subscribes to the whole table cheaply.
+    await db.catalog.count();
+    await db.exercise.count();
+    return hit;
+  }
+  const rows = await load();
+  exerciseListCache.set(db, { generation, rows });
+  return { rows, generation };
+});
 
 /** A position after `last`. A position that is not a valid fractional key (any string passes the schema) must not make starring throw for good. */
 function appendPosition(last: string | undefined): string {
@@ -157,12 +180,12 @@ export function createRepo(getDb: GetDb): Repo {
     exercises: {
       ...exercises,
       async search(query: ExerciseSearch) {
-        const all = (await exercises.list()) as ExerciseRow[];
+        const { rows: all, generation } = await allExercises(getDb(), () => exercises.list() as Promise<ExerciseRow[]>);
         const text = query.text?.trim() ?? "";
         const favoriteIds = text ? await favoriteExerciseIds(getDb()) : undefined;
         // Ranking depends on the exercise and the query only, so one index over every exercise serves any filter: rank, then filter.
         const byId = new Map(all.map((e) => [e.id, e]));
-        const hits = searchExercises(searchIndexFor(getDb(), all), text, { favoriteIds });
+        const hits = searchExercises(searchIndexFor(getDb(), all, generation), text, { favoriteIds });
         const matches = hits.flatMap((h) => {
           const e = byId.get(h.id) as ExerciseRow;
           if (query.customOnly && !e.isCustom) return [];
@@ -175,7 +198,7 @@ export function createRepo(getDb: GetDb): Repo {
         return query.limit !== undefined ? matches.slice(0, Math.max(0, query.limit)) : matches;
       },
       async bySlug(slug) {
-        const all = (await exercises.list()) as ExerciseRow[];
+        const { rows: all } = await allExercises(getDb(), () => exercises.list() as Promise<ExerciseRow[]>);
         return all.find((e) => e.slug === slug && e.isCustom) ?? all.find((e) => e.slug === slug);
       },
       async recent(limit = 10) {
@@ -357,6 +380,7 @@ export function createRepo(getDb: GetDb): Repo {
           await db.catalog.bulkPut(catalog.exercises);
           await setMeta(db, META_KEYS.catalogVersion, catalog.version);
         });
+        db.exercisesGeneration++; // the table hooks already did; this makes the replacement explicit
       },
     },
 
