@@ -4,6 +4,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { createUser, resetRateLimitsIfProduction } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 // Test-only credentials of the seeded demo account (prisma/seed/fixtures.ts). Never a real account.
 const DEMO_EMAIL = "demo@overload.test";
@@ -161,7 +162,7 @@ test.describe("progress (demo user)", () => {
         ["/progress/prs", "pr-board"],
       ] as const) {
         await page.goto(path);
-        await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+        await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
         await expect(page.getByTestId(ready).first()).toBeVisible(COLD);
         if (ready.startsWith("chart-")) await expect(page.getByTestId(ready).locator("svg.recharts-surface")).toBeVisible(COLD);
         // the mobile dock (stream B) has a known label-contrast issue: see change-requests/F-1-dock-active-label-contrast.md

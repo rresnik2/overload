@@ -5,6 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { createUser } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 const LEG_PRESS = "Leg Press";
 
@@ -108,7 +109,7 @@ for (const theme of ["paper", "ink"] as const) {
     await page.addInitScript((t) => localStorage.setItem("overload-theme", t), theme);
     await createUser(page, { tag: `favaxe${theme}`, name: "Fav Axe" });
     const audit = async (label: string) => {
-      await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", `overload-${theme}`);
+      await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", THEME_NAMES[theme]);
       await page.waitForTimeout(300); // let entry transitions finish: axe reads mid-fade colours otherwise
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
       expect(

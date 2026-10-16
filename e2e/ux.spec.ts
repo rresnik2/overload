@@ -4,6 +4,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import { completeOnboarding, createUser, createUserAtOnboarding } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 const COLD = { timeout: 45_000 };
 
@@ -286,7 +287,7 @@ for (const theme of ["paper", "ink"] as const) {
     for (const path of ["/today", "/templates", "/exercises", "/history", "/progress", "/insights", "/settings/profile", "/workout", "/learn/choosing-a-goal"]) {
       test(path, async ({ page }) => {
         await page.goto(path);
-        await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+        await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
         await expect(page.locator("main").first()).toBeVisible(COLD);
         const hint = page.getByRole("button", { name: /^What is / }).first();
         if (await hint.count()) {

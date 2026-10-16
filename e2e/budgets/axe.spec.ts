@@ -5,6 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { createUser, createUserAtOnboarding, resetRateLimitsIfProduction } from "../_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 test.describe.configure({ timeout: 180_000 });
 
@@ -32,8 +33,8 @@ test.afterEach(() => {
   expect(all).toEqual([]);
 });
 
-async function expectNoViolations(page: Page, label: string, theme: string) {
-  await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", `overload-${theme}`);
+async function expectNoViolations(page: Page, label: string, theme: keyof typeof THEME_NAMES) {
+  await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", THEME_NAMES[theme]);
   await page.waitForTimeout(300); // let entry transitions finish: axe reads mid-fade colours otherwise
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
   for (const v of results.violations) found.push({ screen: `${label} (${theme})`, id: v.id, impact: v.impact, nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5) });

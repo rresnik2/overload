@@ -3,6 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext } from "@playwright/test";
 import { createUser } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 const PROD = process.env.E2E_PROD === "1";
 
@@ -176,7 +177,7 @@ test.describe("axe: /styleguide (every primitive and UI component)", () => {
     test(`no violations in the ${theme} theme`, async ({ page }) => {
       await page.addInitScript((t) => localStorage.setItem("overload-theme", t), theme);
       await page.goto("/styleguide");
-      await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
       expect(results.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5) }))).toEqual([]);
     });
