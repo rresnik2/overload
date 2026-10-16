@@ -201,31 +201,44 @@ export async function resetProbe(page: Page): Promise<void> {
   });
 }
 
+/** The page-side counter object and the IndexedDB patch, as one script (run at document start so the patch lives in the page's own world). */
+const WORK_COUNTER_SCRIPT = `(() => {
+  if (window.__perfWork) return;
+  const work = { rw: 0, ro: 0, records: 0, batches: 0 };
+  window.__perfWork = work;
+  const original = IDBDatabase.prototype.transaction;
+  IDBDatabase.prototype.transaction = function (...args) {
+    if (args[1] === "readwrite") work.rw += 1;
+    else work.ro += 1;
+    return original.apply(this, args);
+  };
+})();`;
+
 /**
  * Counts what one gesture costs the page, cheaply and without a dev build: IndexedDB transactions (a Dexie write is one
  * read-write transaction) and, for the whole subtree under `root`, DOM mutation records and the batches they arrived in (one batch is
- * roughly one React commit). Read with `readWork`, cleared with `resetWork`. Patches the IDBDatabase prototype in the page.
+ * roughly one React commit). Call `countIndexedDb` before the first navigation, `installWorkCounters` once the screen is up; read with
+ * `readWork`, clear with `resetWork`.
  */
+export async function countIndexedDb(page: Page): Promise<void> {
+  await page.addInitScript(WORK_COUNTER_SCRIPT);
+}
+
 export async function installWorkCounters(page: Page, root = ".wk-active"): Promise<void> {
-  await page.evaluate((rootSelector) => {
-    const w = window as unknown as { __perfWork?: { rw: number; ro: number; records: number; batches: number } };
-    if (w.__perfWork) return;
-    const work = { rw: 0, ro: 0, records: 0, batches: 0 };
-    w.__perfWork = work;
-    const original = IDBDatabase.prototype.transaction;
-    IDBDatabase.prototype.transaction = function (this: IDBDatabase, ...args: Parameters<IDBDatabase["transaction"]>) {
-      if (args[1] === "readwrite") work.rw += 1;
-      else work.ro += 1;
-      return original.apply(this, args);
-    } as typeof IDBDatabase.prototype.transaction;
-    const el = document.querySelector(rootSelector);
-    if (el) {
-      new MutationObserver((records) => {
-        work.records += records.length;
-        work.batches += 1;
-      }).observe(el, { childList: true, characterData: true, attributes: true, subtree: true });
-    }
-  }, root);
+  await page.evaluate(
+    ({ script, rootSelector }) => {
+      (0, eval)(script); // a no-op when the init script already ran
+      const work = (window as unknown as { __perfWork: { records: number; batches: number } }).__perfWork;
+      const el = document.querySelector(rootSelector);
+      if (el) {
+        new MutationObserver((records) => {
+          work.records += records.length;
+          work.batches += 1;
+        }).observe(el, { childList: true, characterData: true, attributes: true, subtree: true });
+      }
+    },
+    { script: WORK_COUNTER_SCRIPT, rootSelector: root },
+  );
 }
 
 export interface WorkCounts {

@@ -268,7 +268,7 @@ export const ActiveSetPanel = memo(function ActiveSetPanel({
       ) : null}
 
       <div className="wk-panel__read">
-        {fields.weight ? <WeightReadout ordinal={ordinal} unit={unit} unitText={readoutUnit(unit, exercise.loadType)} value={weight} ghost={entered === null} disabled={completed} onCommit={(v) => onChange(weightPatch(v, unit))} onLimited={(max) => showNote(PANEL_COPY.limited(max, unit))} /> : null}
+        {fields.weight ? <WeightReadout ordinal={ordinal} unit={unit} unitText={readoutUnit(unit, exercise.loadType)} value={weight} ghost={entered === null && weight === storedWeight} disabled={completed} onCommit={(v) => onChange(weightPatch(v, unit))} onLimited={(max) => showNote(PANEL_COPY.limited(max, unit))} /> : null}
         {fields.weight && fields.reps ? (
           <span className="wk-panel__x type-display-s" aria-hidden="true">
             ×

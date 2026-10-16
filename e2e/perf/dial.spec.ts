@@ -4,6 +4,7 @@
 import { expect, test } from "@playwright/test";
 import {
   browserMetrics,
+  countIndexedDb,
   discardWorkout,
   flushVitals,
   installProbe,
@@ -30,6 +31,7 @@ const MOVES = 24;
 const MOVE_GAP_MS = 16;
 
 test("dial drag: 10 detents", async ({ page }) => {
+  await countIndexedDb(page);
   await signInDemo(page);
   await startWorkoutWithExercise(page, "barbell bench press", EXERCISE);
   const face = page.locator(".dial__face").first();

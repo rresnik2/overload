@@ -164,7 +164,7 @@ test("a heavier second session shows the PR toast, and the rest timer survives a
 
   // The rest timer started on completion and keeps its absolute end time over a reload.
   const before = await page.getByTestId("rest-clock").textContent();
-  expect(before).toMatch(/^[01]:\d\d$/);
+  expect(before).toMatch(/^[0-2]:\d\d$/); // 2:00 is possible: the clock now shows within a frame of the rest starting
   await page.reload();
   await expect(page.getByTestId("rest-clock")).toBeVisible({ timeout: 60_000 });
   const secs = (t: string | null) => Number(t?.split(":")[0]) * 60 + Number(t?.split(":")[1]);
