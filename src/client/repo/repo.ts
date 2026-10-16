@@ -19,6 +19,7 @@ import { favoriteId, seriesKey } from "@/lib/ids";
 import { buildSearchIndex, searchExercises, type SearchIndex } from "@/lib/search/exercise-search";
 import { valuesEqual } from "@/lib/sync/merge";
 import { toLocalDate } from "@/lib/dates";
+import { readActiveWorkout } from "@/client/db/active-workout";
 import { tickHlc } from "@/client/db/clock";
 import { dx } from "@/client/db/zone";
 import { META_KEYS, getMeta, setMeta, type OverloadDb } from "@/client/db/schema";
@@ -289,7 +290,7 @@ export function createRepo(getDb: GetDb): Repo {
     workouts: {
       ...workouts,
       async active() {
-        return (await recentWorkouts(getDb())).find((w) => w.endedAt == null);
+        return readActiveWorkout(getDb()); // the meta pointer, not a read of every workout
       },
       async inRange(from, to) {
         const rows = await getDb().workout.where("localDate").between(from, to, true, true).toArray();

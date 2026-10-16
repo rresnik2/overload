@@ -139,7 +139,7 @@ describe("outside a workout", () => {
     await advance(31_000);
     visible();
     window.dispatchEvent(new Event("online"));
-    await engine.syncNow("manual");
+    void engine.syncNow("manual");
     await flush();
     expect(server.catalogRequests).toHaveLength(1);
   });
@@ -215,7 +215,8 @@ describe("during a workout", () => {
     setWorkout(true);
     await write(device, "a");
     await advance(1_000);
-    await engine.syncNow("manual");
+    void engine.syncNow("manual");
+    await flush();
     expect(server.requests).toHaveLength(2);
     expect(server.rows("template")).toHaveLength(1);
   });

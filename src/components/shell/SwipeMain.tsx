@@ -6,6 +6,7 @@ import { dockTransition, tabNeighbour } from "./nav";
 import { announceDirection } from "./nav-direction";
 import { SWIPE } from "./swipe-logic";
 import { useMediaQuery } from "./useMediaQuery";
+import { useTabPrefetch } from "./useTabPrefetch";
 import { useSwipe } from "./useSwipe";
 
 /** Phones: the dock is showing. Only touch and pen start a swipe, so no pointer-type test is needed here. */
@@ -22,6 +23,8 @@ export function SwipeMain({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const phone = useMediaQuery(TAB_SWIPE_QUERY);
   const onRing = tabNeighbour(pathname, 1) !== null || tabNeighbour(pathname, -1) !== null;
+
+  useTabPrefetch(phone && onRing, pathname, (href) => router.prefetch(href));
 
   useSwipe(ref, {
     enabled: phone && onRing,

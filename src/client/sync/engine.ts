@@ -166,15 +166,21 @@ export function createEngine(options: EngineOptions): Engine {
     }
   }
 
-  async function syncNow(reason: SyncReason = "manual"): Promise<SyncResult> {
+  /**
+   * Background triggers skip when a sync is already running. A request that names "manual" (the Sync now button, finishing or
+   * discarding a workout, the module-level `syncNow`) waits its turn instead: the running cycle read the outbox before the change
+   * that prompted the call. Called with no reason (tests), it skips like a background trigger.
+   */
+  async function syncNow(requested?: SyncReason): Promise<SyncResult> {
+    const reason = requested ?? "manual";
+    const waits = requested === "manual";
     const skipped: SyncResult = { ok: true, pushed: 0, pulled: 0, rejected: 0, newPrs: [], skipped: true };
     const locks = options.locks ?? (typeof navigator !== "undefined" ? navigator.locks : undefined);
     if (locks) {
-      // Background triggers skip when a sync is already running. A manual one (the button, finish, discard) waits its turn instead:
-      // the running cycle read the outbox before the change that prompted this call.
-      const mode = reason === "manual" ? {} : { ifAvailable: true };
+      const mode = waits ? {} : { ifAvailable: true };
       return locks.request(`overload-sync-${db.userId}`, mode, async (lock) => (lock ? cycle(reason) : skipped)) as Promise<SyncResult>;
     }
+    while (waits && inProcessBusy) await new Promise((resolve) => setTimeout(resolve, 50));
     if (inProcessBusy) return skipped;
     inProcessBusy = true;
     try {

@@ -15,6 +15,7 @@ import { newId, isUuid } from "@/lib/ids";
 import { deriveSetColumns } from "@/lib/sync/derive";
 import { maxHlc } from "@/lib/sync/hlc";
 import { valuesEqual } from "@/lib/sync/merge";
+import { refreshActivePointer, takeWorkoutWrite } from "@/client/db/active-workout";
 import { tickHlc } from "@/client/db/clock";
 import type { OverloadDb } from "@/client/db/schema";
 import { dx } from "@/client/db/zone";
@@ -25,7 +26,12 @@ export const nowIso = (): string => new Date().toISOString();
 
 /** Run `fn` in ONE read-write Dexie transaction over every table (joins an outer transaction when nested). */
 export function writeTx<T>(db: OverloadDb, fn: () => Promise<T>): Promise<T> {
-  return db.transaction("rw", db.tables, fn);
+  return db.transaction("rw", db.tables, async (transaction) => {
+    const result = await fn();
+    // A workout row was written in this transaction: keep the active-workout pointer in step (see client/db/active-workout.ts).
+    if (takeWorkoutWrite(transaction)) await refreshActivePointer(db);
+    return result;
+  });
 }
 
 export function readTx<T>(db: OverloadDb, fn: () => Promise<T>): Promise<T> {
