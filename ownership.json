@@ -192,6 +192,11 @@
     "e2e/favorites.spec.ts",
     "e2e/ux.spec.ts",
     "e2e/mobile-viewport.spec.ts",
+    "e2e/perf/**",
+    "src/server/perf/**",
+    "src/app/api/perf/**",
+    "src/app/web-vitals.tsx",
+    "src/app/server-timing-probe.tsx",
     "change-requests/applied/**"
   ],
   "unrestricted": ["W3", "FAV", "UX", "DIAL"]
