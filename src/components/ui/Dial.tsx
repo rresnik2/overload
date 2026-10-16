@@ -20,6 +20,8 @@ export interface DialProps {
   /** Rim fill and the ink for ticks and stamps on it (token names). Default: primary / primary-content. */
   rim?: string;
   ink?: string;
+  /** Short stamp on the plate face under the hub ("KG"). Turns with the plate. */
+  stamp?: string;
   /** Where the dial points while value is null. Default 0. */
   restIndex?: number;
   /** Degrees per detent. Default 12. */
@@ -77,7 +79,7 @@ function ticksFor(detentDeg: number): { x1: number; y1: number; x2: number; y2: 
  * steps it only while it has focus. At either end extra rotation is discarded and the dial plays a short bump.
  * Drag snaps with no tween; keyboard and wheel steps tween 80 ms; reduced motion turns all of it off (primitives.css).
  */
-export function Dial({ label, labelHint, values, value, onChange, valueText, rim, ink, restIndex = 0, detentDeg = 12, disabled, onDetent, className }: DialProps) {
+export function Dial({ label, labelHint, values, value, onChange, valueText, rim, ink, stamp, restIndex = 0, detentDeg = 12, disabled, onDetent, className }: DialProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const count = values.length;
   const rest = clampIndex(restIndex, count);
@@ -268,6 +270,11 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
               <text className="dial__stamp" y="-42" textAnchor="middle" fontSize="13" letterSpacing="3">
                 OVERLOAD
               </text>
+              {stamp ? (
+                <text className="dial__stamp" y="58" textAnchor="middle" fontSize="18" style={{ fontStyle: "italic", fontWeight: 850 }}>
+                  {stamp}
+                </text>
+              ) : null}
               <rect className="dial__mark" x="-3" y="-68" width="6" height="16" rx="3" />
               <circle r="32" fill={`url(#${hub})`} />
               <circle r="12" fill="#121314" />

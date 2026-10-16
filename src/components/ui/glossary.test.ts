@@ -53,9 +53,7 @@ describe("glossary", () => {
   });
 
   it("has no unused entries (every glossary term appears in the UI)", () => {
-    // Dial terms are added ahead of their UI (wave 2: LOGGING); delete this list when they are wired up.
-    const PENDING_UI = new Set<string>(["weightDial", "barProfile", "plateInventory"]);
-    const unused = TERM_IDS.filter((id) => !PENDING_UI.has(id) && !USED.has(id) && !sources.some((s) => new RegExp(`["']${id}["']`).test(s)));
+    const unused = TERM_IDS.filter((id) => !USED.has(id) && !sources.some((s) => new RegExp(`["']${id}["']`).test(s)));
     expect(unused).toEqual([]);
   });
 

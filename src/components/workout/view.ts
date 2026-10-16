@@ -2,12 +2,15 @@
 import type { ExerciseRow, LocalDateString, MachineProfileRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
 import type { LastTimeEntry, Repo } from "@/contracts/repo";
 import type { PrCandidate } from "@/contracts/prs";
+import { isBarProfileExercise } from "./dial-setup";
 import { seriesHistory, workoutPrs } from "./prs";
 
 export interface ExerciseView {
   we: WorkoutExerciseRow;
   exercise: ExerciseRow;
   machine: MachineProfileRow | null;
+  /** The lifter's "bar and plates" profile for a barbell, EZ bar or trap bar exercise (D1, D6): a MachineProfile linked by exerciseId. */
+  barProfile?: MachineProfileRow | null;
   sets: WorkoutSetRow[];
   /** The previous session of the same progression series (exercise, or exercise + machine). */
   last: LastTimeEntry | undefined;
@@ -61,9 +64,10 @@ export async function loadWorkoutView(repo: Repo, workoutId: string, opts: { wit
   for (const we of await repo.workoutExercises.forWorkout(workoutId)) {
     const exercise = (await repo.exercises.get(we.exerciseId)) ?? missingExercise(we.exerciseId);
     const machine = we.machineProfileId ? ((await repo.machineProfiles.get(we.machineProfileId)) ?? null) : null;
+    const barProfile = !machine && isBarProfileExercise(exercise) ? ((await repo.machineProfiles.forExercise(exercise.id))[0] ?? null) : null;
     const sets = await repo.sets.forWorkoutExercise(we.id);
     const last = opts.withLast === false ? undefined : await repo.sets.lastTime({ exerciseId: we.exerciseId, machineProfileId: we.machineProfileId, beforeLocalDate: workout.localDate });
-    exercises.push({ we, exercise, machine, sets, last });
+    exercises.push({ we, exercise, machine, barProfile, sets, last });
   }
   const sets = exercises.flatMap((e) => e.sets);
   const prs = sets.length > 0 ? workoutPrs(await seriesHistory(sets.map((s) => s.seriesKey)), workoutId) : new Map<string, PrCandidate[]>();

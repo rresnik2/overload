@@ -14,6 +14,7 @@ import { LoggingGuide, useLoggingGuide } from "./LoggingGuide";
 import { useNow, useRestTimer, useWakeLock } from "./hooks";
 import { formatClock } from "./labels";
 import { MachineChooser } from "./MachineChooser";
+import { MachineProfileForm } from "./MachineProfileForm";
 import { useWorkoutPrefs } from "./prefs";
 import { headlinePr } from "./prs";
 import { RestTimer } from "./RestTimer";
@@ -36,6 +37,9 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const now = useNow(1000);
   const [picking, setPicking] = useState(false);
   const [changing, setChanging] = useState<ExerciseView | null>(null);
+  const [editingBar, setEditingBar] = useState<ExerciseView | null>(null);
+  // Phones show the dial panel for one exercise at a time: the one the lifter tapped, else the first with a set still to do.
+  const [focus, setFocus] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [title, setTitle] = useState<string | null>(null);
   const guide = useLoggingGuide();
@@ -50,7 +54,8 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const exercises = view?.exercises ?? [];
   const startRest = rest.start;
   const onSetCompleted = useCallback((_set: WorkoutSetRow, item: ExerciseView) => startRest(item.we.restSec ?? prefs.defaultRestSec), [startRest, prefs.defaultRestSec]);
-  const actionsFor = useWorkoutActions({ workoutId: workout.id, prefs, exercises, onSetCompleted, onChangeMachine: setChanging });
+  const actionsFor = useWorkoutActions({ workoutId: workout.id, prefs, exercises, onSetCompleted, onChangeMachine: setChanging, onEditBar: setEditingBar });
+  const focusedId = (exercises.find((e) => e.we.id === focus) ?? exercises.find((e) => e.sets.some((s) => s.completedAt == null)))?.we.id ?? null;
   const labels = supersetLabels(exercises.map((e) => e.we));
 
   const saveTitle = async () => {
@@ -118,6 +123,13 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
               canMoveUp={i > 0}
               canMoveDown={i < exercises.length - 1}
               canLinkNext={i < exercises.length - 1}
+              panel
+              focused={focusedId === item.we.id}
+              onFocus={() => setFocus(item.we.id)}
+              onAdvance={() => {
+                if (!item.sets.some((s) => s.completedAt == null)) setFocus(null);
+              }}
+              bodyweightKg={view.workout.bodyweightKg}
             />
           ))}
           <Button variant="ink" block icon={<Plus size={18} />} onClick={() => setPicking(true)}>
@@ -159,6 +171,26 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
               setChanging(null);
             }}
             onBack={() => setChanging(null)}
+          />
+        ) : null}
+      </Sheet>
+
+      <Sheet open={editingBar !== null} onClose={() => setEditingBar(null)} title="Bar and plates">
+        {editingBar ? (
+          <MachineProfileForm
+            key={editingBar.exercise.id}
+            kind="bar"
+            initial={editingBar.barProfile ?? undefined}
+            unit={prefs.unit}
+            exerciseId={editingBar.exercise.id}
+            defaultName={`${editingBar.exercise.name} bar`}
+            submitLabel="Save bar and plates"
+            onCancel={() => setEditingBar(null)}
+            onSave={async (fields) => {
+              if (editingBar.barProfile) await repo.machineProfiles.update(editingBar.barProfile.id, fields);
+              else await repo.machineProfiles.create(fields);
+              setEditingBar(null);
+            }}
           />
         ) : null}
       </Sheet>
