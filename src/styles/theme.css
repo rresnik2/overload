@@ -104,11 +104,6 @@
   --font-numeric: var(--font-archivo), ui-sans-serif, system-ui, ui-monospace, "SF Mono", Menlo, monospace;
 
   --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
-
-  /* LEGACY: removed after wave 2. The old editorial tokens, so unrestyled partials keep rendering. */
-  --color-vermilion: var(--color-primary);
-  --color-ink: #16181a;
-  --color-paper: #f2f2ef;
 }
 
 /* Per-theme custom tokens (daylight is the default; floor applies under a stored dark choice or an OS dark
@@ -190,21 +185,6 @@
   --type-body-size: 15px;
   --type-body-size-dense: 13px;
   --type-body-lh: 1.5;
-}
-
-/* LEGACY: removed after wave 2. The editorial hard shadows are gone: anything still using them gets no shadow. */
-:root,
-[data-theme] {
-  --shadow-hard: none;
-  --shadow-hard-pressed: none;
-  --shadow-hard-sm: none;
-  /* Re-resolved per scope so a [data-theme] subtree follows its own primary. */
-  --color-vermilion: var(--color-primary);
-}
-/* LEGACY: removed after wave 2. The old font variables now resolve to Archivo. */
-:root {
-  --font-instrument: var(--font-archivo);
-  --font-newsreader: var(--font-archivo);
 }
 
 /* Data-viz palette (spec section 03), validated with the dataviz skill's validate_palette.js against the chart surface

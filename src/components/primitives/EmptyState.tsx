@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 export interface EmptyStateProps {
   title: string;
   description?: ReactNode;
-  /** A decorative icon (rendered in vermilion). */
+  /** A decorative icon (rendered in the muted text colour). */
   icon?: ReactNode;
   /** The call to action (a Button/Link). */
   action?: ReactNode;

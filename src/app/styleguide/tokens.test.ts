@@ -56,11 +56,11 @@ describe("styleguide token mirror matches theme.css", () => {
     expect(css).toContain("--steel-dark: #8c9196");
   });
 
-  it("legacy aliases are kept until wave 2 and marked", () => {
-    expect(css).toMatch(/LEGACY: removed after wave 2[\s\S]*--shadow-hard: none/);
-    expect(css).toContain("--color-vermilion: var(--color-primary)");
-    expect(css).toContain("--font-instrument: var(--font-archivo)");
-    expect(css).toContain("--font-newsreader: var(--font-archivo)");
+  it("the legacy editorial aliases are gone", () => {
+    for (const name of ["--color-vermilion", "--color-ink", "--color-paper", "--shadow-hard", "--font-instrument", "--font-newsreader"]) {
+      expect(css, name).not.toContain(name);
+    }
+    expect(css).not.toContain("LEGACY");
   });
 });
 

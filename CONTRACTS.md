@@ -967,8 +967,8 @@ Server-only modules start with `import "server-only"` (it is aliased to a no-op 
 ```ts
 // from src/components/primitives/HardCard.tsx
 /**
- * The signature surface: paper, square corners, a 6px vermilion hard shadow.
- * Props are FROZEN (CONTRACTS.md). `interactive` adds the press state (moves translate(2px,2px), shadow shrinks to 4px);
+ * The base surface: a base-200 panel with a 1px hairline border and the theme's small radius, no shadow.
+ * Props are FROZEN (CONTRACTS.md). `interactive` adds the press state (the border firms up on hover, the card drops 1px);
  * for a card that is a link, wrap/compose it with <Link> and keep this as the visual shell.
  */
 export interface HardCardProps extends HTMLAttributes<HTMLElement> {
@@ -986,8 +986,8 @@ export interface HardCardProps extends HTMLAttributes<HTMLElement> {
 ```ts
 // from src/components/primitives/SectionHeader.tsx
 /**
- * Numbered section header: "01/Progress" in Instrument Serif italic with a 2px vermilion underline rule.
- * Props are FROZEN (CONTRACTS.md). `index` renders as a zero-padded number followed by a vermilion slash
+ * Numbered section header: "01/Progress" in condensed italic Archivo display caps over a 1px hairline rule.
+ * Props are FROZEN (CONTRACTS.md). `index` renders as a zero-padded number followed by a muted slash
  * (index={1} -> "01/"); a string is shown as given. The index and slash are decorative (aria-hidden).
  */
 export interface SectionHeaderProps {
@@ -1010,11 +1010,11 @@ export function formatSectionIndex(index: number | string): string;
 // from src/components/primitives/PageHeader.tsx
 /**
  * Page title block. Props are FROZEN (CONTRACTS.md).
- * `meta` renders as a meta line with vermilion slashes: ["Free weight", "Barbell"] -> "Free weight / Barbell".
+ * `meta` renders as a meta line with muted slashes: ["Free weight", "Barbell"] -> "Free weight / Barbell".
  */
 export interface PageHeaderProps {
   title: string;
-  /** Meta line parts, joined with a vermilion slash. */
+  /** Meta line parts, joined with a muted slash. */
   meta?: string[];
   description?: ReactNode;
   /** Right-aligned buttons/links. */
@@ -1035,7 +1035,7 @@ export interface PageHeaderProps {
 export interface EmptyStateProps {
   title: string;
   description?: ReactNode;
-  /** A decorative icon (rendered in vermilion). */
+  /** A decorative icon (rendered in the muted text colour). */
   icon?: ReactNode;
   /** The call to action (a Button/Link). */
   action?: ReactNode;
