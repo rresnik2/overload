@@ -9,6 +9,7 @@ import type { WeightUnit } from "@/contracts/enums";
 import { Button } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { Term } from "@/components/ui/Term";
+import { isGearEquipment } from "@/lib/gear";
 import type { TermId } from "@/lib/glossary";
 import { ActiveSetPanel } from "./ActiveSetPanel";
 import { dialSetup, isBarProfileExercise } from "./dial-setup";
@@ -32,6 +33,8 @@ export interface ExerciseBlockActions {
   onChangeMachine?: () => void;
   /** Open the "Bar and plates" sheet for this exercise (barbells, EZ bars, trap bars). */
   onEditBar?: () => void;
+  /** Open the gear sheet for this exercise (dumbbell step or the kettlebells owned). */
+  onEditGear?: () => void;
 }
 
 export interface ExerciseBlockProps {
@@ -106,7 +109,7 @@ function previewPicture({ item, set, unit, step, ghost }: { item: ExerciseView; 
   const { exercise } = item;
   const facts = item.machine ?? item.barProfile ?? null;
   const value = shownWeight(set.weightKg, unit) ?? (ghost?.weightKg != null ? shownWeight(ghost.weightKg, unit) : null);
-  const setup = dialSetup({ exercise, unit, step, current: value, machine: facts });
+  const setup = dialSetup({ exercise, unit, step, current: value, machine: facts, gear: item.gear ?? null });
   if (!setup.kind) return null;
   return <EquipmentPicture kind={setup.kind} loadType={exercise.loadType} isUnilateral={exercise.isUnilateral} setup={setup} value={value} hasProfile={facts !== null} size="preview" />;
 }
@@ -114,6 +117,7 @@ function previewPicture({ item, set, unit, step, ghost }: { item: ExerciseView; 
 /** One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove). */
 export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true, panel = false, focused = true, onFocus, onAdvance, bodyweightKg }: ExerciseBlockProps) {
   const { exercise, machine, barProfile, sets, last } = item;
+  const gear = item.gear ?? null;
   const firstOpen = sets.find((s) => s.completedAt == null);
   const workingNumber = sets.map((_, i) => sets.slice(0, i + 1).filter((x) => x.setType !== "WARMUP").length);
   const dialLayout = useDialLayout();
@@ -125,6 +129,7 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
   const activeSet = phone && focused ? (sets.find((s) => s.id === picked) ?? sets.find((s) => s.id === held) ?? firstOpen ?? null) : null;
   const facts = machine ?? barProfile ?? null;
   const editBar = actions.onEditBar && !machine && isBarProfileExercise(exercise) ? actions.onEditBar : undefined;
+  const editGear = actions.onEditGear && !machine && isGearEquipment(exercise.equipment) ? actions.onEditGear : undefined;
   const legend = <SetLegend item={item} prefs={prefs} showGhost={showGhost} />;
   return (
     <section className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id}>
@@ -190,8 +195,8 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
       <ol className="wk-sets">
         {sets.map((set, index) => {
           const ghost = showGhost ? ghostSet(last, sets, set) : null;
-          const unit = unitForSet(set, machine, prefs.unit);
-          const step = weightStep(unit, exercise, machine);
+          const unit = unitForSet(set, machine ?? gear, prefs.unit);
+          const step = weightStep(unit, exercise, machine, gear);
           const rowProps = {
             label: set.setType === "WARMUP" ? "W" : String(workingNumber[index]),
             ordinal: index + 1,
@@ -217,6 +222,8 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
                 bodyweightKg={bodyweightKg}
                 legend={legend}
                 onEditBar={editBar}
+                gear={gear}
+                onEditGear={editGear}
                 onToggleComplete={() => {
                   if (set.completedAt == null) {
                     setHeld(set.id);

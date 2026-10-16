@@ -13,6 +13,9 @@ export type DialExercise = Pick<ExerciseRow, "equipment" | "loadType" | "isUnila
 /** The parts of a MachineProfile the dial reads. `platesKg` is optional: Dexie rows written before the field lack it. */
 export type DialMachine = Pick<MachineProfileRow, "pinStepKg" | "baseLoadKg"> & { platesKg?: readonly number[] | null };
 
+/** The parts of a gear profile the dial reads: the dumbbell step (`pinStepKg`) or the kettlebells owned (`platesKg`; null = standard sizes). */
+export type DialGear = Pick<MachineProfileRow, "pinStepKg"> & { platesKg?: readonly number[] | null };
+
 const BAR_EQUIPMENT: readonly Equipment[] = ["BARBELL", "EZ_BAR", "TRAP_BAR", "SMITH_MACHINE"];
 
 /** Bar types that have a per-exercise "bar and plates" profile (D1). Smith machines use their machine profile instead. */
@@ -62,6 +65,8 @@ export interface DialSetupInput {
   current: number | null;
   /** The chosen machine profile, or the exercise's bar profile. */
   machine: DialMachine | null;
+  /** The user's gear profile for this exercise's equipment (dumbbell step or kettlebells owned); null = the defaults. */
+  gear?: DialGear | null;
 }
 
 const nearestIndex = (values: readonly number[], v: number): number => {
@@ -70,12 +75,16 @@ const nearestIndex = (values: readonly number[], v: number): number => {
   return best;
 };
 
-export function dialSetup({ exercise, unit, step, current, machine }: DialSetupInput): DialSetup {
+export function dialSetup({ exercise, unit, step: defaultStep, current, machine, gear = null }: DialSetupInput): DialSetup {
   const kind = pictureKind(exercise);
+  // Gear is stored in kg; the dial works in the row's unit.
+  const dumbbellStep = kind === "dumbbell" && gear?.pinStepKg != null && gear.pinStepKg > 0 ? fromKg(gear.pinStepKg, unit) : null;
+  const bells = kind === "kettlebell" && gear?.platesKg && gear.platesKg.length > 0 ? gear.platesKg.map((kg) => fromKg(kg, unit)) : null;
+  const step = dumbbellStep ?? defaultStep;
   const base = machine?.baseLoadKg != null ? fromKg(machine.baseLoadKg, unit) : null;
   const bar = kind === "bar" ? (base ?? DEFAULT_BAR_WEIGHT[exercise.equipment]?.[unit] ?? null) : kind === "stack" || kind === "horn" ? base : null;
   const plates = plateSet(unit, machine?.platesKg ?? null);
-  let values = dialValues({ equipment: exercise.equipment, loadType: exercise.loadType, unit, step, current, bar, plates });
+  let values = dialValues({ equipment: exercise.equipment, loadType: exercise.loadType, unit, step, current, bar, plates, bells, dumbbellStep });
   if (exercise.loadType === "BODYWEIGHT_PLUS" && !values.includes(0)) values = [0, ...values];
   if (values.length === 0) values = [current ?? 0];
   let restIndex = 0;

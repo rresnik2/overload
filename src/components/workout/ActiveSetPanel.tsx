@@ -10,9 +10,8 @@ import { Term } from "@/components/ui/Term";
 import type { MachineProfileRow } from "@/contracts/entities";
 import type { SetType } from "@/contracts/enums";
 import { formatNumber, fromKg } from "@/lib/units";
-import { dialColors, dialSetup, pinOf } from "./dial-setup";
+import { dialColors, dialSetup, pinOf, type DialGear } from "./dial-setup";
 import { EquipmentPicture } from "./EquipmentPicture";
-import { confirm, tick, useHapticsEnabled } from "./haptics";
 import { effortOptions, PANEL_COPY, readoutUnit, effortText, SET_TYPE_LABEL, setFields, weightSpoken } from "./labels";
 import { heaviestTone, loadBar } from "./plates";
 import { shownWeight, weightPatch } from "./session";
@@ -33,6 +32,10 @@ export interface ActiveSetPanelProps
   bodyweightKg?: number | null;
   /** Opens the bar and plates sheet (barbells only). */
   onEditBar?: () => void;
+  /** The user's gear profile (dumbbell step or kettlebells owned) for dumbbell and kettlebell exercises; null = the defaults. */
+  gear?: DialGear | null;
+  /** Opens the gear sheet (dumbbells and kettlebells): their step or the bells they own. */
+  onEditGear?: () => void;
   /** The "Logged ✓" flash is over: the parent makes the next incomplete set active. */
   onAdvance?: () => void;
 }
@@ -74,10 +77,11 @@ export function ActiveSetPanel({
   onToggleComplete,
   onDelete,
   onEditBar,
+  gear = null,
+  onEditGear,
   onAdvance,
 }: ActiveSetPanelProps) {
   const fields = setFields(exercise);
-  const haptics = useHapticsEnabled();
   const completed = set.completedAt != null;
   const warmup = set.setType === "WARMUP";
   const name = `Set ${ordinal}`;
@@ -86,7 +90,7 @@ export function ActiveSetPanel({
   const fromLast = ghost?.weightKg != null ? fromKg(ghost.weightKg, unit) : null;
   const weight = fields.weight ? (entered ?? fromLast) : null;
   const reps = fields.reps ? (set.reps ?? ghost?.reps ?? null) : null;
-  const setup = dialSetup({ exercise, unit, step, current: weight, machine });
+  const setup = dialSetup({ exercise, unit, step, current: weight, machine, gear });
 
   const loadout = setup.kind === "bar" ? loadBar(weight ?? setup.bar ?? 0, setup.bar ?? 0, setup.plates) : null;
   const colors = dialColors(setup.kind, loadout ? heaviestTone(loadout.perSide) : null);
@@ -100,13 +104,12 @@ export function ActiveSetPanel({
   });
   useEffect(() => {
     if (!flashing) return;
-    if (haptics) confirm();
     const timer = window.setTimeout(() => {
       setArmed(false);
       advance.current?.();
     }, LOGGED_FLASH_MS);
     return () => window.clearTimeout(timer);
-  }, [flashing, haptics]);
+  }, [flashing]);
 
   const [note, setNote] = useState<string | null>(null);
   const noteTimer = useRef<number | null>(null);
@@ -142,7 +145,6 @@ export function ActiveSetPanel({
   const hintId = `${set.id}-need`;
 
   const onLog = () => {
-    if (haptics) tick();
     if (completed) {
       onToggleComplete(); // reopen
       return;
@@ -201,6 +203,10 @@ export function ActiveSetPanel({
               <button type="button" className="wk-panel__link" onClick={onEditBar}>
                 {PANEL_COPY.barAndPlates}
               </button>
+            ) : (setup.kind === "dumbbell" || setup.kind === "kettlebell") && onEditGear ? (
+              <button type="button" className="wk-panel__link" onClick={onEditGear}>
+                {setup.kind === "dumbbell" ? PANEL_COPY.gearDumbbells(setup.step, unit) : PANEL_COPY.gearKettlebells(gear?.platesKg?.length || null)}
+              </button>
             ) : null
           }
         />
@@ -235,7 +241,6 @@ export function ActiveSetPanel({
           stamp={unit === "KG" ? "KG" : "LB"}
           restIndex={setup.restIndex}
           disabled={completed}
-          onDetent={haptics ? () => tick() : undefined}
         />
       ) : null}
 
@@ -263,7 +268,6 @@ export function ActiveSetPanel({
                 aria-label={`${name} ${effortScale} ${o.label}`}
                 disabled={completed}
                 onClick={() => {
-                  if (haptics) tick();
                   onChange({ rir: set.rir === o.rir ? null : o.rir });
                 }}
               >
