@@ -1,5 +1,5 @@
 // The four main lifts on /today: current estimated 1RM, the change over 4 weeks, and the lift the chart should show.
-// PURE: no Prisma, no React. The loader in src/server/queries/today.ts feeds it facts; unit tests feed it fixtures.
+// PURE: no Prisma, no React. The loader in src/server/queries/progress.today.ts feeds it facts; unit tests feed it fixtures.
 import type { AnalyticsInput, SessionPoint } from "@/contracts/analytics";
 import { addDays, diffDays, type LocalDate } from "@/lib/dates";
 import { round } from "@/lib/units";

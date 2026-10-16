@@ -16,7 +16,7 @@ import { latestReport } from "@/server/insights/reports";
 import { getProfileRow } from "@/server/profile/profile";
 import { loadBodyView } from "@/server/queries/body";
 import { loadProgressOverview, loadToday } from "@/server/queries/progress";
-import { loadTodayLifts } from "@/server/queries/today";
+import { loadTodayLifts } from "@/server/queries/progress.today";
 
 export const metadata = { title: "Today" };
 

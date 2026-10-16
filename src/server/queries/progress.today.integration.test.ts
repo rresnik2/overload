@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { newId } from "@/lib/ids";
 import { mintUserCtx } from "@/server/auth/ctx";
 import { prisma } from "@/server/db";
-import { loadTodayLifts } from "./today";
+import { loadTodayLifts } from "./progress.today";
 
 const suffix = newId().slice(-12);
 const userA = `tq-a-${suffix}`;
