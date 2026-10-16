@@ -282,7 +282,7 @@ test.describe("exercise tab on /workout", () => {
     await t.getByRole("button", { name: /^Jump to an exercise/ }).click();
     const list = page.getByRole("dialog", { name: "Jump to an exercise" });
     await expect(list.getByRole("button", { name: new RegExp(A) })).toHaveAttribute("aria-current", "true");
-    await expect(list.getByRole("button", { name: new RegExp(`${B}.*0/3 sets`) })).toBeVisible();
+    await expect(list.getByRole("button", { name: new RegExp(`${B}, 0 of 3 sets done`) })).toBeVisible();
     await list.getByRole("button", { name: new RegExp(C) }).click();
     await expect(list).toBeHidden();
     expect(await focusedName(page)).toBe(C);
