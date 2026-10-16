@@ -1,19 +1,17 @@
 "use client";
 import { CircleHelp, MoreHorizontal, Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Modal, Sheet } from "@/components/ui/Sheet";
-import { useSwipe } from "@/components/shell/useSwipe";
 import type { WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
 import { isGearEquipment } from "@/client/repo/gear";
 import { setWorkoutActive } from "@/lib/pwa";
 import { useWorkoutActions } from "./actions";
 import { ExerciseBlock } from "./ExerciseBlock";
 import { ExercisePicker } from "./ExercisePicker";
-import { ExerciseSwitcher } from "./ExerciseSwitcher";
-import { useDialLayout } from "./layout";
+import { ExerciseTab } from "./ExerciseTab";
 import { LoggingGuide, useLoggingGuide } from "./LoggingGuide";
 import { useNow, useRestTimer, useWakeLock } from "./hooks";
 import { formatClock } from "./labels";
@@ -46,10 +44,6 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const [editingGear, setEditingGear] = useState<ExerciseView | null>(null);
   // Phones show the dial panel for one exercise at a time: the one the lifter tapped, else the first with a set still to do.
   const [focus, setFocus] = useState<string | null>(null);
-  // The last move made by swipe or the Prev/Next buttons, so the newly focused exercise can slide in from the matching side.
-  const [slide, setSlide] = useState<{ id: string; dir: "next" | "prev" } | null>(null);
-  const activeRef = useRef<HTMLDivElement>(null);
-  const dialLayout = useDialLayout();
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [title, setTitle] = useState<string | null>(null);
   const guide = useLoggingGuide();
@@ -69,21 +63,11 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   const labels = supersetLabels(exercises.map((e) => e.we));
   const focusedIndex = focusedId ? exercises.findIndex((e) => e.we.id === focusedId) : -1;
 
-  // Phones: move the dial panel to the next or previous exercise in workout order. No wrap-around.
+  // Phones: the exercise tab moves the dial panel to the next, previous or chosen exercise in workout order.
   const goTo = (index: number) => {
     const target = exercises[index];
-    const from = focusedIndex < 0 ? exercises.length : focusedIndex; // nothing focused: every exercise is behind us
-    if (!target || index === from) return;
-    setSlide({ id: target.we.id, dir: index > from ? "next" : "prev" });
-    setFocus(target.we.id);
+    if (target && index !== focusedIndex) setFocus(target.we.id);
   };
-  const swipeable = dialLayout && exercises.length > 1;
-  useSwipe(activeRef, {
-    enabled: swipeable,
-    onSwipe: (direction) => {
-      goTo((focusedIndex < 0 ? exercises.length : focusedIndex) + (direction === "left" ? 1 : -1));
-    },
-  });
 
   const saveTitle = async () => {
     if (title === null) return;
@@ -93,7 +77,7 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
   };
 
   return (
-    <div className="wk-active" ref={activeRef} data-swipe-exercises={swipeable ? "" : undefined}>
+    <div className="wk-active">
       <div className="wk-bar">
         <div className="wk-bar__title">
           <input
@@ -139,7 +123,6 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
         <EmptyState title="No exercises yet" description="Add the first exercise to start logging sets." action={<Button onClick={() => setPicking(true)}>Add exercise</Button>} />
       ) : (
         <>
-          {swipeable ? <ExerciseSwitcher names={exercises.map((e) => e.exercise.name)} index={focusedIndex} onGo={goTo} /> : null}
           {exercises.map((item, i) => (
             <ExerciseBlock
               key={item.we.id}
@@ -153,11 +136,7 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
               canLinkNext={i < exercises.length - 1}
               panel
               focused={focusedId === item.we.id}
-              slide={slide?.id === item.we.id ? slide.dir : undefined}
-              onFocus={() => {
-                setSlide(null);
-                setFocus(item.we.id);
-              }}
+              onFocus={() => setFocus(item.we.id)}
               onAdvance={() => {
                 if (!item.sets.some((s) => s.completedAt == null)) setFocus(null);
               }}
@@ -167,6 +146,7 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
           <Button variant="ink" block icon={<Plus size={18} />} onClick={() => setPicking(true)}>
             Add exercise
           </Button>
+          <ExerciseTab items={exercises.map((e) => ({ id: e.we.id, name: e.exercise.name, done: e.sets.filter((x) => x.completedAt != null).length, total: e.sets.length }))} index={focusedIndex} onGo={goTo} />
         </>
       )}
 
