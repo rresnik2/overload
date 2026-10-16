@@ -283,6 +283,9 @@ export async function discardWorkout(page: Page): Promise<void> {
     await page.locator("summary[aria-label=\"Workout options\"]").click({ timeout: 30_000 });
     await page.getByRole("button", { name: "Discard workout" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
+    // The in-page view lags the discard; a fresh load shows the settled state.
+    await page.waitForTimeout(3000);
+    await page.goto("/workout");
     await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('.sync-pip[data-state="idle"]')).toContainText(/^Synced$/, { timeout: 60_000 });
   } catch (error) {
