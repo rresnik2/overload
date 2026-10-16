@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Dial, type DialProps } from "./Dial";
 import { NumberStrip, type NumberStripProps } from "./NumberStrip";
@@ -393,5 +393,49 @@ describe("NumberStrip", () => {
     expect(strip().style.overflowX).toBe("hidden");
     rerender(<StripHarness />);
     expect(strip().style.overflowX).toBe("");
+  });
+});
+
+// The real value round-trips through a store (Dexie), so it comes back a moment after onChange. Key presses made in that gap
+// must still add up (they were dropped when the component re-read its position from the lagging prop on every render).
+function LaggingValue({ initial, children }: { initial: number; children: (v: number, set: (n: number) => void) => ReactNode }) {
+  const [v, setV] = useState(initial);
+  const set = (n: number) => void setTimeout(() => setV(n), 20);
+  return <>{children(v, set)}</>;
+}
+
+describe("a value that comes back late", () => {
+  it("Dial: five quick key presses before the first echo all count", async () => {
+    render(<LaggingValue initial={20}>{(v, set) => <Dial label="Set 1 weight" values={WEIGHTS} value={v} onChange={set} valueText={text} />}</LaggingValue>);
+    range().focus();
+    for (const key of ["Home", "PageUp", "PageUp", "ArrowRight", "ArrowRight"]) fireEvent.keyDown(range(), { key });
+    // Home = index 0 (20), two PageUp = index 8 (40), two ArrowRight = index 10, clamped at the last value (42.5)
+    await vi.waitFor(() => expect(range()).toHaveAttribute("aria-valuetext", "42.5 kilograms"));
+  });
+
+  it("NumberStrip: quick key presses before the first echo all count, and an outside change still re-centres", async () => {
+    const values = Array.from({ length: 12 }, (_, i) => i + 1);
+    render(
+      <LaggingValue initial={1}>
+        {(v, set) => (
+          <>
+            <NumberStrip label="Reps" values={values} value={v} onChange={set} />
+            <button type="button" onClick={() => set(9)}>
+              external
+            </button>
+          </>
+        )}
+      </LaggingValue>,
+    );
+    strip().focus();
+    for (let i = 0; i < 5; i++) {
+      fireEvent.keyDown(strip(), { key: "ArrowRight" });
+      await new Promise((r) => setTimeout(r, 12)); // echoes (20 ms late) land between the presses
+    }
+    await vi.waitFor(() => expect(strip()).toHaveAttribute("aria-valuenow", "6"));
+    await userEvent.click(screen.getByRole("button", { name: "external" }));
+    await vi.waitFor(() => expect(strip()).toHaveAttribute("aria-valuenow", "9"));
+    fireEvent.keyDown(strip(), { key: "ArrowRight" });
+    await vi.waitFor(() => expect(strip()).toHaveAttribute("aria-valuenow", "10"));
   });
 });

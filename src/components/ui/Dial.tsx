@@ -97,10 +97,24 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
   const wheelAcc = useRef(0);
   const latest = useRef({ count, values, value, onChange, onDetent, disabled });
 
+  // Indices this dial reported through onChange that the `value` prop has not echoed yet. The value usually comes back through
+  // a store (Dexie), so for a moment `idx` is behind idxRef: resetting idxRef from every render would drop quick key presses.
+  const reported = useRef<number[]>([]);
+
   useEffect(() => {
-    idxRef.current = idx;
     latest.current = { count, values, value, onChange, onDetent, disabled };
   });
+  useEffect(() => {
+    const k = reported.current.indexOf(idx);
+    if (k >= 0) {
+      // An echo of one of our own reports. Newer reports may still be in flight: leave idxRef where it is until the last one lands.
+      reported.current.splice(0, k + 1);
+      if (reported.current.length === 0) idxRef.current = idx;
+      return;
+    }
+    reported.current = [];
+    idxRef.current = idx;
+  }, [idx]);
 
   /** Move by `delta` detents from the current index. Rotation past either end is thrown away and bumps. */
   function moveBy(delta: number, source: Source) {
@@ -115,6 +129,7 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
       setTween(source === "step");
       if (source === "drag") setDragIdx(to);
       for (let i = 0; i < moved; i++) cur.onDetent?.(dir);
+      reported.current.push(to);
       cur.onChange(cur.values[to]!);
     }
     if (Math.abs(delta) > moved) setBump((b) => ({ dir, n: (b?.n ?? 0) + 1 }));

@@ -46,6 +46,9 @@ export function NumberStrip({ label, labelHint, values, value, onChange, valueTe
 
   // Index of the last value this component reported or centred on. A `value` prop that disagrees came from outside.
   const idxRef = useRef(idx);
+  // Indices reported through onChange that the `value` prop has not echoed yet (the value usually round-trips through a store).
+  // An echo of an older report must not be mistaken for an outside change while newer presses are in flight.
+  const reported = useRef<number[]>([]);
   // Set while a programmatic smooth scroll is heading for this index; scroll events on the way must not report values.
   const heading = useRef<{ to: number; timer: number } | null>(null);
   const drag = useRef<{ x: number; left: number; moved: boolean; id: number } | null>(null);
@@ -74,6 +77,7 @@ export function NumberStrip({ label, labelHint, values, value, onChange, valueTe
     const sc = scRef.current;
     if (to !== idxRef.current) {
       idxRef.current = to;
+      reported.current.push(to);
       cur.onChange(cur.values[to]!);
     }
     if (!sc) return;
@@ -94,7 +98,13 @@ export function NumberStrip({ label, labelHint, values, value, onChange, valueTe
 
   // Re-centre when the value changed from outside (not an echo of what this strip just reported).
   useLayoutEffect(() => {
+    const k = reported.current.indexOf(idx);
+    if (k >= 0) {
+      reported.current.splice(0, k + 1);
+      return;
+    }
     if (idx === idxRef.current) return;
+    reported.current = [];
     idxRef.current = idx;
     if (!drag.current?.moved) {
       settle();
@@ -159,6 +169,7 @@ export function NumberStrip({ label, labelHint, values, value, onChange, valueTe
       }
       if (near !== idxRef.current) {
         idxRef.current = near;
+        reported.current.push(near);
         latest.current.onChange(latest.current.values[near]!);
       }
     });
