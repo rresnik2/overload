@@ -1,44 +1,80 @@
 // pnpm exec tsx tools/pwa/generate.ts
 // Generates every binary asset the PWA needs with the installed `sharp` (outputs are committed):
 //   public/icons/{icon-192,icon-512,icon-maskable-512,apple-touch-icon}.png, public/{favicon.ico,apple-touch-icon.png}
-//   public/splash/*.png (iOS apple-touch-startup-image, portrait, ink background)
-//   public/backdrop/clouds.jpg (grayscale fixed photo backdrop for marketing/auth/onboarding: procedural clouds, no third-party image)
-// The mark: three stacked bars that grow wider (progressive overload), vermilion on ink, with the site's hard offset shadow.
+//   public/splash/*.png (iOS apple-touch-startup-image, portrait, floor background)
+//   public/backdrop/clouds.jpg (grayscale fixed photo backdrop for marketing/auth/onboarding: procedural clouds, no third-party image);
+//     only with `--backdrop`, since the icons and splash change far more often than the backdrop
+// The mark: a calibrated plate seen face-on, drawn like the Dial's face (docs/design/calibrated-dial-handoff.html):
+// plate-blue rim with tick marks and an index notch, a steel hub and a dark centre hole, on the rubber floor.
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
+import { THEME_COLORS } from "../../src/lib/theme";
 
-const INK = "#141414";
-const PAPER = "#F4F2ED";
-const VERMILION = "#E4402B";
+// Tokens from src/styles/theme.css, restated because a script cannot read CSS custom properties.
+const FLOOR = THEME_COLORS.ink; // --color-base-100 of overload-floor
+const PLATE_BLUE = "#2F63D6"; // --plate-blue
+const STEEL_LIGHT = "#D4D8DB"; // the hub gradient runs from here to --steel-dark, averaging --steel (#B5BABF)
+const STEEL_DARK = "#8C9196"; // --steel-dark
+const HOLE = "#121314"; // the Dial's centre hole
 const root = path.resolve(import.meta.dirname, "../..");
 const out = (...p: string[]) => path.join(root, "public", ...p);
 
-/** The bars mark on a 512 grid, centred, with a 14px hard shadow in paper-on-ink contrast. */
-function markSvg(size: number, { bleed }: { bleed: boolean }): string {
-  // `bleed` icons (maskable, apple-touch) fill the whole square; the mark always sits inside the 80% safe zone.
-  const bars = [
-    { w: 150, y: 150 },
-    { w: 240, y: 224 },
-    { w: 330, y: 298 },
-  ];
-  const x = 91;
-  const rects = bars
-    .map(
-      (b) =>
-        `<rect x="${x + 14}" y="${b.y + 14}" width="${b.w}" height="64" fill="${PAPER}" opacity="0.18"/>` +
-        `<rect x="${x}" y="${b.y}" width="${b.w}" height="64" fill="${VERMILION}"/>`,
-    )
-    .join("");
-  // The asymmetric frame border from the navbar (thin top, thick right, thickest bottom, medium left).
-  const frame = bleed
-    ? ""
-    : `<g fill="${VERMILION}"><rect x="0" y="0" width="512" height="6"/><rect x="500" y="0" width="12" height="512"/><rect x="0" y="490" width="512" height="22"/><rect x="0" y="0" width="10" height="512"/></g>`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512"><rect width="512" height="512" fill="${INK}"/>${frame}${rects}</svg>`;
+/** The tick geometry of `Dial` (30 ticks, a major one every fifth), on its -112..112 grid. */
+function ticks(): string {
+  const n = 30;
+  let d = "";
+  for (let i = 0; i < n; i++) {
+    const a = ((i * 360) / n - 90) * (Math.PI / 180);
+    const r1 = i % 5 === 0 ? 78 : 84;
+    const r2 = 93;
+    d += `M${(Math.cos(a) * r1).toFixed(2)} ${(Math.sin(a) * r1).toFixed(2)}L${(Math.cos(a) * r2).toFixed(2)} ${(Math.sin(a) * r2).toFixed(2)}`;
+  }
+  return `<path d="${d}" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="2.4" fill="none"/>`;
 }
 
-async function png(file: string, svg: string, size: number) {
-  await sharp(Buffer.from(svg)).resize(size, size).png({ compressionLevel: 9 }).toFile(file);
+/**
+ * The plate face-on, centred at the origin of a 224-unit grid (rim radius 100). `detail: false` is the favicon
+ * version: no ticks or inner recess, a bigger hub, so it still reads at 16px.
+ */
+function plateGroup({ detail }: { detail: boolean }): string {
+  const hub = detail ? 32 : 42;
+  const hole = detail ? 12 : 17;
+  return (
+    `<circle r="100" fill="${PLATE_BLUE}"/>` +
+    `<circle r="100" fill="url(#shade)"/>` +
+    (detail
+      ? ticks() +
+        `<circle r="70" fill="#000" opacity="0.16"/>` +
+        `<circle r="70" fill="none" stroke="#000" stroke-opacity="0.25" stroke-width="2"/>` +
+        `<rect x="-3.5" y="-68" width="7" height="16" rx="3.5" fill="#FFFFFF" opacity="0.75"/>`
+      : "") +
+    `<circle r="${hub}" fill="url(#hub)"/>` +
+    `<circle r="${hole}" fill="${HOLE}"/>`
+  );
+}
+
+const DEFS =
+  `<defs><radialGradient id="shade" cx="40%" cy="32%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity="0.22"/><stop offset="0.6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.3"/></radialGradient>` +
+  `<radialGradient id="hub" cx="38%" cy="34%" r="75%"><stop offset="0" stop-color="${STEEL_LIGHT}"/><stop offset="1" stop-color="${STEEL_DARK}"/></radialGradient></defs>`;
+
+/**
+ * The plate on a floor square (512 grid). Every icon uses the same plate (rim radius 190 = 74% of the width), so the
+ * maskable one stays inside the 80% safe zone (a circle of radius 205 around the centre) and the others match it.
+ * The OS rounds the corners of the "any" and apple-touch icons, so none of them draws its own frame.
+ */
+function markSvg(size: number, { detail = true }: { detail?: boolean } = {}): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 512 512">${DEFS}<rect width="512" height="512" fill="${FLOOR}"/><g transform="translate(256 256) scale(1.9)">${plateGroup({ detail })}</g></svg>`;
+}
+
+/** The plate alone on a transparent square of the given pixel size (for the splash screens). */
+function plateSvg(size: number): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="-100 -100 200 200">${DEFS}${plateGroup({ detail: true })}</svg>`;
+}
+
+/** Rendered from the vector at the target size, so ticks and edges stay crisp (never downscaled from a bigger raster). */
+async function png(file: string, size: number) {
+  await sharp(Buffer.from(markSvg(size))).png({ compressionLevel: 9 }).toFile(file);
   console.log("wrote", path.relative(root, file));
 }
 
@@ -63,13 +99,13 @@ function ico(pngs: { size: number; data: Buffer }[]): Buffer {
 }
 
 async function icons() {
-  await png(out("icons/icon-192.png"), markSvg(512, { bleed: false }), 192);
-  await png(out("icons/icon-512.png"), markSvg(512, { bleed: false }), 512);
-  await png(out("icons/icon-maskable-512.png"), markSvg(512, { bleed: true }), 512);
-  await png(out("icons/apple-touch-icon.png"), markSvg(512, { bleed: true }), 180);
-  await png(out("apple-touch-icon.png"), markSvg(512, { bleed: true }), 180);
+  await png(out("icons/icon-192.png"), 192);
+  await png(out("icons/icon-512.png"), 512);
+  await png(out("icons/icon-maskable-512.png"), 512);
+  await png(out("icons/apple-touch-icon.png"), 180);
+  await png(out("apple-touch-icon.png"), 180);
   const small = await Promise.all(
-    [16, 32, 48].map(async (size) => ({ size, data: await sharp(Buffer.from(markSvg(512, { bleed: true }))).resize(size, size).png().toBuffer() })),
+    [16, 32, 48].map(async (size) => ({ size, data: await sharp(Buffer.from(markSvg(size, { detail: false }))).png().toBuffer() })),
   );
   fs.writeFileSync(out("favicon.ico"), ico(small));
   console.log("wrote public/favicon.ico");
@@ -91,14 +127,13 @@ const SPLASH: [number, number, number][] = [
 ];
 
 async function splash() {
-  const mark = await sharp(Buffer.from(markSvg(512, { bleed: false }))).png().toBuffer();
   for (const [w, h, dpr] of SPLASH) {
     const width = w * dpr;
     const height = h * dpr;
-    const side = Math.round(width * 0.28);
-    const icon = await sharp(mark).resize(side, side).png().toBuffer();
-    await sharp({ create: { width, height, channels: 3, background: INK } })
-      .composite([{ input: icon, left: Math.round((width - side) / 2), top: Math.round((height - side) / 2) }])
+    const side = Math.round(width * 0.38); // the plate's diameter; the splash sits on the floor with nothing else
+    const plate = await sharp(Buffer.from(plateSvg(side))).png().toBuffer();
+    await sharp({ create: { width, height, channels: 3, background: FLOOR } })
+      .composite([{ input: plate, left: Math.round((width - side) / 2), top: Math.round((height - side) / 2) }])
       .png({ compressionLevel: 9, palette: true })
       .toFile(out(`splash/${width}x${height}.png`));
     console.log("wrote", `public/splash/${width}x${height}.png`);
@@ -122,4 +157,4 @@ async function backdrop() {
 
 await icons();
 await splash();
-await backdrop();
+if (process.argv.includes("--backdrop")) await backdrop();
