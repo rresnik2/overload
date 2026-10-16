@@ -49,6 +49,28 @@ async function startEmptyWorkout(page: Page) {
   await expect(name).toBeVisible(COLD);
 }
 
+/**
+ * Discard workouts until none is active. Each test gets a fresh browser context (an empty local database) for the same user, so the
+ * workouts earlier tests left on the server arrive by sync after this page loaded, and more than one can be active across devices.
+ */
+async function discardActiveWorkouts(page: Page) {
+  const start = page.getByRole("button", { name: "Start empty workout" });
+  const name = page.getByRole("textbox", { name: "Workout name" });
+  for (let i = 0; i < 8; i++) {
+    await expect(start.or(name)).toBeVisible(COLD);
+    if (await start.isVisible()) {
+      await page.waitForTimeout(2000); // a sync pull may still be bringing one in
+      if (await start.isVisible()) return;
+      continue;
+    }
+    await page.locator('summary[aria-label="Workout options"]').click();
+    await page.getByRole("button", { name: "Discard workout" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  }
+  throw new Error("workouts kept coming back after being discarded");
+}
+
 /** Open the picker once so the catalog is in Dexie, then close it. */
 async function waitForCatalog(page: Page) {
   await page.getByRole("button", { name: "Add exercise" }).first().click();
@@ -164,11 +186,8 @@ test.describe("templates are easy to reach and use", () => {
   test("create, edit, duplicate and start a template; /today lists it; a finished workout can be saved as one", async ({ page, isMobile }) => {
     await startEmptyWorkout(page);
     await waitForCatalog(page);
-    // leave the empty workout behind so templates can be started
-    await page.locator('summary[aria-label="Workout options"]').click();
-    await page.getByRole("button", { name: "Discard workout" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
-    await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible(COLD);
+    // leave every open workout behind so templates can be started
+    await discardActiveWorkouts(page);
     await expect.poll(async () => page.evaluate(() => document.querySelectorAll(".wk-active").length)).toBe(0);
 
     // create
