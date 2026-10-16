@@ -1,14 +1,15 @@
 "use client";
 import clsx from "clsx";
 import { Minus, Pause, Play, Plus, SkipForward, Timer } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { Sheet } from "@/components/ui/Sheet";
+import { useRestClock, type RestTimerApi } from "./hooks";
 import { formatClock } from "./labels";
-import type { RestStatus } from "./rest";
+import type { RestState, RestStatus } from "./rest";
 
-export interface RestTimerProps {
+export interface RestTimerViewProps {
   status: RestStatus;
   remainingMs: number;
   durationSec: number;
@@ -21,12 +22,29 @@ export interface RestTimerProps {
   presets?: number[];
 }
 
+export interface RestTimerProps extends Pick<RestTimerApi, "start" | "pause" | "resume" | "adjust" | "clear"> {
+  /** The persisted timer (`useRestTimer`); this component runs its countdown. */
+  state: RestState | null;
+  /** The length shown before any rest has started. */
+  defaultSec: number;
+  presets?: number[];
+}
+
 const DEFAULT_PRESETS = [60, 90, 120, 180, 240];
 
 const STATUS_TEXT: Record<RestStatus, string> = { idle: "Rest", running: "Resting", paused: "Rest paused", done: "Rest done" };
 
+/**
+ * The rest bar as a leaf: it owns the countdown tick (`useRestClock`), so a tick re-renders this bar and nothing else on the workout
+ * screen. Its props are the stable commands of `useRestTimer`, so it also skips renders when the screen re-renders around it.
+ */
+export const RestTimer = memo(function RestTimer({ state, defaultSec, start, pause, resume, adjust, clear, presets }: RestTimerProps) {
+  const { status, remainingMs } = useRestClock(state);
+  return <RestTimerView status={status} remainingMs={remainingMs} durationSec={state?.durationSec ?? defaultSec} onStart={start} onPause={pause} onResume={resume} onAdjust={adjust} onClear={clear} presets={presets} />;
+});
+
 /** Inline rest bar pinned above the thumb; tap the clock for the sheet (presets, +/-15 s). Counts down to an absolute end time (see rest.ts). */
-export function RestTimer({ status, remainingMs, durationSec, onStart, onPause, onResume, onAdjust, onClear, presets = DEFAULT_PRESETS }: RestTimerProps) {
+export function RestTimerView({ status, remainingMs, durationSec, onStart, onPause, onResume, onAdjust, onClear, presets = DEFAULT_PRESETS }: RestTimerViewProps) {
   const [open, setOpen] = useState(false);
   const clock = formatClock(status === "done" ? 0 : remainingMs);
   return (

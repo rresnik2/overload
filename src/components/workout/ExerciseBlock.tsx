@@ -1,7 +1,7 @@
 "use client";
 import clsx from "clsx";
 import { ArrowDown, ArrowUp, Link2, Link2Off, MoreHorizontal, Plus, Repeat, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import { ModalityBadge } from "@/components/exercises/ModalityBadge";
 import type { WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { PrCandidate } from "@/contracts/prs";
@@ -11,14 +11,14 @@ import { InfoHint } from "@/components/ui/InfoHint";
 import { Term } from "@/components/ui/Term";
 import { isGearEquipment } from "@/client/repo/gear";
 import type { TermId } from "@/lib/glossary";
-import { ActiveSetPanel } from "./ActiveSetPanel";
+import { ActiveSetPanel, type ActiveSetPanelProps } from "./ActiveSetPanel";
 import { dialSetup, isBarProfileExercise } from "./dial-setup";
 import { EquipmentPicture } from "./EquipmentPicture";
 import { PANEL_COPY, setFields } from "./labels";
 import { useDialLayout } from "./layout";
 import { useScrollIntoViewOnFocus } from "./scrollToExercise";
 import type { WorkoutPrefs } from "./prefs";
-import { SetRow, type SetRowGhost } from "./SetRow";
+import { SetRow, type SetRowGhost, type SetRowProps } from "./SetRow";
 import { ghostSet, shownWeight, unitForSet, weightStep } from "./session";
 import type { ExerciseView } from "./view";
 
@@ -57,10 +57,10 @@ export interface ExerciseBlockProps {
   panel?: boolean;
   /** Phones: this is the exercise that shows the panel; the others show compact rows only. Default true. */
   focused?: boolean;
-  /** Phones: a compact row of this exercise was tapped. */
-  onFocus?: () => void;
-  /** Phones: "Logged ✓" is over and the next set is about to become active. */
-  onAdvance?: () => void;
+  /** Phones: a compact row of this exercise was tapped (or its set was just logged). Receives the workout exercise id, so one stable callback serves every block. */
+  onFocus?: (exerciseId: string) => void;
+  /** Phones: "Logged ✓" is over and the next set is about to become active. `allDone`: no set of this exercise is left to do. */
+  onAdvance?: (exerciseId: string, allDone: boolean) => void;
   /** The workout's bodyweight in kg, for the "Added to 82.5 kg bodyweight" caption. */
   bodyweightKg?: number | null;
 }
@@ -74,8 +74,7 @@ const LOAD_TERM: Partial<Record<ExerciseView["exercise"]["loadType"], TermId>> =
 };
 
 /** A one-line key above the sets: what the weight number means here, what effort and set type are, and the grey "last" values. */
-function SetLegend({ item, prefs, showGhost }: { item: ExerciseView; prefs: WorkoutPrefs; showGhost: boolean }) {
-  const { exercise, last } = item;
+function SetLegend({ exercise, last, effortScale, showGhost }: Pick<ExerciseView, "exercise" | "last"> & { effortScale: WorkoutPrefs["effortScale"]; showGhost: boolean }) {
   const loadTerm = LOAD_TERM[exercise.loadType];
   const hasGhost = showGhost && last !== undefined;
   return (
@@ -88,8 +87,8 @@ function SetLegend({ item, prefs, showGhost }: { item: ExerciseView; prefs: Work
         </span>
       ) : null}
       <span className="wk-legend__item">
-        Effort ({prefs.effortScale})
-        <InfoHint term={prefs.effortScale === "RPE" ? "rpe" : "rir"} />
+        Effort ({effortScale})
+        <InfoHint term={effortScale === "RPE" ? "rpe" : "rir"} />
       </span>
       <span className="wk-legend__item">
         Set type
@@ -115,8 +114,48 @@ function previewPicture({ item, set, unit, step, ghost }: { item: ExerciseView; 
   return <EquipmentPicture kind={setup.kind} loadType={exercise.loadType} isUnilateral={exercise.isUnilateral} setup={setup} value={value} hasProfile={facts !== null} size="preview" />;
 }
 
-/** One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove). */
-export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true, panel = false, focused = true, onFocus, onAdvance, bodyweightKg }: ExerciseBlockProps) {
+type BoundRowProps = Omit<SetRowProps, "onChange" | "onToggleComplete" | "onDelete" | "onActivate"> & {
+  actions: ExerciseBlockActions;
+  /** Compact rows: make this set the active one. One callback for the block; the row passes its own id. */
+  activate?: (setId: string) => void;
+};
+
+/**
+ * A set row with its three callbacks bound to this set. The bindings are memoized on (actions, set, ghost), all of which keep their
+ * identity while the set is unchanged, so `memo` really does skip the row when a sibling set is written.
+ */
+const BoundSetRow = memo(function BoundSetRow({ actions, activate, ...row }: BoundRowProps) {
+  const { set, ghost } = row;
+  const onChange = useCallback((patch: WorkoutSetPatch) => actions.onSetChange(set, patch), [actions, set]);
+  const onToggleComplete = useCallback(() => actions.onToggleSet(set, ghost ?? null), [actions, set, ghost]);
+  const onDelete = useCallback(() => actions.onDeleteSet(set), [actions, set]);
+  const onActivate = useMemo(() => (activate ? () => activate(set.id) : undefined), [activate, set.id]);
+  return <SetRow {...row} onChange={onChange} onToggleComplete={onToggleComplete} onDelete={onDelete} onActivate={onActivate} />;
+});
+
+type BoundPanelProps = Omit<ActiveSetPanelProps, "onChange" | "onToggleComplete" | "onDelete" | "onAdvance"> & {
+  actions: ExerciseBlockActions;
+  /** The lifter tapped Log set on this set. */
+  logging: (setId: string) => void;
+  advance: () => void;
+};
+
+const BoundActivePanel = memo(function BoundActivePanel({ actions, logging, advance, ...panel }: BoundPanelProps) {
+  const { set, ghost } = panel;
+  const onChange = useCallback((patch: WorkoutSetPatch) => actions.onSetChange(set, patch), [actions, set]);
+  const onDelete = useCallback(() => actions.onDeleteSet(set), [actions, set]);
+  const onToggleComplete = useCallback(() => {
+    if (set.completedAt == null) logging(set.id);
+    actions.onToggleSet(set, ghost ?? null);
+  }, [actions, logging, set, ghost]);
+  return <ActiveSetPanel {...panel} onChange={onChange} onToggleComplete={onToggleComplete} onDelete={onDelete} onAdvance={advance} />;
+});
+
+/**
+ * One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove).
+ * Memoized: its props (`item`, `prs`, `actions`, the callbacks) keep their identity while this exercise is unchanged.
+ */
+export const ExerciseBlock = memo(function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMoveUp, canMoveDown, canLinkNext, showGhost = true, panel = false, focused = true, onFocus, onAdvance, bodyweightKg }: ExerciseBlockProps) {
   const { exercise, machine, barProfile, sets, last } = item;
   const gear = item.gear ?? null;
   const firstOpen = sets.find((s) => s.completedAt == null);
@@ -131,7 +170,29 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
   const facts = machine ?? barProfile ?? null;
   const editBar = actions.onEditBar && !machine && isBarProfileExercise(exercise) ? actions.onEditBar : undefined;
   const editGear = actions.onEditGear && !machine && isGearEquipment(exercise.equipment) ? actions.onEditGear : undefined;
-  const legend = <SetLegend item={item} prefs={prefs} showGhost={showGhost} />;
+  const effortScale = prefs.effortScale;
+  const legend = useMemo(() => <SetLegend exercise={exercise} last={last} effortScale={effortScale} showGhost={showGhost} />, [exercise, last, effortScale, showGhost]);
+  const exerciseId = item.we.id;
+  const activateSet = useCallback(
+    (setId: string) => {
+      setHeld(null);
+      setPicked(setId);
+      onFocus?.(exerciseId);
+    },
+    [onFocus, exerciseId],
+  );
+  const loggingSet = useCallback(
+    (setId: string) => {
+      setHeld(setId);
+      onFocus?.(exerciseId); // stay on this exercise while "Logged ✓" shows
+    },
+    [onFocus, exerciseId],
+  );
+  const advanceFromPanel = useCallback(() => {
+    setHeld(null);
+    setPicked(null);
+    onAdvance?.(exerciseId, !sets.some((s) => s.completedAt == null));
+  }, [onAdvance, exerciseId, sets]);
   const sectionRef = useRef<HTMLElement>(null);
   useScrollIntoViewOnFocus(sectionRef, focused, Boolean(phone));
   return (
@@ -201,22 +262,20 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
           const unit = unitForSet(set, machine ?? gear, prefs.unit);
           const step = weightStep(unit, exercise, machine, gear);
           const rowProps = {
+            actions,
             label: set.setType === "WARMUP" ? "W" : String(workingNumber[index]),
             ordinal: index + 1,
             set,
             exercise,
             unit,
             step,
-            effortScale: prefs.effortScale,
+            effortScale,
             ghost,
             isPr: prs.has(set.id),
-            onChange: (patch: WorkoutSetPatch) => actions.onSetChange(set, patch),
-            onToggleComplete: () => actions.onToggleSet(set, ghost),
-            onDelete: () => actions.onDeleteSet(set),
           };
           if (phone && activeSet?.id === set.id) {
             return (
-              <ActiveSetPanel
+              <BoundActivePanel
                 key={set.id}
                 {...rowProps}
                 exerciseName={exercise.name}
@@ -227,38 +286,15 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
                 onEditBar={editBar}
                 gear={gear}
                 onEditGear={editGear}
-                onToggleComplete={() => {
-                  if (set.completedAt == null) {
-                    setHeld(set.id);
-                    onFocus?.(); // stay on this exercise while "Logged ✓" shows
-                  }
-                  actions.onToggleSet(set, ghost);
-                }}
-                onAdvance={() => {
-                  setHeld(null);
-                  setPicked(null);
-                  onAdvance?.();
-                }}
+                logging={loggingSet}
+                advance={advanceFromPanel}
               />
             );
           }
-          if (phone) {
-            return (
-              <SetRow
-                key={set.id}
-                {...rowProps}
-                variant="compact"
-                onActivate={() => {
-                  setHeld(null);
-                  setPicked(set.id);
-                  onFocus?.();
-                }}
-              />
-            );
-          }
+          if (phone) return <BoundSetRow key={set.id} {...rowProps} variant="compact" activate={activateSet} />;
           const active = firstOpen?.id === set.id;
-          const preview = panel && active && plan.weight ? previewPicture({ item, set, unit, step, ghost }) : null;
-          return <SetRow key={set.id} {...rowProps} active={active} preview={preview} />;
+          const preview: ReactNode = panel && active && plan.weight ? previewPicture({ item, set, unit, step, ghost }) : null;
+          return <BoundSetRow key={set.id} {...rowProps} active={active} preview={preview} />;
         })}
       </ol>
       <Button variant="ink" block icon={<Plus size={18} />} onClick={actions.onAddSet} aria-label={`Add set to ${exercise.name}`}>
@@ -266,4 +302,4 @@ export function ExerciseBlock({ item, prefs, prs, actions, supersetLabel, canMov
       </Button>
     </section>
   );
-}
+});
