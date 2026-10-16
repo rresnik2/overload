@@ -5,11 +5,12 @@ import { localDateToDate } from "@/lib/dates";
 import type { UserCtx } from "@/server/auth/ctx";
 import { prisma } from "@/server/db";
 import { profileToRow } from "@/server/mappers";
+import { loadProfileRowCached } from "./row";
 import { failure, fieldErrorsOf, type ActionResult } from "./result";
 import { profileFormSchema } from "./schemas";
 
 export async function getProfileRow(ctx: UserCtx): Promise<ProfileRow | null> {
-  const row = await prisma.profile.findUnique({ where: { userId: ctx.id } });
+  const row = await loadProfileRowCached(ctx);
   return row ? profileToRow(row) : null;
 }
 

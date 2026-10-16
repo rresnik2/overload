@@ -28,7 +28,7 @@ describe("redirectIfNotOnboarded", () => {
   it("does nothing once onboarded, and only reads the caller's row", async () => {
     findUnique.mockResolvedValue({ onboardedAt: new Date() });
     await expect(redirectIfNotOnboarded(ctx)).resolves.toBeUndefined();
-    expect(findUnique).toHaveBeenCalledWith({ where: { userId: "user-1" }, select: { onboardedAt: true } });
+    expect(findUnique).toHaveBeenCalledWith({ where: { userId: "user-1" } });
     await expect(isOnboarded(ctx)).resolves.toBe(true);
   });
 });

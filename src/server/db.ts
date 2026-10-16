@@ -15,6 +15,8 @@ const globalForPrisma = globalThis as unknown as { __overloadPrisma?: PrismaClie
 
 // `next build` evaluates route modules (Better Auth reads the client when it initializes) without any runtime
 // secrets. The pool never connects until the first query, so a placeholder is safe for that phase only.
+const ON_VERCEL = Boolean(process.env.VERCEL);
+
 const BUILD_PLACEHOLDER_URL = "postgresql://build:build@localhost:5432/build";
 
 function createClient(): PrismaClient {
@@ -23,7 +25,30 @@ function createClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set (copy .env.example to .env.local)");
   }
-  const pool = new Pool({ connectionString, max: Number(process.env.DATABASE_POOL_MAX ?? 10) });
+  const pool = new Pool({
+    connectionString,
+    max: Number(process.env.DATABASE_POOL_MAX ?? 10),
+    // Keep connections warm between taps: every reconnect to Neon costs DNS + TCP + TLS + auth (several round trips), and the pg
+    // default drops idle clients after 10 s. A long-lived server (local, LAN, `next start`) holds one for 5 minutes and always
+    // keeps at least one open (`min`). On Vercel the pool stays at the 10 s default with no floor: `attachDatabasePool` below
+    // holds the function alive for `idleTimeoutMillis` after every release so Fluid compute can close idle sockets before it
+    // suspends, so a 5-minute timeout there would pin every invocation for 5 minutes.
+    idleTimeoutMillis: ON_VERCEL ? 10_000 : 300_000,
+    min: ON_VERCEL ? 0 : 1,
+    // TCP keep-alive lets the OS notice a peer that vanished (Neon suspended the compute, the laptop slept) instead of waiting forever.
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
+    // Never wait forever for a connection or an answer. A socket that died silently used to hang a request for minutes (an
+    // `/exercises` request once hung for 914 s after Neon P1017 ConnectionClosed). pg-pool discards a client whose query errored,
+    // so the retry after the timeout gets a fresh connection.
+    connectionTimeoutMillis: 15_000,
+    query_timeout: 30_000,
+  });
+  // Neon closes idle connections (compute scale-to-zero, restarts). pg-pool has already removed the dead client from the pool when
+  // it emits this; without a listener Node would treat the event as an uncaught exception.
+  pool.on("error", (error) => {
+    console.warn("[db] idle connection closed, it will be replaced on the next query:", error.message);
+  });
   attachDatabasePool(pool);
   const options = {
     adapter: new PrismaPg(pool),
