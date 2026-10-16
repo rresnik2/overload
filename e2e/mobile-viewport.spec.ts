@@ -113,6 +113,7 @@ test.describe("app pages at phone sizes", () => {
 
   test("/workout: with an exercise open, the panel's last control clears the rest bar and the page scrolls", async ({ page }) => {
     test.setTimeout(240_000);
+    await page.setViewportSize(SIZES[1]); // phone width from the start: a desktop-width window shows the typing row, not the dial panel
     await page.goto("/workout");
     const start = page.getByRole("button", { name: "Start empty workout" });
     const name = page.getByRole("textbox", { name: "Workout name" });

@@ -191,6 +191,7 @@
     "src/styles/hints.css",
     "e2e/favorites.spec.ts",
     "e2e/ux.spec.ts",
+    "e2e/mobile-viewport.spec.ts",
     "change-requests/applied/**"
   ],
   "unrestricted": ["W3", "FAV", "UX", "DIAL"]
