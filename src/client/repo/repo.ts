@@ -14,7 +14,7 @@ import type {
 } from "@/contracts/entities";
 import { RepoError, type EntityRepo, type ExerciseSearch, type LastTimeEntry, type Repo } from "@/contracts/repo";
 import type { CatalogResponse } from "@/contracts/catalog";
-import { pickGear } from "@/lib/gear";
+import { pickGear } from "@/client/repo/gear";
 import { favoriteId, seriesKey } from "@/lib/ids";
 import { buildSearchIndex, searchExercises, type SearchIndex } from "@/lib/search/exercise-search";
 import { valuesEqual } from "@/lib/sync/merge";

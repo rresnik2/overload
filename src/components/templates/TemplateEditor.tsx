@@ -16,7 +16,7 @@ import { useWorkoutPrefs } from "@/components/workout/prefs";
 import { movedPosition, supersetLabels, supersetPatches, templatePositionAfter } from "@/components/workout/session";
 import { missingExercise } from "@/components/workout/view";
 import type { TemplateExercisePatch, TemplateExerciseRow } from "@/contracts/entities";
-import { isMachineProfile } from "@/lib/gear";
+import { isMachineProfile } from "@/client/repo/gear";
 
 /** Edit one template: name, folder, and per-exercise targets (sets, reps, RIR, rest, machine). Everything through `repo`. */
 export function TemplateEditor({ id }: { id: string }) {

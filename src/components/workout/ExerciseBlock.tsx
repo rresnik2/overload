@@ -9,7 +9,7 @@ import type { WeightUnit } from "@/contracts/enums";
 import { Button } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { Term } from "@/components/ui/Term";
-import { isGearEquipment } from "@/lib/gear";
+import { isGearEquipment } from "@/client/repo/gear";
 import type { TermId } from "@/lib/glossary";
 import { ActiveSetPanel } from "./ActiveSetPanel";
 import { dialSetup, isBarProfileExercise } from "./dial-setup";

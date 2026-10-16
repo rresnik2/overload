@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { Modal, Sheet } from "@/components/ui/Sheet";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
-import { isMachineProfile, type GearEquipment } from "@/lib/gear";
+import { isMachineProfile, type GearEquipment } from "@/client/repo/gear";
 import { defaultIncrement, formatNumber, formatWeight } from "@/lib/units";
 import { isBarProfileExercise } from "./dial-setup";
 import { MachineProfileForm } from "./MachineProfileForm";

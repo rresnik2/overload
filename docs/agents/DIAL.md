@@ -48,7 +48,7 @@ Ownership is unrestricted for this stream (`ownership.json`), but **each agent s
 Spec §04 breakpoints and D4: `PageIntro`, start card, templates card, e1RM tiles for the four main lifts with 4-week change, bench e1RM chart, hard sets, insight, bodyweight; `today.css`; empty states; `e2e/today.spec.ts`.
 
 ### Part GEAR (added after the phone test; db: the shared `wt-w3` branch)
-Gear profiles: `MachineProfile.equipment` (additive migration) marks the user-wide dumbbell step (`pinStepKg`) or owned kettlebells (`platesKg`), with `exerciseId` and `gymName` null. `src/lib/gear.ts` (`pickGear`, `isMachineProfile`), `repo.machineProfiles.gear(equipment, gymName?)`, `dialValues({ bells, dumbbellStep })`, `MachineProfileForm` `kind: "dumbbells" | "kettlebells"`, the gear link in the active-set panel, and Settings → Machines and gear. Machine lists filter `equipment == null`. Spec section 06 (“Gear profiles”). Haptics were removed in the same part.
+Gear profiles: `MachineProfile.equipment` (additive migration) marks the user-wide dumbbell step (`pinStepKg`) or owned kettlebells (`platesKg`), with `exerciseId` and `gymName` null. `src/client/repo/gear.ts` (`pickGear`, `isMachineProfile`), `repo.machineProfiles.gear(equipment, gymName?)`, `dialValues({ bells, dumbbellStep })`, `MachineProfileForm` `kind: "dumbbells" | "kettlebells"`, the gear link in the active-set panel, and Settings → Machines and gear. Machine lists filter `equipment == null`. Spec section 06 (“Gear profiles”). Haptics were removed in the same part.
 
 ## Wave 3 (coordinator)
 Merge, remove the legacy aliases once nothing references them, full `pnpm check` / `pnpm build`, e2e on chromium and webkit-iphone, regenerate and review visual baselines on a production build.

@@ -2,7 +2,7 @@
 import type { ExerciseRow, LocalDateString, MachineProfileRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
 import type { LastTimeEntry, Repo } from "@/contracts/repo";
 import type { PrCandidate } from "@/contracts/prs";
-import { isGearEquipment, type GearEquipment } from "@/lib/gear";
+import { isGearEquipment, type GearEquipment } from "@/client/repo/gear";
 import { isBarProfileExercise } from "./dial-setup";
 import { seriesHistory, workoutPrs } from "./prs";
 

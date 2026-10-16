@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
 import type { WeightUnit } from "@/contracts/enums";
-import { isMachineProfile } from "@/lib/gear";
+import { isMachineProfile } from "@/client/repo/gear";
 import { MachineProfileForm } from "./MachineProfileForm";
 
 export interface MachineChooserProps {

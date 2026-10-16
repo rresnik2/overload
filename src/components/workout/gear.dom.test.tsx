@@ -6,7 +6,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { activateUserDb, resetAllDbs } from "@/client/db/active";
 import { repo } from "@/client/repo";
 import { TemplateEditor } from "@/components/templates/TemplateEditor";
-import type { ExerciseRow, MachineProfileCreate, WorkoutSetRow } from "@/contracts/entities";
+import type { ExerciseRow, MachineProfileCreate, MachineProfileRow, WorkoutSetRow } from "@/contracts/entities";
 import { exampleCatalogExerciseRow, exampleWorkoutSetRow } from "@/contracts/fixtures";
 import { catalogExerciseId } from "@/lib/ids";
 import { ActiveSetPanel } from "./ActiveSetPanel";
@@ -106,7 +106,7 @@ describe("MachineProfileForm kind=kettlebells", () => {
 });
 
 function gearRow(over: Partial<MachineProfileCreate>) {
-  return { ...gearInput({}), id: "00000000-0000-4000-8000-000000000001", hlc: "", fieldHlc: {}, version: 0, deletedAt: null, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", ...over } as import("@/contracts/entities").MachineProfileRow;
+  return { ...gearInput({}), id: "00000000-0000-4000-8000-000000000001", hlc: "", fieldHlc: {}, version: 0, deletedAt: null, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z", ...over } as MachineProfileRow;
 }
 
 function Panel({ equipment, gear, unit = "KG" }: { equipment: "DUMBBELL" | "KETTLEBELL"; gear: { pinStepKg: number | null; platesKg?: number[] | null } | null; unit?: "KG" | "LB" }) {
@@ -138,7 +138,7 @@ describe("ActiveSetPanel gear", () => {
     render(<Panel equipment="DUMBBELL" gear={{ pinStepKg: 2.5 }} />);
     expect(screen.getByRole("button", { name: "Dumbbells · 2.5 kg steps · Edit" })).toBeInTheDocument();
     const slider = screen.getByRole("slider", { name: "Set 1 weight" }) as HTMLInputElement;
-    expect(slider.max).toBeDefined();
+    expect(Number(slider.max)).toBe(31); // 2.5, 5 ... 80 kg
   });
 
   it("dumbbell link is unit-aware", () => {

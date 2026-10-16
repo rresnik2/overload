@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/primitives/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Modal, Sheet } from "@/components/ui/Sheet";
 import type { WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
-import { isGearEquipment } from "@/lib/gear";
+import { isGearEquipment } from "@/client/repo/gear";
 import { setWorkoutActive } from "@/lib/pwa";
 import { useWorkoutActions } from "./actions";
 import { ExerciseBlock } from "./ExerciseBlock";
