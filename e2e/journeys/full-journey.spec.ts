@@ -76,9 +76,11 @@ test("sign up to insight: the full journey", async ({ page, context, request, is
   await expect.poll(() => serverSets(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toBe(3);
   await expect(page.locator('.sync-pip[data-state="idle"]')).toContainText(/^Synced$/, COLD);
 
-  // ---- 5. Charts show the data: /today volume card, the progress overview, the series page ----
+  // ---- 5. Charts show the data: /today hard-sets card, the progress overview, the series page ----
   await page.goto("/today");
-  await expect(page.getByRole("region", { name: "This week's volume" })).toBeVisible(COLD);
+  // The Calibrated Dial /today replaced the old "This week's volume" card with "Hard sets this week" (one row per muscle) once there are sets.
+  await expect(page.getByTestId("today-hard-sets")).toBeVisible(COLD);
+  await expect(page.getByTestId("today-hard-sets").getByRole("listitem").filter({ hasText: "Chest" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Resume workout" })).toHaveCount(0); // the workout is finished
   await page.goto("/progress");
   const card = page.getByTestId("series-cards").getByRole("link").filter({ hasText: BENCH });
