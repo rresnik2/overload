@@ -161,7 +161,7 @@ test.describe("progress (demo user)", () => {
         ["/progress/prs", "pr-board"],
       ] as const) {
         await page.goto(path);
-        await expect(page.locator("html")).toHaveAttribute("data-theme", (theme === "ink" ? "overload-floor" : "overload-daylight"));
+        await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
         await expect(page.getByTestId(ready).first()).toBeVisible(COLD);
         if (ready.startsWith("chart-")) await expect(page.getByTestId(ready).locator("svg.recharts-surface")).toBeVisible(COLD);
         // the mobile dock (stream B) has a known label-contrast issue: see change-requests/F-1-dock-active-label-contrast.md

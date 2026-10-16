@@ -286,7 +286,7 @@ for (const theme of ["paper", "ink"] as const) {
     for (const path of ["/today", "/templates", "/exercises", "/history", "/progress", "/insights", "/settings/profile", "/workout", "/learn/choosing-a-goal"]) {
       test(path, async ({ page }) => {
         await page.goto(path);
-        await expect(page.locator("html")).toHaveAttribute("data-theme", (theme === "ink" ? "overload-floor" : "overload-daylight"));
+        await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
         await expect(page.locator("main").first()).toBeVisible(COLD);
         const hint = page.getByRole("button", { name: /^What is / }).first();
         if (await hint.count()) {

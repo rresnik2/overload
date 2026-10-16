@@ -48,7 +48,7 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
           ["styleguide", "/styleguide"],
         ] as const) {
           await page.goto(path);
-          await expect(page.locator("html")).toHaveAttribute("data-theme", (theme === "ink" ? "overload-floor" : "overload-daylight"));
+          await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
           await shoot(page, `${name}-${vpName}-${theme}`);
         }
       });
@@ -72,7 +72,7 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
           ["settings-security", "/settings/security"],
         ] as const) {
           await page.goto(path);
-          await expect(page.locator("html")).toHaveAttribute("data-theme", (theme === "ink" ? "overload-floor" : "overload-daylight"));
+          await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
           await shoot(page, `${name}-${vpName}-${theme}`);
         }
       });

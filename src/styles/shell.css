@@ -497,3 +497,51 @@ body:has(.shell-backdrop) {
 .btn {
   min-height: var(--tap-target);
 }
+
+/* ---- header fit (no sideways scroll at any width) ------------------------------------------------------------------
+   Seven links in Archivo plus the tools need about 1.2k px on one row, so the row is tightened and, below 1180px (a
+   tablet or a small laptop), the links move to their own full-width row under the brand and tools. */
+.shell-tools {
+  flex: none;
+}
+.shell-nav {
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .shell-nav__list {
+    gap: 1.1rem;
+  }
+  .shell-header .shell-start {
+    padding: 0 0.9rem;
+    font-size: 1.15rem;
+  }
+  .shell-tools {
+    gap: 0.5rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 1179px) {
+  .shell-frame {
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    min-height: 0;
+    padding-top: 0.25rem;
+    padding-bottom: 0;
+  }
+  .shell-brand {
+    margin-right: auto;
+  }
+  .shell-nav {
+    order: 3;
+    flex: 0 0 100%;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .shell-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .shell-nav__list {
+    gap: 1.5rem;
+    min-width: max-content;
+  }
+}
