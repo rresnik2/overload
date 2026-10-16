@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
-import { HardCard } from "@/components/primitives/HardCard";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { InfoHint } from "@/components/ui/InfoHint";
 import { useToast } from "@/components/ui/Toast";
@@ -41,20 +40,20 @@ export function TodayTemplatesCard({ unit }: { unit: WeightUnit }) {
 
   const shown = data?.templates.slice(0, MAX_TEMPLATES) ?? [];
   return (
-    <HardCard as="section" className="today-templates" aria-labelledby="today-templates-title">
+    <section className="today-panel today-templates" aria-labelledby="today-templates-title">
       <div className="today-templates__head">
-        <h2 id="today-templates-title" className="today-templates__title">
+        <h2 id="today-templates-title" className="type-display-s today-templates__title">
           Your templates
         </h2>
         <InfoHint term="template" />
       </div>
       {data === undefined ? (
-        <p className="wk-muted" role="status">
+        <p className="today-muted" role="status">
           Loading templates…
         </p>
       ) : shown.length === 0 ? (
         <>
-          <p className="wk-muted">No templates yet. A template is a saved workout plan you can start in one tap.</p>
+          <p className="today-muted">No templates yet. A template is a saved workout plan you can start in one tap.</p>
           <ButtonLink href="/templates" variant="ink">
             Create a template
           </ButtonLink>
@@ -66,7 +65,7 @@ export function TodayTemplatesCard({ unit }: { unit: WeightUnit }) {
               <li key={t.id} className="today-templates__row">
                 <div className="today-templates__name">
                   <strong>{t.folder ? `${t.folder} / ${t.name}` : t.name}</strong>
-                  <span className="wk-muted num">
+                  <span className="today-muted num">
                     {data.counts[t.id]} {data.counts[t.id] === 1 ? "exercise" : "exercises"}
                   </span>
                 </div>
@@ -86,6 +85,6 @@ export function TodayTemplatesCard({ unit }: { unit: WeightUnit }) {
           </p>
         </>
       )}
-    </HardCard>
+    </section>
   );
 }
