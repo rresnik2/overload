@@ -1,7 +1,8 @@
 // Security: every profile/settings action ignores or rejects an injected userId and only touches the session user's row.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { upsert, findUnique, transaction, sessionUser } = vi.hoisted(() => ({
+const { upsert, findUnique, transaction, sessionUser, revalidatePath } = vi.hoisted(() => ({
+  revalidatePath: vi.fn(),
   upsert: vi.fn(),
   findUnique: vi.fn(),
   transaction: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock("@/server/auth/session", async () => {
   const { mintUserCtx } = await import("@/server/auth/ctx");
   return { withUser: <A extends unknown[], R>(fn: (ctx: ReturnType<typeof mintUserCtx>, ...a: A) => Promise<R>) => (...args: A) => fn(mintUserCtx(sessionUser.id), ...args) };
 });
+vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);
@@ -32,6 +34,7 @@ beforeEach(() => {
   upsert.mockReset().mockResolvedValue(profileRow);
   findUnique.mockReset();
   transaction.mockReset();
+  revalidatePath.mockReset();
 });
 
 describe("updateProfileAction", () => {
@@ -56,6 +59,14 @@ describe("updateProfileAction", () => {
     expect(args.create.userId).toBe("session-user");
     expect(args.update).not.toHaveProperty("userId");
     expect(args.update).toEqual({ defaultRestSec: 90, timezone: "Asia/Tokyo" });
+  });
+
+  it("drops the client router cache after a successful save, and not after a rejected one", async () => {
+    await updateProfileAction({ defaultRestSec: 90, userId: "victim" });
+    await updateProfileAction({ timezone: "Nope/Nope" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+    await updateProfileAction({ defaultRestSec: 60 });
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
   });
 
   it("returns field errors for invalid values", async () => {
@@ -93,6 +104,7 @@ describe("completeOnboardingAction", () => {
     });
     await expect(completeOnboardingAction(payload)).rejects.toThrow("NEXT_REDIRECT:/today");
     expect(transaction).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout"); // a /today cached before onboarding is a redirect to /onboarding
   });
 });
 
