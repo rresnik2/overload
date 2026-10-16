@@ -2,8 +2,8 @@ import clsx from "clsx";
 import type { ReactNode } from "react";
 
 /**
- * Numbered section header: "01/Progress" in Instrument Serif italic with a 2px vermilion underline rule.
- * Props are FROZEN (CONTRACTS.md). `index` renders as a zero-padded number followed by a vermilion slash
+ * Numbered section header: "01/Progress" in condensed italic Archivo display caps over a 1px hairline rule.
+ * Props are FROZEN (CONTRACTS.md). `index` renders as a zero-padded number followed by a muted slash
  * (index={1} -> "01/"); a string is shown as given. The index and slash are decorative (aria-hidden).
  */
 export interface SectionHeaderProps {

@@ -3,11 +3,11 @@ import { Fragment, type ReactNode } from "react";
 
 /**
  * Page title block. Props are FROZEN (CONTRACTS.md).
- * `meta` renders as a meta line with vermilion slashes: ["Free weight", "Barbell"] -> "Free weight / Barbell".
+ * `meta` renders as a meta line with muted slashes: ["Free weight", "Barbell"] -> "Free weight / Barbell".
  */
 export interface PageHeaderProps {
   title: string;
-  /** Meta line parts, joined with a vermilion slash. */
+  /** Meta line parts, joined with a muted slash. */
   meta?: string[];
   description?: ReactNode;
   /** Right-aligned buttons/links. */
