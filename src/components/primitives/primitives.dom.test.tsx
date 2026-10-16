@@ -50,7 +50,7 @@ describe("SectionHeader", () => {
 });
 
 describe("PageHeader", () => {
-  it("renders the title as h1 with a vermilion-slash meta line", () => {
+  it("renders the title as h1 with a slash-separated meta line", () => {
     const { container } = render(<PageHeader title="Barbell Squat" meta={["Free weight", "Barbell"]} description="The king." actions={<button>Add</button>} />);
     expect(screen.getByRole("heading", { level: 1, name: "Barbell Squat" })).toBeInTheDocument();
     expect(container.querySelector(".meta-line")).toHaveTextContent("Free weight/Barbell");

@@ -8,7 +8,7 @@ import { InfoHint } from "./InfoHint";
 export type ToastKind = "info" | "success" | "pr" | "error";
 
 export interface ToastInput {
-  /** pr = personal record (vermilion star), success = sync results, error = failures (announced assertively, stays longer). */
+  /** pr = personal record (plate-red star), success = sync results, error = failures (announced assertively, stays longer). */
   kind?: ToastKind;
   title: string;
   description?: ReactNode;

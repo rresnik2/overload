@@ -1,4 +1,5 @@
-/* Exercise library and detail pages. Owner: stream C. Square corners; vermilion only for borders, shadows and rules (never small text). */
+/* Exercise library and detail pages. Calibrated Dial: 4px control radius, 6px panels, plate colours only for meaning
+   (the active tab edge and the selected chip are plate blue; everything else is neutral). */
 
 /* ── modality badge: machines and cables are filled, free weights outlined, so they never read alike in a list ── */
 .modality-badge {
@@ -7,18 +8,18 @@
   gap: 0.35ch;
   width: fit-content;
   padding: 0.15rem 0.5rem;
-  border: 1px solid var(--color-base-content);
-  border-radius: 0;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   line-height: 1.2;
   background: transparent;
   color: var(--color-base-content);
 }
 .modality-badge__slash {
-  color: var(--color-vermilion);
+  color: var(--color-muted);
 }
 .modality-badge--machine,
 .modality-badge--cable {
@@ -48,8 +49,8 @@
 }
 .muscle-chip {
   padding: 0.1rem 0.45rem;
-  border: 1px solid var(--color-base-content);
-  border-radius: 0;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   font-size: 0.8rem;
   line-height: 1.3;
 }
@@ -60,7 +61,7 @@
 .muscle-chip--secondary,
 .muscle-chip--more {
   border-style: dashed;
-  opacity: 0.85;
+  color: var(--color-muted);
 }
 
 /* ── list and card ── */
@@ -69,7 +70,7 @@
   grid-template-columns: 1fr;
   gap: 1.25rem;
   margin: 0;
-  padding: 0 6px 6px 0; /* room for the hard shadow */
+  padding: 0;
   list-style: none;
 }
 @media (min-width: 40rem) {
@@ -87,6 +88,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* the photo follows the panel radius */
 }
 /* The star sits in the corner, outside the card link (a button inside a link would be invalid). */
 .exercise-card__star {
@@ -106,14 +108,13 @@
   text-decoration: none;
 }
 .exercise-card__link:focus-visible {
-  outline: 2px solid var(--color-vermilion);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-base-content);
+  outline-offset: -2px;
 }
 .exercise-card__photo {
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  border-bottom: 1px solid var(--color-base-content);
-  background: var(--color-base-200);
+  background: var(--color-base-300);
 }
 .exercise-card__photo img {
   width: 100%;
@@ -137,7 +138,7 @@
 .exercise-card__custom {
   margin: 0;
   font-size: 0.8rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .exercise-card__actions {
   padding: 0 1rem 1rem;
@@ -154,7 +155,7 @@
   display: flex;
   gap: 0.25rem 1.25rem;
   overflow-x: auto;
-  border-bottom: 1px solid var(--color-base-content);
+  border-bottom: 1px solid var(--color-base-300);
   -webkit-overflow-scrolling: touch;
 }
 .exercise-tab {
@@ -163,23 +164,25 @@
   gap: 0.4rem;
   padding: 0.6rem 0.1rem;
   min-height: 44px;
-  border-bottom: 4px solid transparent;
+  border-bottom: 3px solid transparent;
   margin-bottom: -1px;
   white-space: nowrap;
-  color: inherit;
+  color: var(--color-muted);
   text-decoration: none;
   font-weight: 500;
 }
 .exercise-tab:hover {
-  border-bottom-color: var(--color-base-300);
+  color: var(--color-base-content);
+  border-bottom-color: var(--color-line-strong);
 }
 .exercise-tab--active {
-  border-bottom-color: var(--color-vermilion);
+  color: var(--color-base-content);
+  border-bottom-color: var(--color-primary);
   font-weight: 700;
 }
 .exercise-tab__count {
   font-size: 0.8rem;
-  opacity: 0.7;
+  color: var(--color-muted);
 }
 .exercise-filter-form {
   display: grid;
@@ -199,10 +202,11 @@
   min-width: 0;
 }
 .exercise-filter-form__label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--type-label-size);
+  font-weight: 700;
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
+  color: var(--color-muted);
 }
 .exercise-filter-form .input,
 .exercise-filter-form .select {
@@ -217,7 +221,7 @@
 .exercise-filters__note {
   margin: 0;
   font-size: 0.85rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 
 .pagination {
@@ -239,7 +243,7 @@
 .library-count {
   margin: 0 0 1rem;
   font-size: 0.9rem;
-  opacity: 0.8;
+  color: var(--color-muted);
 }
 
 /* ── detail ── */
@@ -260,7 +264,7 @@
   width: 100%;
   height: auto;
   display: block;
-  border: 1px solid var(--color-base-content);
+  border-radius: var(--radius-box);
   background: var(--color-base-200);
 }
 .exercise-facts {
@@ -270,11 +274,11 @@
   margin: 0;
 }
 .exercise-facts dt {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: var(--type-label-size);
+  font-weight: 700;
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
-  opacity: 0.7;
+  color: var(--color-muted);
 }
 .exercise-facts dd {
   margin: 0.2rem 0 0;
@@ -282,11 +286,11 @@
 .exercise-detail__help {
   margin: 1rem 0 0;
   max-width: 64ch;
-  opacity: 0.85;
+  color: var(--color-muted);
 }
 .exercise-detail__empty {
   margin: 0;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .exercise-detail__steps {
   margin: 0;
@@ -301,7 +305,7 @@
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 1px solid var(--color-base-content);
+  border-top: 1px solid var(--color-base-300);
 }
 .series-list__item {
   display: flex;
@@ -315,7 +319,7 @@
   font-weight: 600;
 }
 .series-list__meta {
-  opacity: 0.8;
+  color: var(--color-muted);
 }
 
 /* ── favorites: the star toggle and the library filter chip ── */
@@ -327,14 +331,18 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 2px solid var(--color-vermilion);
-  border-radius: 0;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   background: var(--color-base-100);
-  color: var(--color-vermilion);
+  color: var(--color-muted);
   cursor: pointer;
 }
 .favorite-button:hover {
-  background: var(--color-base-200);
+  background: var(--color-base-300);
+}
+.favorite-button[aria-pressed="true"] {
+  color: var(--color-base-content);
+  border-color: var(--color-base-content);
 }
 .favorite-button:focus-visible {
   outline: 2px solid var(--color-base-content);
@@ -359,7 +367,8 @@
   gap: 0.45rem;
   min-height: 44px;
   padding: 0 1rem;
-  border: 2px solid var(--color-vermilion);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   background: var(--color-base-100);
   color: inherit;
   font-weight: 600;
@@ -368,7 +377,7 @@
 .exercise-chip svg {
   width: 18px;
   height: 18px;
-  color: var(--color-vermilion);
+  color: var(--color-muted);
   fill: none;
 }
 .exercise-chip:hover {
@@ -380,8 +389,10 @@
 }
 .exercise-chip--active {
   background: var(--color-base-200);
-  box-shadow: 4px 4px 0 var(--color-vermilion);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 .exercise-chip--active svg {
   fill: currentColor;
+  color: var(--color-base-content);
 }

@@ -25,7 +25,7 @@ export interface TabsProps {
 }
 
 /**
- * WAI-ARIA tabs: roving tabindex, ArrowLeft/Right + Home/End, vermilion bar under the selected tab (selected, focus,
+ * WAI-ARIA tabs: roving tabindex, ArrowLeft/Right + Home/End, plate-blue bar under the selected tab (selected, focus,
  * disabled states). Tabs without a `panel` still get role=tab; the parent owns the content.
  */
 export function Tabs({ items, value, defaultValue, onChange, label, className }: TabsProps) {

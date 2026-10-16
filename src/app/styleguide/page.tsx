@@ -82,8 +82,8 @@ function Showcase({ theme }: { theme: ThemeKey }) {
               Plate colours (primary blue, secondary red, accent yellow, success green) appear on plates, lifts and data only, never as decoration. Plate blue is <strong>3.29:1</strong> on the dark floor, so it marks borders and fills but is never small text.
             </p>
             <div className="sg-row">
-              <span className="sg-vermilion-box">Hard shadow</span>
-              <span className="sg-frame-box">Frame border</span>
+              <span className="sg-panel-box">Panel on base-200</span>
+              <span className="sg-edge-box">Control edge (line-strong)</span>
             </div>
           </div>
         </div>
@@ -91,11 +91,14 @@ function Showcase({ theme }: { theme: ThemeKey }) {
 
       <section className="sg-section">
         <SectionHeader id={id("type")} index={2} title="Type" />
-        <p className="font-display m-0 text-6xl italic leading-none">Archivo italic</p>
+        <p className="type-display-xl m-0">Display XL</p>
+        <p className="type-display-m m-0 mt-2">Display M, exercise names</p>
+        <p className="type-display-s m-0 mt-2">Display S, primary buttons</p>
+        <p className="type-label m-0 mt-3 text-muted">Label, section labels and units</p>
         <p className="m-0 mt-3 text-lg">Archivo body text for everything you read, at least 16px in inputs. Numbers use tabular figures:</p>
         <p className="num m-0 mt-1 text-2xl">0123456789 · 82.5 kg × 8 @ 2 RIR</p>
         <p className="m-0 mt-3">
-          A <a className="link-underline tap-target" href="#main">link with the animated vermilion underline</a>.
+          A <a className="link-underline tap-target" href="#main">link with the animated blue underline</a>.
         </p>
       </section>
 

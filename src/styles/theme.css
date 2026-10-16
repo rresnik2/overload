@@ -207,41 +207,46 @@
   --font-newsreader: var(--font-archivo);
 }
 
-/* Data-viz palette. The spec (section 03) maps free weight to blue, machine to steel, cable to green and bodyweight to
-   yellow; stream RESTYLE re-validates it with the dataviz skill. Until then these are the previous values under the new
-   theme names, so charts keep rendering. Bands: 80% at 12%, 50% at 22% opacity. */
+/* Data-viz palette (spec section 03), validated with the dataviz skill's validate_palette.js against the chart surface
+   (base-200, the panel the charts sit on) in each theme. Free weight = plate blue, machine = steel, cable = plate
+   green, bodyweight = plate yellow; the series order is fixed. Steel is neutral by design (the chroma-floor check does
+   not apply) and stays paired with dashes and square markers. Daylight uses the darker plate steps (blue #2556c4, green
+   #1f7a3c, yellow as the ochre #a67c00) so every mark reaches 3:1 on the panel. Floor: plate blue is lifted to #3a6ee0
+   for 3:1, the rest are the plate colours as they are (yellow and steel are above the dark lightness band by design).
+   Results: daylight CVD adjacent 6.3 (floor band, backed by markers, dashes, direct labels and the table view), normal
+   vision 16.8, all marks >= 3:1; floor CVD 16.8, normal 23.2, all marks >= 3:1. Bands: 80% at 12%, 50% at 22% opacity. */
 :root,
 [data-theme="overload-daylight"] {
-  --chart-free-weight: #e4402b;
-  --chart-machine: #555350;
-  --chart-cable: #4a7fb8;
-  --chart-bodyweight: #a8730a;
-  --chart-forecast: #6b6862; /* dashed forecast line: muted ink */
-  --chart-pr: #e4402b; /* filled star markers */
-  --chart-grid: #dcd8ce;
-  --chart-axis: #5c5a56;
+  --chart-free-weight: #2556c4;
+  --chart-machine: #454a50;
+  --chart-cable: #1f7a3c;
+  --chart-bodyweight: #a67c00;
+  --chart-forecast: #6b7279; /* dashed forecast line: neutral, 3.86 on the panel */
+  --chart-pr: #c21f26; /* filled star markers (plate red) */
+  --chart-grid: #c4c6c0;
+  --chart-axis: #565b62;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --chart-free-weight: #e8573f;
-    --chart-machine: #8a867f;
-    --chart-cable: #4f8fe0;
-    --chart-bodyweight: #c28410;
-    --chart-forecast: #a8a49a;
-    --chart-pr: #f26a55;
-    --chart-grid: #2e2c29;
-    --chart-axis: #a8a49a;
+    --chart-free-weight: #3a6ee0;
+    --chart-machine: #b5babf;
+    --chart-cable: #2f9a4f;
+    --chart-bodyweight: #efbd2a;
+    --chart-forecast: #8c9196;
+    --chart-pr: #ff5a52;
+    --chart-grid: #31363b;
+    --chart-axis: #a2a8ae;
   }
 }
 [data-theme="overload-floor"] {
-  --chart-free-weight: #e8573f;
-  --chart-machine: #8a867f;
-  --chart-cable: #4f8fe0;
-  --chart-bodyweight: #c28410;
-  --chart-forecast: #a8a49a;
-  --chart-pr: #f26a55;
-  --chart-grid: #2e2c29;
-  --chart-axis: #a8a49a;
+  --chart-free-weight: #3a6ee0; /* plate blue, lifted from #2f63d6 to reach 3:1 on the panel */
+  --chart-machine: #b5babf; /* steel */
+  --chart-cable: #2f9a4f; /* plate green */
+  --chart-bodyweight: #efbd2a; /* plate yellow */
+  --chart-forecast: #8c9196;
+  --chart-pr: #ff5a52;
+  --chart-grid: #31363b;
+  --chart-axis: #a2a8ae;
 }
 :root,
 [data-theme] {

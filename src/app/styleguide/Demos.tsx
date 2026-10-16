@@ -59,7 +59,7 @@ export function DialDemo() {
         <p className="num m-0">{reps} reps</p>
       </div>
       <div className="sg-stack">
-        <Dial label="Dumbbell weight, no value yet" labelHint="loadTotal" values={[10, 12, 14, 16, 18, 20]} value={empty} onChange={setEmpty} valueText={(v) => `${v} kilograms per hand`} restIndex={0} />
+        <Dial label="Dumbbell weight, no value yet" labelHint="weightDial" values={[10, 12, 14, 16, 18, 20]} value={empty} onChange={setEmpty} valueText={(v) => `${v} kilograms per hand`} restIndex={0} />
         <p className="num m-0">{empty ?? "—"}</p>
       </div>
       <div className="sg-stack">

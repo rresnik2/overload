@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isActive, NAV_ITEMS } from "./nav";
 
-/** Desktop link row: vermilion underline animates in on hover and stays for the current page (aria-current). */
+/** Desktop link row: blue underline animates in on hover and stays for the current page (aria-current). */
 export function DesktopNav() {
   const pathname = usePathname();
   return (

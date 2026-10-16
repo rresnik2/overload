@@ -31,7 +31,7 @@ export function SeriesCards({ cards, unit }: { cards: SeriesCard[]; unit: Weight
                 unit={c.latestE1rmKg != null ? u : undefined}
                 note={
                   c.deltaKg != null
-                    ? `${c.deltaKg > 0 ? "+" : c.deltaKg < 0 ? "−" : ""}${weightText(Math.abs(c.deltaKg), unit)} ${u} vs 4 weeks ago`
+                    ? <span className={c.deltaKg > 0 ? "text-up" : undefined}>{`${c.deltaKg > 0 ? "+" : c.deltaKg < 0 ? "−" : ""}${weightText(Math.abs(c.deltaKg), unit)} ${u} vs 4 weeks ago`}</span>
                     : `${plural(c.setCount, "set")}, last ${formatDate(c.ref.lastLocalDate)}`
                 }
               />

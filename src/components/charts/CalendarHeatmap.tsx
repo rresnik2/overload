@@ -4,7 +4,7 @@ import { formatDate, plural } from "./format";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-/** Training calendar: one column per ISO week (Monday first), one square per day, shaded by sets that day (vermilion, light to dark). */
+/** Training calendar: one column per ISO week (Monday first), one square per day, shaded by sets that day (plate blue, light to dark). */
 export function CalendarHeatmap({ heatmap, title = "Training calendar" }: { heatmap: Heatmap; title?: string }) {
   const first = heatmap.weeks[0]?.weekStart;
   const last = heatmap.weeks.at(-1)?.cells.findLast((c) => !c.future)?.localDate;
