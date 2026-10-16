@@ -29,12 +29,12 @@ function createClient(): PrismaClient {
     connectionString,
     max: Number(process.env.DATABASE_POOL_MAX ?? 10),
     // Keep connections warm between taps: every reconnect to Neon costs DNS + TCP + TLS + auth (several round trips), and the pg
-    // default drops idle clients after 10 s. A long-lived server (local, LAN, `next start`) holds one for 5 minutes and always
-    // keeps at least one open (`min`). On Vercel the pool stays at the 10 s default with no floor: `attachDatabasePool` below
+    // default drops idle clients after 10 s. A long-lived server (local, LAN, `next start`) holds one for 5 minutes. There is
+    // deliberately NO minimum idle connection (`min` stays 0): an open connection can keep Neon's compute awake, which spends
+    // compute hours, so after 5 idle minutes the pool empties and Neon may suspend. On Vercel the pool stays at the 10 s default: `attachDatabasePool` below
     // holds the function alive for `idleTimeoutMillis` after every release so Fluid compute can close idle sockets before it
     // suspends, so a 5-minute timeout there would pin every invocation for 5 minutes.
     idleTimeoutMillis: ON_VERCEL ? 10_000 : 300_000,
-    min: ON_VERCEL ? 0 : 1,
     // TCP keep-alive lets the OS notice a peer that vanished (Neon suspended the compute, the laptop slept) instead of waiting forever.
     keepAlive: true,
     keepAliveInitialDelayMillis: 10_000,
