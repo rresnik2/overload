@@ -3,7 +3,7 @@
 // One user per worker (sign-up is rate-limited in production builds); the tests share its session and its data.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext, type Locator, type Page } from "@playwright/test";
-import { logSetByTyping } from "./helpers/logging";
+import { logSetByTyping } from "./_support/logging";
 import { completeOnboarding, createUser, createUserAtOnboarding } from "./_support/user";
 
 const COLD = { timeout: 45_000 };

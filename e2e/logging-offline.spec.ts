@@ -3,7 +3,7 @@
 // Go offline -> add a free-weight and a machine exercise (with a new MachineProfile) -> log 9 sets -> reload (still offline, data
 // still there) -> go online -> the outbox drains -> a second browser context and the database both show exactly 9 sets.
 import { expect, test, type Page } from "@playwright/test";
-import { dialWeight, logSetByTyping, setRepsOnStrip } from "./helpers/logging";
+import { dialWeight, logSetByTyping, setRepsOnStrip } from "./_support/logging";
 import { resetRateLimitsIfProduction, createUser } from "./_support/user";
 
 const FREE_WEIGHT = "Barbell Bench Press - Medium Grip";
