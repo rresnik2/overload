@@ -238,6 +238,8 @@ export function NumberStrip({ label, labelHint, values, value, onChange, valueTe
           aria-valuetext={value === null ? "Not set" : text(values[idx]!)}
           aria-disabled={disabled ? true : undefined}
           tabIndex={disabled ? -1 : 0}
+          // A disabled strip is not focusable, so it must not be a scrollable region either (axe scrollable-region-focusable).
+          style={disabled ? { overflowX: "hidden" } : undefined}
           onKeyDown={onKeyDown}
           onScroll={onScroll}
           onPointerDown={onPointerDown}

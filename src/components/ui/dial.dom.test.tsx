@@ -387,4 +387,11 @@ describe("NumberStrip", () => {
     fireEvent.keyDown(strip(), { key: "ArrowRight" });
     expect(screen.getByTestId("out")).toHaveTextContent("5");
   });
+
+  it("is not a scrollable region while disabled (it is not focusable, axe scrollable-region-focusable)", () => {
+    const { rerender } = render(<StripHarness disabled />);
+    expect(strip().style.overflowX).toBe("hidden");
+    rerender(<StripHarness />);
+    expect(strip().style.overflowX).toBe("");
+  });
 });
