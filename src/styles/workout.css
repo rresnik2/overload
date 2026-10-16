@@ -524,9 +524,13 @@ body:has(.wk-rest) .toast-region {
   background: transparent;
   animation: wk-panel-in 240ms var(--ease-out) both;
 }
-.wk-panel--done .wk-panel__name,
-.wk-panel--done .wk-panel__read {
+.wk-panel--done .wk-panel__name {
   opacity: 0.75;
+}
+/* A logged set's numbers recede by colour, not opacity: fading the muted unit labels too dropped them below 4.5:1 (axe color-contrast). */
+.wk-panel--done .wk-readout__num,
+.wk-panel--done .wk-panel__reps {
+  color: var(--color-muted);
 }
 @keyframes wk-panel-in {
   from {
