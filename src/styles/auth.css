@@ -14,16 +14,27 @@
   background-size: cover;
   filter: grayscale(1);
 }
+/* body paints its own base-100 background, which would cover a z-index:-1 layer (same fix as .shell-backdrop). */
+body:has(.auth-backdrop) {
+  background: transparent;
+}
 
 .auth-page {
   margin-inline: auto;
   display: flex;
-  min-height: 100dvh;
+  min-height: 100svh;
   max-width: 28rem;
   flex-direction: column;
-  justify-content: center;
+  /* "safe" falls back to flex-start when the form is taller than the page, so the top is never cut off and the rest scrolls. */
+  justify-content: safe center;
   gap: 1.5rem;
-  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+  padding: max(1.5rem, var(--sat)) 1.5rem max(1.5rem, var(--sab));
+}
+@media (max-height: 700px) {
+  .auth-page {
+    justify-content: flex-start;
+    padding-top: max(1.5rem, var(--sat));
+  }
 }
 .auth-page--wide {
   max-width: 40rem;

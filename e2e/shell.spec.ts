@@ -76,11 +76,11 @@ test.describe("shell (signed in)", () => {
     const box = (await dock.boundingBox())!;
     const viewport = page.viewportSize()!;
     expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
-    // The dock's offset is `bottom: calc(env(safe-area-inset-bottom) + .25rem)`; WebKit emulation reports 0 for env(), so assert the rule.
+    // The dock's offset is `bottom: calc(var(--sab) + .25rem)` (--sab wraps env(safe-area-inset-bottom)); emulation reports 0 for env(), so assert the rule.
     const rule = await page.evaluate(() =>
       [...document.styleSheets].flatMap((s) => [...s.cssRules]).map((r) => r.cssText).find((t) => t.startsWith(".shell-dock {")) ?? "",
     );
-    expect(rule).toContain("safe-area-inset-bottom");
+    expect(rule).toContain("--sab");
     // Content is never hidden behind it: main pads for the dock.
     const pad = await page.locator("main").evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
     expect(pad).toBeGreaterThan(box.height);

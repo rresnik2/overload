@@ -35,6 +35,8 @@ export default defineConfig({
   projects: [
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "webkit-iphone", use: { ...devices["iPhone 15"] } },
+    // Chrome on a Pixel: touch, mobile UA, 412x915. The Android viewport and scroll fixes (e2e/mobile-viewport.spec.ts) run here.
+    { name: "android-chrome", use: { ...devices["Pixel 7"] } },
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

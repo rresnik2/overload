@@ -87,6 +87,15 @@
   --noise: 0;
 }
 
+/* Safe-area insets. Chrome on Android with viewport-fit=cover animates env(safe-area-inset-bottom) as the gesture-bar
+   chin shows and hides, which made bottom padding and fixed offsets slide under the bar. safe-area-max-inset-* is the
+   stable maximum (Chrome 135+); unknown env() names fall back to 0px, so iOS and older browsers keep using the live
+   inset. Use these tokens, never env(safe-area-inset-top|bottom), for padding and fixed or sticky offsets. */
+:root {
+  --sab: max(env(safe-area-inset-bottom, 0px), env(safe-area-max-inset-bottom, 0px));
+  --sat: max(env(safe-area-inset-top, 0px), env(safe-area-max-inset-top, 0px));
+}
+
 /* Tailwind theme: utilities like text-muted / border-line-strong / text-accent-ink / font-display read these. The
    values here are the daylight defaults; the scope blocks below re-declare them per theme (same pattern as the chart
    palette), so a theme switch never needs a rebuild. `static` keeps them in the output even when only var() uses them. */

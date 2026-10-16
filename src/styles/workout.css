@@ -19,8 +19,8 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: calc(env(safe-area-inset-top) + 0.25rem) max(1rem, env(safe-area-inset-left)) 0.25rem max(1rem, env(safe-area-inset-right));
-  min-height: calc(var(--tap-target) + env(safe-area-inset-top));
+  padding: calc(var(--sat) + 0.25rem) max(1rem, env(safe-area-inset-left)) 0.25rem max(1rem, env(safe-area-inset-right));
+  min-height: calc(var(--tap-target) + var(--sat));
   background: var(--color-base-100);
   border-bottom: 1px solid var(--color-base-300);
 }
@@ -47,12 +47,12 @@
   width: 100%;
   max-width: 40rem;
   margin: 0 auto;
-  padding: var(--space-6) max(var(--space-6), env(safe-area-inset-left)) calc(var(--wk-rest-h) + env(safe-area-inset-bottom) + 2rem) max(var(--space-6), env(safe-area-inset-right));
+  padding: var(--space-6) max(var(--space-6), env(safe-area-inset-left)) calc(var(--wk-rest-h) + var(--sab) + 2rem) max(var(--space-6), env(safe-area-inset-right));
   outline: none;
 }
 /* Toasts sit above the rest bar. */
 body:has(.wk-rest) .toast-region {
-  bottom: calc(var(--wk-rest-h) + env(safe-area-inset-bottom) + 0.75rem);
+  bottom: calc(var(--wk-rest-h) + var(--sab) + 0.75rem);
 }
 
 .wk-muted {
@@ -682,14 +682,14 @@ body:has(.wk-rest) .toast-region {
 /* Log set: sticky above the thumb (and above the rest bar while it shows) */
 .wk-panel__logrow {
   position: sticky;
-  bottom: calc(18px + env(safe-area-inset-bottom));
+  bottom: calc(18px + var(--sab));
   z-index: 5;
   display: grid;
   gap: var(--space-1);
   margin-top: var(--space-2);
 }
 body:has(.wk-rest) .wk-panel__logrow {
-  bottom: calc(var(--wk-rest-h) + 18px + env(safe-area-inset-bottom));
+  bottom: calc(var(--wk-rest-h) + 18px + var(--sab));
 }
 .wk-panel__log {
   height: 54px;
@@ -968,7 +968,7 @@ body:has(.wk-rest) .wk-panel__logrow {
   align-items: center;
   gap: 0.25rem;
   min-height: var(--wk-rest-h);
-  padding: 0.5rem max(0.75rem, env(safe-area-inset-right)) calc(0.5rem + env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  padding: 0.5rem max(0.75rem, env(safe-area-inset-right)) calc(0.5rem + var(--sab)) max(0.75rem, env(safe-area-inset-left));
   background: var(--color-base-100);
   border-top: 1px solid var(--color-base-300);
 }
