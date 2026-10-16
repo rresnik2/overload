@@ -226,7 +226,7 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
   const hub = `${uid}-hub`;
 
   return (
-    <div className={clsx("dial", disabled && "dial--disabled", className)} style={style}>
+    <div className={clsx("dial", disabled && "dial--disabled", className)} style={style} data-no-swipe>
       {labelHint ? (
         <div className="dial__label-row">
           <span className="dial__label">{label}</span>

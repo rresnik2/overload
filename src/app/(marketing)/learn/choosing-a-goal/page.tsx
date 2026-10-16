@@ -86,7 +86,7 @@ export default function Page() {
       lede="Overload has four goals. They change your weekly set targets, your default rep range and which insights you see. You can switch any time, and nothing you logged is lost."
     >
       <LearnSection title="The goals side by side">
-        <div className="learn__table-wrap" role="region" aria-label="Comparison of the four goals (scrollable)" tabIndex={0}>
+        <div className="learn__table-wrap" data-no-swipe role="region" aria-label="Comparison of the four goals (scrollable)" tabIndex={0}>
           <table className="learn__table">
             <caption className="sr-only">What each training goal changes in Overload</caption>
             <thead>

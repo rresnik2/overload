@@ -1338,3 +1338,52 @@ body:has(.wk-rest) .wk-panel__logrow {
   display: inline-flex;
   align-items: center;
 }
+
+/* ---- Between exercises (phones): Prev / n of N / Next ------------------- */
+.wk-exercise {
+  scroll-margin-top: 4.5rem;
+}
+.wk-active[data-swipe-exercises] {
+  touch-action: pan-y pinch-zoom;
+}
+.wk-switcher {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+}
+.wk-switcher__count {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-muted, currentColor);
+  text-align: center;
+}
+.wk-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: var(--tap-target);
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
+  color: var(--color-base-content);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.wk-switcher__btn:first-child {
+  justify-self: start;
+}
+.wk-switcher__btn:last-child {
+  justify-self: end;
+}
+.wk-switcher__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.wk-switcher__btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

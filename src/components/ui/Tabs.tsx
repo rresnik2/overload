@@ -55,7 +55,7 @@ export function Tabs({ items, value, defaultValue, onChange, label, className }:
 
   const active = items.find((t) => t.id === selected);
   return (
-    <div className={clsx("tabs-o", className)}>
+    <div className={clsx("tabs-o", className)} data-no-swipe>
       <div role="tablist" aria-label={label} className="tabs-o__list" onKeyDown={onKeyDown}>
         {items.map((t) => (
           <button

@@ -27,7 +27,7 @@ export function ExerciseFilters({ basePath, filters, tabs, equipmentOptions, cla
   const favoritesHref = libraryHref(basePath, filters, { fav: !filters.fav });
   return (
     <div className={clsx("exercise-filters", className)}>
-      <nav aria-label="Exercise type" className="exercise-tabs">
+      <nav aria-label="Exercise type" className="exercise-tabs" data-no-swipe>
         {tabs.map((tab) => (
           <Link
             key={tab.modality ?? "all"}

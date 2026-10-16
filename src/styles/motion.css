@@ -18,7 +18,7 @@
 }
 @keyframes page-slide {
   from {
-    translate: var(--slide-offset, 2.5rem) 0;
+    translate: var(--slide-offset, 1.5rem) 0;
   }
   to {
     translate: 0 0;
@@ -27,26 +27,26 @@
 
 /* Forward: old content leaves quickly to the left, new content arrives from the right after it. */
 ::view-transition-old(.page-out) {
-  --slide-offset: -2.5rem;
+  --slide-offset: -1.5rem;
   animation:
     var(--page-out) var(--ease-out) both page-fade reverse,
     var(--page-out) var(--ease-out) both page-slide reverse;
 }
 ::view-transition-new(.page-in) {
-  --slide-offset: 2.5rem;
+  --slide-offset: 1.5rem;
   animation:
     var(--page-in) var(--ease-out) var(--page-out) both page-fade,
     var(--page-in) var(--ease-out) var(--page-out) both page-slide;
 }
 /* Back: mirrored. */
 ::view-transition-old(.page-out-back) {
-  --slide-offset: 2.5rem;
+  --slide-offset: 1.5rem;
   animation:
     var(--page-out) var(--ease-out) both page-fade reverse,
     var(--page-out) var(--ease-out) both page-slide reverse;
 }
 ::view-transition-new(.page-in-back) {
-  --slide-offset: -2.5rem;
+  --slide-offset: -1.5rem;
   animation:
     var(--page-in) var(--ease-out) var(--page-out) both page-fade,
     var(--page-in) var(--ease-out) var(--page-out) both page-slide;
@@ -69,4 +69,52 @@
     transition-duration: 0.01ms !important;
     transition-delay: 0s !important;
   }
+}
+
+/* The transition overlay must never swallow a tap: the page underneath stays live throughout (swipe navigation, spec section 04). */
+::view-transition {
+  pointer-events: none;
+}
+
+/* ---- Swipe navigation (useSwipe, spec section 04) ------------------------ */
+/* The browser keeps vertical pans and pinch; horizontal drags reach the swipe handlers. Sideways scrollers inside are unaffected. */
+.shell-main[data-swipe-tabs],
+html[data-edge-back] {
+  touch-action: pan-y pinch-zoom;
+}
+/* A short page still gets the whole screen as its swipe area. */
+@media (max-width: 767px) {
+  .shell-main[data-swipe-tabs] {
+    min-height: 100dvh;
+  }
+}
+
+/* Edge back peek (installed iPhone app): the page follows the finger, then snaps back or hands over to the nav-back slide. */
+html[data-edge-peek] #main {
+  translate: var(--edge-dx, 0px) 0;
+  will-change: translate;
+}
+html[data-edge-peek="settle"] #main {
+  transition: translate 0.18s var(--ease-out);
+}
+
+/* Between exercises on /workout: the newly focused exercise slides in from the side the swipe came from. */
+@keyframes exercise-slide {
+  from {
+    opacity: 0;
+    translate: var(--slide-from, 1.5rem) 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.wk-exercise[data-slide] {
+  animation: exercise-slide 0.18s var(--ease-out) both;
+}
+.wk-exercise[data-slide="next"] {
+  --slide-from: 1.5rem;
+}
+.wk-exercise[data-slide="prev"] {
+  --slide-from: -1.5rem;
 }

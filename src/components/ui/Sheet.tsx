@@ -37,6 +37,7 @@ export function Sheet({ open, onClose, title, description, footer, placement = "
   return (
     <dialog
       ref={ref}
+      data-no-swipe
       className={clsx("sheet", placement === "center" && "sheet--center", className)}
       aria-labelledby={titleId}
       onClose={onClose}

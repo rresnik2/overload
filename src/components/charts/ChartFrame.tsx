@@ -60,7 +60,7 @@ export function ChartFrame({ title, summary, state = "ready", empty, lowData, ta
   const showPlot = state === "ready" || state === "low-data";
 
   return (
-    <figure className={clsx("chart-frame", className)} data-chart-state={state} data-testid={testId} aria-busy={state === "loading" || undefined}>
+    <figure className={clsx("chart-frame", className)} data-no-swipe data-chart-state={state} data-testid={testId} aria-busy={state === "loading" || undefined}>
       <div className="chart-frame__head">
         <figcaption className="chart-frame__title">{title}</figcaption>
         {hint ? <InfoHint term={hint} /> : null}

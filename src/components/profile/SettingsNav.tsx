@@ -12,7 +12,7 @@ const TABS = [
 export function SettingsNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Settings" className="settings-nav">
+    <nav aria-label="Settings" className="settings-nav" data-no-swipe>
       {TABS.map((tab) => (
         <Link key={tab.href} href={tab.href} aria-current={pathname.startsWith(tab.href) ? "page" : undefined}>
           {tab.label}

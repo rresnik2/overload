@@ -55,7 +55,7 @@ export function PrBoardView({ board, unit }: { board: PrBoard; unit: WeightUnit 
               {MODALITY_LABEL[b.modality]}
               {b.seriesLabel !== "Default" ? ` / ${b.seriesLabel}` : ""}
             </p>
-            <table className="chart-table num pr-card__table">
+            <table className="chart-table num pr-card__table" data-no-swipe>
               <caption className="sr-only">Records for {b.exerciseName} {b.seriesLabel}</caption>
               <thead>
                 <tr>
