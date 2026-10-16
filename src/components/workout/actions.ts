@@ -28,9 +28,11 @@ export interface WorkoutActionOptions {
   /** History edits: added sets are born completed, at this instant. */
   completeNewSetsAt?: string;
   onChangeMachine?: (item: ExerciseView) => void;
+  /** Live workout: open the "Bar and plates" sheet for a barbell exercise. */
+  onEditBar?: (item: ExerciseView) => void;
 }
 
-export function useWorkoutActions({ workoutId, prefs, exercises, onSetCompleted, completeNewSetsAt, onChangeMachine }: WorkoutActionOptions) {
+export function useWorkoutActions({ workoutId, prefs, exercises, onSetCompleted, completeNewSetsAt, onChangeMachine, onEditBar }: WorkoutActionOptions) {
   const { toast } = useToast();
   const unit: WeightUnit = prefs.unit;
 
@@ -92,6 +94,7 @@ export function useWorkoutActions({ workoutId, prefs, exercises, onSetCompleted,
           });
         }),
       onChangeMachine: onChangeMachine ? () => onChangeMachine(item) : undefined,
+      onEditBar: onEditBar ? () => onEditBar(item) : undefined,
     });
-  }, [guard, toast, announcePrs, onSetCompleted, unit, completeNewSetsAt, exercises, onChangeMachine]);
+  }, [guard, toast, announcePrs, onSetCompleted, unit, completeNewSetsAt, exercises, onChangeMachine, onEditBar]);
 }

@@ -1,12 +1,13 @@
 "use client";
 import clsx from "clsx";
 import { Check, Star, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { NumberStepper } from "@/components/ui/NumberStepper";
 import { Term } from "@/components/ui/Term";
 import type { ExerciseRow, WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { EffortScale, SetType, WeightUnit } from "@/contracts/enums";
 import { formatWeight } from "@/lib/units";
-import { effortOptions, loadLabel, setFields, SET_TYPE_LABEL, unitLabel } from "./labels";
+import { effortOptions, effortText, loadLabel, setFields, SET_TYPE_LABEL, unitLabel } from "./labels";
 import { shownWeight, weightPatch } from "./session";
 
 export type SetRowExercise = Pick<ExerciseRow, "loadType" | "tracking" | "equipment" | "isUnilateral">;
@@ -17,6 +18,8 @@ export interface SetRowGhost {
   inputUnit: WeightUnit | null;
   durationSec: number | null;
   distanceM: number | null;
+  /** Effort felt last time (stored RIR), for "last 100 × 5 @ RIR 2". */
+  rir?: number | null;
 }
 
 export interface SetRowProps {
@@ -37,6 +40,12 @@ export interface SetRowProps {
   isPr?: boolean;
   /** The next set to do (highlighted). */
   active?: boolean;
+  /** "full": the editable row (default). "compact": a read-only summary (badge, weight x reps, effort, tick) on phones. */
+  variant?: "full" | "compact";
+  /** Compact rows: tapping makes this set the active one (the panel). */
+  onActivate?: () => void;
+  /** The equipment picture at 96 px beside the row (desktop, active set only). */
+  preview?: ReactNode;
   onChange: (patch: WorkoutSetPatch) => void;
   onToggleComplete: () => void;
   onDelete: () => void;
@@ -58,7 +67,7 @@ function ghostText(ghost: SetRowGhost, fields: ReturnType<typeof setFields>, uni
  * One set. Labelled by LoadType ("per hand", "per side", "stack", "+ bodyweight", "total") and TrackingType; states:
  * planned, active (next up), completed, PR, warm-up (muted). Props only: the parent writes through `repo`.
  */
-export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale, ghost, isPr = false, active = false, onChange, onToggleComplete, onDelete }: SetRowProps) {
+export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale, ghost, isPr = false, active = false, variant = "full", onActivate, preview, onChange, onToggleComplete, onDelete }: SetRowProps) {
   const fields = setFields(exercise);
   const load = loadLabel(exercise);
   const completed = set.completedAt != null;
@@ -66,12 +75,45 @@ export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale,
   const ghostLine = ghost ? ghostText(ghost, fields, unit) : null;
   const name = `Set ${ordinal}`;
   const weightCaption = [unitLabel(unit), load.short].filter(Boolean).join(" · ");
+  const state = completed ? "completed" : active ? "active" : "planned";
+
+  if (variant === "compact") {
+    const entered: string[] = [];
+    if (fields.weight && set.weightKg !== null) entered.push(`${shownWeight(set.weightKg, unit)} ${unitLabel(unit)}`);
+    if (fields.distance && set.distanceM !== null) entered.push(`${set.distanceM} m`);
+    if (fields.duration && set.durationSec !== null) entered.push(`${set.durationSec} s`);
+    if (fields.reps && set.reps !== null) entered.push(fields.weight && entered.length > 0 ? `× ${set.reps}` : `${set.reps} reps`);
+    const summary = entered.length > 0 ? entered.join(" ") : null;
+    const effort = !warmup && set.rir !== null ? effortText(effortScale, set.rir) : null;
+    const status = completed ? "done" : "not done";
+    return (
+      <li className={clsx("wk-set wk-set--compact", completed && "wk-set--completed", warmup && "wk-set--warmup", isPr && "wk-set--pr")} data-set-id={set.id} data-state={state}>
+        <button type="button" className="wk-compact" onClick={onActivate} aria-label={`${name}: ${summary ?? (ghostLine ? `last time ${ghostLine}` : "empty")}${effort ? `, ${effort}` : ""}, ${status}. Open ${name.toLowerCase()}`}>
+          <span className="wk-set__badge num" aria-hidden="true">
+            {label}
+          </span>
+          <span className={clsx("wk-compact__value num", summary === null && "wk-compact__value--empty")} aria-hidden="true">
+            {summary ?? (ghostLine ? `last ${ghostLine}` : "—")}
+          </span>
+          {effort ? (
+            <span className="wk-compact__effort num" aria-hidden="true">
+              {effort}
+            </span>
+          ) : null}
+          {isPr ? <Star className="wk-compact__pr" size={14} aria-hidden="true" fill="currentColor" strokeWidth={0} /> : null}
+          <span className="wk-compact__tick" aria-hidden="true">
+            {completed ? <Check size={18} /> : null}
+          </span>
+        </button>
+      </li>
+    );
+  }
 
   return (
     <li
-      className={clsx("wk-set", completed && "wk-set--completed", warmup && "wk-set--warmup", isPr && "wk-set--pr", active && !completed && "wk-set--active")}
+      className={clsx("wk-set", completed && "wk-set--completed", warmup && "wk-set--warmup", isPr && "wk-set--pr", active && !completed && "wk-set--active", preview && "wk-set--has-preview")}
       data-set-id={set.id}
-      data-state={completed ? "completed" : active ? "active" : "planned"}
+      data-state={state}
     >
       <div className="wk-set__head">
         <span className="wk-set__badge num" aria-hidden="true">
@@ -178,6 +220,7 @@ export function SetRow({ label, ordinal, set, exercise, unit, step, effortScale,
           <Trash2 size={18} aria-hidden="true" />
         </button>
       </div>
+      {preview ? <div className="wk-set__preview">{preview}</div> : null}
     </li>
   );
 }
