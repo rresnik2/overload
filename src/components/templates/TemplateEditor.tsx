@@ -16,6 +16,7 @@ import { useWorkoutPrefs } from "@/components/workout/prefs";
 import { movedPosition, supersetLabels, supersetPatches, templatePositionAfter } from "@/components/workout/session";
 import { missingExercise } from "@/components/workout/view";
 import type { TemplateExercisePatch, TemplateExerciseRow } from "@/contracts/entities";
+import { isMachineProfile } from "@/lib/gear";
 
 /** Edit one template: name, folder, and per-exercise targets (sets, reps, RIR, rest, machine). Everything through `repo`. */
 export function TemplateEditor({ id }: { id: string }) {
@@ -27,7 +28,7 @@ export function TemplateEditor({ id }: { id: string }) {
     const lines = [];
     for (const te of await repo.templates.exercisesOf(id)) {
       const exercise = (await repo.exercises.get(te.exerciseId)) ?? missingExercise(te.exerciseId);
-      const machines = exercise.modality === "MACHINE" || exercise.modality === "CABLE" ? (await repo.machineProfiles.list()).filter((m) => m.exerciseId === exercise.id || m.exerciseId === null) : [];
+      const machines = exercise.modality === "MACHINE" || exercise.modality === "CABLE" ? (await repo.machineProfiles.list()).filter((m) => isMachineProfile(m) && (m.exerciseId === exercise.id || m.exerciseId === null)) : [];
       lines.push({ te, exercise, machines });
     }
     return { template, lines };

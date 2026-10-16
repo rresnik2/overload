@@ -5,9 +5,11 @@ import { repo, useLive } from "@/client/repo";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { HardCard } from "@/components/primitives/HardCard";
 import { Button } from "@/components/ui/Button";
+import { InfoHint } from "@/components/ui/InfoHint";
 import { Modal, Sheet } from "@/components/ui/Sheet";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
-import { formatWeight } from "@/lib/units";
+import { isMachineProfile, type GearEquipment } from "@/lib/gear";
+import { defaultIncrement, formatNumber, formatWeight } from "@/lib/units";
 import { isBarProfileExercise } from "./dial-setup";
 import { MachineProfileForm } from "./MachineProfileForm";
 import { useWorkoutPrefs } from "./prefs";
@@ -19,15 +21,18 @@ import { useWorkoutPrefs } from "./prefs";
 export function MachinesView() {
   const prefs = useWorkoutPrefs();
   const data = useLive(async () => {
-    const profiles = (await repo.machineProfiles.list()).sort((a, b) => a.name.localeCompare(b.name));
+    // Gear profiles (dumbbell step, kettlebells) have their own section; this list is machines and bar profiles only.
+    const profiles = (await repo.machineProfiles.list()).filter(isMachineProfile).sort((a, b) => a.name.localeCompare(b.name));
+    const gear = { DUMBBELL: (await repo.machineProfiles.gear("DUMBBELL")) ?? null, KETTLEBELL: (await repo.machineProfiles.gear("KETTLEBELL")) ?? null };
     const exercises = new Map<string, Pick<ExerciseRow, "name" | "equipment" | "loadType">>();
     for (const p of profiles) {
       if (!p.exerciseId) continue;
       const ex = await repo.exercises.get(p.exerciseId);
       exercises.set(p.exerciseId, ex ? { name: ex.name, equipment: ex.equipment, loadType: ex.loadType } : { name: "Deleted exercise", equipment: "OTHER", loadType: "TOTAL" });
     }
-    return { profiles, exercises };
+    return { profiles, exercises, gear };
   });
+  const [editingGear, setEditingGear] = useState<GearEquipment | null>(null);
   const [editing, setEditing] = useState<MachineProfileRow | "new" | null>(null);
   const [deleting, setDeleting] = useState<MachineProfileRow | null>(null);
   const [linked, setLinked] = useState<string | null>(null);
@@ -53,8 +58,51 @@ export function MachinesView() {
   const editingBar = editing !== null && barOf(editing);
   const linkedEquipment = (linked ? (options?.find((o) => o.id === linked)?.equipment ?? exercises.get(linked)?.equipment) : undefined) ?? null;
 
+  const gearUnit = (g: MachineProfileRow | null) => g?.labelUnit ?? prefs.unit;
+  const gearSummary = (equipment: GearEquipment): string => {
+    const g = data.gear[equipment];
+    if (equipment === "DUMBBELL") {
+      const unit = gearUnit(g);
+      return g?.pinStepKg != null ? `${formatWeight(g.pinStepKg, unit)} steps` : `${formatNumber(defaultIncrement(unit, "DUMBBELL"))} ${unit === "LB" ? "lb" : "kg"} steps (default)`;
+    }
+    if (g?.platesKg && g.platesKg.length > 0) {
+      const unit = gearUnit(g);
+      return `Your ${g.platesKg.length} ${g.platesKg.length === 1 ? "bell" : "bells"}: ${[...g.platesKg].sort((a, b) => a - b).map((kg) => formatWeight(kg, unit, { withUnit: false })).join(", ")} ${unit === "LB" ? "lb" : "kg"}`;
+    }
+    return "Standard sizes";
+  };
+
   return (
     <>
+      <section aria-labelledby="gear-heading" className="wk-gear">
+        <h2 id="gear-heading" className="wk-section-title">
+          Gear <InfoHint term="gearProfile" />
+        </h2>
+        <ul className="wk-list">
+          {(["DUMBBELL", "KETTLEBELL"] as const).map((equipment) => {
+            const label = equipment === "DUMBBELL" ? "Dumbbells" : "Kettlebells";
+            return (
+              <li key={equipment}>
+                <HardCard as="article" className="wk-card">
+                  <div className="wk-card__head">
+                    <div>
+                      <h3 className="wk-card__title">{label}</h3>
+                      <p className="wk-muted num">{gearSummary(equipment)}</p>
+                    </div>
+                  </div>
+                  <div className="wk-card__actions">
+                    <Button variant="ink" onClick={() => setEditingGear(equipment)} aria-label={`Edit ${label.toLowerCase()}`}>
+                      Edit
+                    </Button>
+                  </div>
+                </HardCard>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <h2 className="wk-section-title">Machines</h2>
       <div className="wk-card__actions">
         <Button icon={<Plus size={18} />} onClick={() => open("new")}>
           Add machine
@@ -126,6 +174,25 @@ export function MachinesView() {
               </fieldset>
               )
             }
+          />
+        ) : null}
+      </Sheet>
+
+      <Sheet open={editingGear !== null} onClose={() => setEditingGear(null)} title={editingGear === "KETTLEBELL" ? "Kettlebells" : "Dumbbells"}>
+        {editingGear ? (
+          <MachineProfileForm
+            key={editingGear}
+            kind={editingGear === "KETTLEBELL" ? "kettlebells" : "dumbbells"}
+            initial={data.gear[editingGear] ?? undefined}
+            unit={prefs.unit}
+            onCancel={() => setEditingGear(null)}
+            onSave={async (fields) => {
+              // The first save creates the user-wide gear profile; later saves update it.
+              const existing = data.gear[editingGear];
+              if (existing) await repo.machineProfiles.update(existing.id, fields);
+              else await repo.machineProfiles.create(fields);
+              setEditingGear(null);
+            }}
           />
         ) : null}
       </Sheet>
