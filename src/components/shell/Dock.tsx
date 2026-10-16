@@ -10,7 +10,7 @@ import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";
 
 /**
- * Mobile bottom dock (daisyUI `dock` as a base-200 panel), above env(safe-area-inset-bottom).
+ * Mobile bottom dock (daisyUI `dock` as a base-200 panel), above the --sab inset.
  * Today · Exercises · [Start workout] · Progress · More (Templates, History, Insights, Settings, theme).
  */
 export function Dock() {

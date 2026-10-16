@@ -34,7 +34,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  viewportFit: "cover", // draw into the notch / home-indicator areas; screens pad with env(safe-area-inset-*)
+  viewportFit: "cover", // draw into the notch / home-indicator areas; screens pad with the --sab / --sat tokens (theme.css)
+  // Android Chrome: the on-screen keyboard shrinks the layout viewport (like iOS), so a form can scroll above it instead of hiding under it.
+  interactiveWidget: "resizes-content",
   colorScheme: "light dark",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: THEME_COLORS.paper },
