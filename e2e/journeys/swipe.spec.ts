@@ -69,6 +69,7 @@ test.describe("tab swipes", () => {
     await expect(page).toHaveURL(/\/exercises$/, COLD);
     await expectNavType(page, "nav-back");
 
+    await settled(page); // the URL changes before React re-renders with the new pathname; a swipe in that gap uses the old one
     await swipe(page.locator("#main"), { dx: 140 });
     await expect(page).toHaveURL(/\/today$/, COLD);
 

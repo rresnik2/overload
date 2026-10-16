@@ -20,10 +20,10 @@ const COLD = { timeout: 30_000 };
 /** page.goto, once more when the previous page's delayed server refresh (router.refresh after a sync, which replaces history) lands mid-navigation. */
 async function open(page: Page, path: string) {
   try {
-    await open(page, path);
+    await page.goto(path);
   } catch (error) {
     if (!/interrupted by another navigation/.test(String(error))) throw error;
-    await open(page, path);
+    await page.goto(path);
   }
 }
 
