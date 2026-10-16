@@ -26,18 +26,26 @@ async function dbSetCount(email: string): Promise<{ sets: number; machineSets: n
 }
 
 async function addExercise(page: Page, search: string, name: string) {
-  await page.getByRole("button", { name: "Add exercise" }).first().click();
+  await clearToasts(page);
+  const add = page.getByRole("button", { name: "Add exercise" }).first();
+  await add.evaluate((el) => el.scrollIntoView({ block: "center" }));
+  await add.click();
   const picker = page.getByRole("dialog");
   await picker.getByPlaceholder("Search exercises").fill(search);
   // exact: every row also has a star named "Add <name> to favorites", which a substring match would pick first
   await picker.getByRole("button", { name: `Add ${name}`, exact: true }).first().click();
 }
 
-/** Click "Add set": on a phone a PR toast and the fixed rest bar sit over the bottom of the page, so dismiss the toasts (a toast under the pointer pauses its timer) and centre the button first. */
-async function addSet(page: Page, block: Locator, name: string) {
+/** A toast under the pointer pauses its timer, and on a phone the toasts and the rest bar sit over the bottom of the page: dismiss them. */
+async function clearToasts(page: Page) {
   const toasts = page.locator(".toast-region .toast");
   for (let i = 0; i < 3 && (await toasts.count()) > 0; i++) await page.getByRole("button", { name: "Dismiss notification" }).first().click();
   await expect(toasts).toHaveCount(0);
+}
+
+/** Click "Add set": on a phone a PR toast and the fixed rest bar sit over the bottom of the page, so dismiss the toasts (a toast under the pointer pauses its timer) and centre the button first. */
+async function addSet(page: Page, block: Locator, name: string) {
+  await clearToasts(page);
   const button = block.getByRole("button", { name: `Add set to ${name}` });
   await button.evaluate((el) => el.scrollIntoView({ block: "center" }));
   await button.click();
