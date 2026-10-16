@@ -202,6 +202,10 @@ test("phone: turn the dial for a barbell set, go offline, log a dumbbell set, co
   await bench.getByRole("button", { name: "Log set · 60 kg × 5" }).click();
   await expect(bench.getByRole("button", { name: "Logged ✓" })).toBeVisible();
   await expect(page.locator('.wk-set[data-state="completed"]')).toHaveCount(1);
+  // During a workout the app syncs at most every 5 minutes, so the lifter taps "Sync now" (the workout bar's button).
+  await expect(page.getByRole("button", { name: /^Sync now: \d+ unsynced$/ })).toBeVisible();
+  await page.getByRole("button", { name: /^Sync now/ }).click();
+  await expect(page.getByRole("button", { name: "Sync now: Synced" })).toBeVisible({ timeout: 60_000 });
   await expect.poll(() => dbSetCount(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toEqual({ sets: 1, machineSets: 0 });
 
   // ---- offline: a dumbbell set (2 kg steps per hand: Home is 2, PageUp x3 is 26) ----
@@ -219,6 +223,10 @@ test("phone: turn the dial for a barbell set, go offline, log a dumbbell set, co
 
   // ---- back online: the outbox drains and the server has both sets ----
   await context.setOffline(false);
+  // Still inside the workout: `online` is throttled to one sync per 5 minutes, so "Sync now" pushes the offline set.
+  await expect(page.getByRole("button", { name: /^Sync now: (Offline, )?\d+ unsynced$/ })).toBeVisible();
+  await page.getByRole("button", { name: /^Sync now/ }).click();
+  await expect(page.getByRole("button", { name: "Sync now: Synced" })).toBeVisible({ timeout: 60_000 });
   await expect.poll(() => dbSetCount(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toEqual({ sets: 2, machineSets: 0 });
   await expect(page.locator('.sync-pip[data-state="idle"]')).toContainText(/^Synced$/, { timeout: 60_000 });
 });

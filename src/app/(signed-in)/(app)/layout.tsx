@@ -1,8 +1,7 @@
-// (app) layout: guards the group, mounts the sync provider and renders the visual shell (stream B).
+// (app) layout: guards the group and renders the visual shell (stream B). The sync provider lives in the (signed-in) layout above.
 // requireSessionInfo() is requireUser() plus the user's name/image for the avatar: one session lookup, same redirect.
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { SyncProvider } from "@/client/sync";
 import { AppShell } from "@/components/shell/AppShell";
 import { requireSessionInfo } from "@/server/auth/session";
 import { redirectIfNotOnboarded } from "@/server/profile/guard";
@@ -43,8 +42,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const { ctx, user } = await requireSessionInfo();
   await redirectIfNotOnboarded(ctx);
   return (
-    <SyncProvider userId={ctx.id}>
-      <AppShell user={{ name: user.name, image: user.image }}>{children}</AppShell>
-    </SyncProvider>
+    <AppShell user={{ name: user.name, image: user.image }}>{children}</AppShell>
   );
 }

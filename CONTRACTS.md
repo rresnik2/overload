@@ -135,7 +135,7 @@ Owner of the implementation: **E1**. Shapes are frozen.
 * **Server order of operations**: validate each mutation (shape, owner, references, catalog read-only) → a bad one gets `rejected` and a `SyncDeadLetter` row and never blocks the rest → lock the user's `SyncState` row (`FOR UPDATE`) → merge fields by HLC → every changed row gets the next per-user `version` → derive `workoutId/exerciseId/machineProfileId/seriesKey/localDate/effectiveLoadKg/e1rmKg` for sets → rebuild PRs for each affected `seriesKey` → return rows with `version > cursor`, ≤ `SYNC_MAX_PULL_ROWS` (1000) per page, ordered by version across all entities.
 * A mutation referencing a parent that is missing for this user is `MISSING_REFERENCE`. Mutations in one batch are applied in `SYNC_ORDER` (parents first). Children of a tombstoned parent are tombstoned by the server (orphan rule).
 * **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; exerciseFavorites; then machineProfiles and exercises).
-* **Triggers** (client): app start, `online`, `visibilitychange`, 1.5 s after a write, every 30 s while pending, manual. `navigator.locks` ensures one sync at a time. iOS has no Background Sync.
+* **Triggers** (client), by `isWorkoutActive()` (`src/lib/pwa.ts`). Outside a workout: app start, `online`, `visibilitychange` (at most once per 30 s), 1.5 s after a write, every 30 s while pending (the retry), manual. During a workout: app start, manual (the "Sync now" button), and at most one sync per 5 minutes while changes are pending (`online` is throttled to the same rule; writes and `visibilitychange` trigger nothing). Finishing or discarding a workout syncs immediately. A request with no mutations is answered without a write transaction. `navigator.locks` ensures one sync at a time (a manual sync waits its turn, the others skip). iOS has no Background Sync.
 
 <!-- sig: src/contracts/sync.ts#SyncRequest,MutationResult,SyncResponse,SyncStatus,SyncReason,SyncResult,SyncedInfo -->
 ```ts
@@ -358,7 +358,7 @@ export interface SyncProviderProps {
 }
 ```
 
-`SyncProvider` (`src/client/sync/provider.tsx`) takes `SyncProviderProps & { children: ReactNode }`; it opens the per-user Dexie database `overload-<userId>` and starts the engine. It is already mounted in `src/app/(app)/layout.tsx`; stream B must keep it when replacing that layout, and `(workout)` must mount it too.
+`SyncProvider` (`src/client/sync/provider.tsx`) takes `SyncProviderProps & { children: ReactNode }`; it opens the per-user Dexie database `overload-<userId>` and starts the engine. It is mounted once, in `src/app/(signed-in)/layout.tsx`, the parent of the `(app)` and `(workout)` route groups, so the engine keeps running when moving between them.
 
 PR detection (pure, shared by server rebuild and the client's live toast):
 

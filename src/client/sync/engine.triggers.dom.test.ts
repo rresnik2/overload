@@ -12,7 +12,7 @@ afterEach(() => {
 
 describe("triggers", () => {
   it("syncs shortly after a write, on the interval while pending, and on the online/visibility events", async () => {
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval"] });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"] });
     try {
       const server = new FakeServer();
       const device = newDevice();
@@ -48,6 +48,10 @@ describe("triggers", () => {
       await waitFor(() => server.requests.length > beforeOnline);
       await waitFor(() => status.get().state === "idle");
       const beforeVisible = server.requests.length;
+      document.dispatchEvent(new Event("visibilitychange")); // within 30 s of the last sync: throttled, no request
+      await vi.advanceTimersByTimeAsync(100);
+      expect(server.requests.length).toBe(beforeVisible);
+      await vi.advanceTimersByTimeAsync(31_000);
       document.dispatchEvent(new Event("visibilitychange"));
       await waitFor(() => server.requests.length > beforeVisible);
       engine.stop();
