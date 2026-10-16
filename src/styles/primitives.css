@@ -1125,15 +1125,18 @@
   font-size: 20px;
   font-weight: 600;
   color: var(--color-muted, #a2a8ae);
-  transition: font-size 120ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+  /* The selected item grows with a transform (compositor only, no layout): 20px x 1.5 is the 30px it used to switch to. */
+  transition:
+    transform 120ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    color 120ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 .numstrip__item.is-sel {
   font-family: var(--font-display, "Archivo", "Helvetica Neue", Arial, sans-serif);
   font-stretch: 62%;
   font-style: italic;
-  font-size: 30px;
   font-weight: 800;
   color: var(--color-base-content, #ecebe6);
+  transform: scale(1.5);
 }
 @media (prefers-reduced-motion: reduce) {
   .dial__rot,

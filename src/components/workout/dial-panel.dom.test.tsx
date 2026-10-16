@@ -68,9 +68,11 @@ describe("ActiveSetPanel", () => {
     render(<Harness onChange={onChange} />);
     slider().focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(onChange).toHaveBeenLastCalledWith({ weightKg: 102.5, inputUnit: "KG" });
+    // A key step is committed after a short pause, once.
+    await vi.waitFor(() => expect(onChange).toHaveBeenLastCalledWith({ weightKg: 102.5, inputUnit: "KG" }));
     await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
-    expect(onChange).toHaveBeenLastCalledWith({ weightKg: 97.5, inputUnit: "KG" });
+    await vi.waitFor(() => expect(onChange).toHaveBeenLastCalledWith({ weightKg: 97.5, inputUnit: "KG" }));
+    expect(onChange).toHaveBeenCalledTimes(2);
   });
 
   it("writes dial turns in pounds, stored as kg with the unit it was entered in", async () => {
@@ -80,7 +82,7 @@ describe("ActiveSetPanel", () => {
     slider().focus();
     await userEvent.keyboard("{ArrowRight}");
     // 135 lb -> 140 lb (a 45 lb bar and 2.5 lb plates step by 5 lb)
-    expect(onChange).toHaveBeenLastCalledWith({ weightKg: 63.503, inputUnit: "LB" });
+    await vi.waitFor(() => expect(onChange).toHaveBeenLastCalledWith({ weightKg: 63.503, inputUnit: "LB" }));
   });
 
   it("taps the number to type: the value is saved as typed and the dial lands on it", async () => {
@@ -123,7 +125,7 @@ describe("ActiveSetPanel", () => {
     expect(onChange).toHaveBeenLastCalledWith({ rir: null });
     screen.getByRole("spinbutton", { name: "Set 1 reps" }).focus();
     await userEvent.keyboard("{ArrowRight}");
-    expect(onChange).toHaveBeenLastCalledWith({ reps: 6 });
+    await vi.waitFor(() => expect(onChange).toHaveBeenLastCalledWith({ reps: 6 }));
   });
 
   it("hides the effort row on a warm-up", () => {

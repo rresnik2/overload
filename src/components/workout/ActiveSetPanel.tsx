@@ -1,9 +1,10 @@
 "use client";
 import clsx from "clsx";
 import { Star, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { EQUIPMENT_LABEL } from "@/components/exercises/labels";
+import { ECHO_MS, type CommitHandle } from "@/components/ui/commit";
 import { Dial } from "@/components/ui/Dial";
 import { NumberStrip } from "@/components/ui/NumberStrip";
 import { Term } from "@/components/ui/Term";
@@ -53,12 +54,37 @@ function repValues(current: number | null): number[] {
 }
 
 /**
+ * A number the lifter is turning: `shown` follows the control live (`live`), the stored `committed` value catches up after the
+ * control commits (`settled` starts a short timer that drops the draft if the stored value never changes, e.g. a failed write).
+ * The draft is also dropped as soon as the stored value changes, so the stored value always wins once it arrives.
+ */
+function useLiveValue(committed: number | null) {
+  const [draft, setDraft] = useState<number | null>(null);
+  const [seen, setSeen] = useState(committed);
+  if (seen !== committed) {
+    setSeen(committed);
+    setDraft(null);
+  }
+  const timer = useRef(0);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+  const live = useCallback((v: number) => {
+    window.clearTimeout(timer.current);
+    setDraft(v);
+  }, []);
+  const settled = useCallback(() => {
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => setDraft(null), ECHO_MS);
+  }, []);
+  return [draft ?? committed, live, settled] as const;
+}
+
+/**
  * The set you are about to do, one at a time, on a phone (spec section 04): name and meta, the set legend, the equipment picture
  * with its caption, the big weight, the plate-face dial, the reps strip, the effort buttons and a sticky Log set. Every write goes
  * through `onChange` with the same patches as SetRow, and weights through weightPatch(), so storage stays in kg.
  * Values the lifter has not entered yet are shown from last time (`ghost`), and Log set fills them in exactly like the check does.
  */
-export function ActiveSetPanel({
+export const ActiveSetPanel = memo(function ActiveSetPanel({
   label,
   ordinal,
   set,
@@ -88,12 +114,36 @@ export function ActiveSetPanel({
 
   const entered = shownWeight(set.weightKg, unit);
   const fromLast = ghost?.weightKg != null ? fromKg(ghost.weightKg, unit) : null;
-  const weight = fields.weight ? (entered ?? fromLast) : null;
-  const reps = fields.reps ? (set.reps ?? ghost?.reps ?? null) : null;
-  const setup = dialSetup({ exercise, unit, step, current: weight, machine, gear });
+  // The stored values (what the controls rest on) and the live ones (what the readout, the picture and the Log label show mid-turn).
+  const storedWeight = fields.weight ? (entered ?? fromLast) : null;
+  const storedReps = fields.reps ? (set.reps ?? ghost?.reps ?? null) : null;
+  const [weight, liveWeight, weightSettled] = useLiveValue(storedWeight);
+  const [reps, liveReps, repsSettled] = useLiveValue(storedReps);
+  // The dial's values come from the STORED weight, so they do not change under the finger while it turns.
+  const setup = useMemo(() => dialSetup({ exercise, unit, step, current: storedWeight, machine, gear }), [exercise, unit, step, storedWeight, machine, gear]);
 
   const loadout = setup.kind === "bar" ? loadBar(weight ?? setup.bar ?? 0, setup.bar ?? 0, setup.plates) : null;
   const colors = dialColors(setup.kind, loadout ? heaviestTone(loadout.perSide) : null);
+
+  const weightDial = useRef<CommitHandle>(null);
+  const repsStrip = useRef<CommitHandle>(null);
+  const commitWeight = useCallback(
+    (v: number) => {
+      weightSettled();
+      onChange(weightPatch(v, unit));
+    },
+    [onChange, unit, weightSettled],
+  );
+  const commitReps = useCallback(
+    (v: number) => {
+      repsSettled();
+      onChange({ reps: v });
+    },
+    [onChange, repsSettled],
+  );
+  const spokenWeight = useCallback((v: number) => weightSpoken(v, unit, exercise.loadType, setup.kind === "stack" ? pinOf(v, setup) : null), [unit, exercise.loadType, setup]);
+  const repOptions = useMemo(() => repValues(storedReps), [storedReps]);
+  const repsSpoken = useCallback((v: number) => `${v} reps`, []);
 
   // Log set -> "Logged ✓" for 1300 ms -> the parent advances. The flash starts when the set actually completes, so a failed write shows nothing.
   const [armed, setArmed] = useState(false);
@@ -149,6 +199,9 @@ export function ActiveSetPanel({
       onToggleComplete(); // reopen
       return;
     }
+    // A value still waiting for its commit (a key press a moment ago) is written first; the completion reads the stored set after it.
+    weightDial.current?.flush();
+    repsStrip.current?.flush();
     setArmed(true);
     onToggleComplete();
   };
@@ -231,11 +284,13 @@ export function ActiveSetPanel({
 
       {fields.weight ? (
         <Dial
+          ref={weightDial}
           label={PANEL_COPY.weightFor(ordinal)}
           values={setup.values}
-          value={weight}
-          onChange={(v) => onChange(weightPatch(v, unit))}
-          valueText={(v) => weightSpoken(v, unit, exercise.loadType, setup.kind === "stack" ? pinOf(v, setup) : null)}
+          value={storedWeight}
+          onChange={liveWeight}
+          onCommit={commitWeight}
+          valueText={spokenWeight}
           rim={colors.rim}
           ink={colors.ink}
           stamp={unit === "KG" ? "KG" : "LB"}
@@ -249,7 +304,7 @@ export function ActiveSetPanel({
           <span className="wk-panel__k type-label" aria-hidden="true">
             Reps
           </span>
-          <NumberStrip label={PANEL_COPY.repsFor(ordinal)} values={repValues(reps)} value={reps} onChange={(v) => onChange({ reps: v })} valueText={(v) => `${v} reps`} disabled={completed} />
+          <NumberStrip ref={repsStrip} label={PANEL_COPY.repsFor(ordinal)} values={repOptions} value={storedReps} onChange={liveReps} onCommit={commitReps} valueText={repsSpoken} disabled={completed} />
         </div>
       ) : null}
 
@@ -293,4 +348,4 @@ export function ActiveSetPanel({
       </div>
     </li>
   );
-}
+});
