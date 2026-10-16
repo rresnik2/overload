@@ -1,6 +1,6 @@
 "use client";
 import clsx from "clsx";
-import { memo, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, Ref } from "react";
 import type { TermId } from "@/lib/glossary";
 import { ECHO_MS, STEP_COMMIT_MS, useFlushOnLeave, type CommitHandle } from "./commit";
@@ -121,7 +121,8 @@ export const Dial = memo(function Dial({ label, labelHint, values, value, onChan
   // a store (Dexie), so for a moment the prop is behind idxRef: resetting idxRef from every render would drop quick key presses.
   const reported = useRef<number[]>([]);
 
-  useEffect(() => {
+  // A layout effect: a timer that fires right after a render must already see that render's prop index.
+  useLayoutEffect(() => {
     latest.current = { count, values, value, onChange, onCommit, onDetent, disabled, propIdx };
   });
   useEffect(() => {
@@ -314,6 +315,7 @@ export const Dial = memo(function Dial({ label, labelHint, values, value, onChan
         disabled={disabled}
         aria-disabled={disabled ? true : undefined}
         onKeyDown={onKeyDown}
+        onBlur={() => pending.current !== null && settle()}
         // Assistive tech (VoiceOver swipe up/down, TalkBack volume keys) changes the range directly.
         onChange={(e) => moveBy(Number(e.target.value) - idxRef.current, "step")}
       />

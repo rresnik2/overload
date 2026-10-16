@@ -87,7 +87,8 @@ export const NumberStrip = memo(function NumberStrip({ label, labelHint, values,
   const commitTimer = useRef(0);
   const echoTimer = useRef(0);
   const latest = useRef({ values, onChange, onCommit, disabled, itemSize, count, propIdx });
-  useEffect(() => {
+  // A layout effect: a timer that fires right after a render must already see that render's prop index.
+  useLayoutEffect(() => {
     latest.current = { values, onChange, onCommit, disabled, itemSize, count, propIdx };
   });
 
