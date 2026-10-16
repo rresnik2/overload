@@ -1,6 +1,6 @@
 // The active workout screen against a real (fake-indexeddb) repo: what re-renders, and what is re-read, when a clock ticks or a set is written.
 import "fake-indexeddb/auto";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { activateUserDb, resetAllDbs } from "@/client/db/active";
@@ -107,6 +107,26 @@ describe("ActiveWorkout renders", () => {
     // And the write itself landed.
     const sets = await repo.sets.forWorkout(workout.id);
     expect(sets.filter((s) => s.reps === 9)).toHaveLength(1);
+  });
+
+  it("phone layout: a dial step followed at once by Log set stores the dialled weight, not the old one", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: query.includes("max-width"), media: query, addEventListener: () => undefined, removeEventListener: () => undefined }));
+    try {
+      await renderActive();
+      const dial = await screen.findByRole("slider", { name: "Set 1 weight" });
+      dial.focus();
+      fireEvent.keyDown(dial, { key: "ArrowRight" });
+      fireEvent.keyDown(dial, { key: "ArrowRight" });
+      await userEvent.click(screen.getByRole("button", { name: /^Log set/ }));
+      await waitFor(async () => {
+        const done = (await repo.sets.forWorkout(workout.id)).filter((s) => s.completedAt != null);
+        expect(done).toHaveLength(1);
+        expect(done[0]!.weightKg).toBe(65);
+        expect(done[0]!.reps).toBe(8);
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("shows last time and records once the history has loaded, not before", async () => {

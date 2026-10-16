@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { replaceEqualDeep } from "@/lib/structural";
+import { replaceEqualDeep } from "./structural";
 
 /**
  * `value`, but with every part that is deeply equal to the previous render's value kept as the SAME reference. A database re-read

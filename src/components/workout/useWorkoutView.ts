@@ -10,7 +10,7 @@ import { META_KEYS, getMeta, requireActiveDb } from "@/client/db";
 import { repo, useLive } from "@/client/repo";
 import type { WorkoutRow } from "@/contracts/entities";
 import type { PrCandidate } from "@/contracts/prs";
-import { replaceEqualDeep } from "@/lib/structural";
+import { replaceEqualDeep } from "./structural";
 import { useStable } from "./use-stable";
 import { composeExercises, loadSeriesContext, loadWorkoutSets, loadWorkoutStructure, workoutPrsByExercise, type ExerciseView, type SeriesContext } from "./view";
 

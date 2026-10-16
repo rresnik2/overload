@@ -154,6 +154,54 @@ describe("ActiveSetPanel", () => {
     expect(screen.getByRole("button", { name: "Log set · 95 kg × 6" })).toBeEnabled();
   });
 
+  describe("live value, one write", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("the readout, the picture and the Log label follow a key step at once; the write comes once, after the pause", () => {
+      const onChange = vi.fn();
+      render(<Harness onChange={onChange} />);
+      slider().focus();
+      fireEvent.keyDown(slider(), { key: "ArrowRight" });
+      fireEvent.keyDown(slider(), { key: "ArrowRight" });
+      expect(screen.getByRole("button", { name: /^Set 1 weight 105, tap to type/ })).toHaveTextContent("105");
+      expect(screen.getByRole("button", { name: "Log set · 105 kg × 5" })).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+      act(() => void vi.advanceTimersByTime(300));
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith({ weightKg: 105, inputUnit: "KG" });
+    });
+
+    it("Log set writes a pending dial value before it completes the set", () => {
+      const calls: string[] = [];
+      render(<Harness onChange={(p) => calls.push(`change ${JSON.stringify(p)}`)} onToggleComplete={() => calls.push("toggle")} />);
+      slider().focus();
+      fireEvent.keyDown(slider(), { key: "ArrowRight" });
+      fireEvent.click(screen.getByRole("button", { name: "Log set · 102.5 kg × 5" }));
+      expect(calls).toEqual(['change {"weightKg":102.5,"inputUnit":"KG"}', "toggle"]);
+    });
+
+    it("a pending reps value is written before Log set too", () => {
+      const calls: string[] = [];
+      render(<Harness onChange={(p) => calls.push(`change ${JSON.stringify(p)}`)} onToggleComplete={() => calls.push("toggle")} />);
+      screen.getByRole("spinbutton", { name: "Set 1 reps" }).focus();
+      fireEvent.keyDown(screen.getByRole("spinbutton", { name: "Set 1 reps" }), { key: "ArrowRight" });
+      fireEvent.click(screen.getByRole("button", { name: "Log set · 100 kg × 6" }));
+      expect(calls).toEqual(['change {"reps":6}', "toggle"]);
+    });
+
+    it("a pending value is written when the page is hidden", () => {
+      const onChange = vi.fn();
+      render(<Harness onChange={onChange} />);
+      slider().focus();
+      fireEvent.keyDown(slider(), { key: "ArrowRight" });
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      document.dispatchEvent(new Event("visibilitychange"));
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+      expect(onChange).toHaveBeenCalledWith({ weightKg: 102.5, inputUnit: "KG" });
+    });
+  });
+
   describe("Log set", () => {
     beforeEach(() => vi.useFakeTimers());
     afterEach(() => vi.useRealTimers());
