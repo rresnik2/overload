@@ -16,39 +16,41 @@ Measured before any performance change, so later parts can show before and after
 
 | Metric | Median | p75 | After B2 |
 |---|---|---|---|
-| Dock tap to heading, Today to Exercises | 733 ms | 798 ms | |
-| Dock tap to heading, Exercises to Progress | 755 ms | 865 ms | |
-| Dock tap to heading, Progress to Today | 966 ms | 982 ms | |
-| Dock tap to heading, all 15 taps | 865 ms | 951 ms | |
-| Dock tap to network idle, Exercises / Progress / Today | 733 / 755 / 966 ms | 798 / 865 / 982 ms | |
-| Dial, 10-detent drag: pointerdown to readout settled | 799 ms | 801 ms | |
-| Dial: readout lag after the last pointer move | 17 ms | 17 ms | |
-| Dial: long tasks over 50 ms during the drag | 0 | 0 | |
-| Picker, 'bench press': key to results updated (30 of 55 keys change the DOM) | 33 ms | 36 ms | |
-| Picker: key to next paint (Event Timing) | 24 ms | 25 ms | |
-| Picker: 11 keystrokes, summed update time | 197 ms | 199 ms | |
-| Picker: long tasks over 50 ms | 0 | 0 | |
-| INP after the interactions (dial / picker / navigation) | 48 / 48 / 8 ms | n/a | |
-| `/today` browser TTFB (unthrottled) | 1707 ms | 1764 ms | |
-| `/today` server total (proxy to end of response) | 842 ms | 911 ms | |
-| `/today` Prisma queries, summed query time, DB wall time | 18, 2045 ms, 825 ms | 18, 2405 ms, 891 ms | |
-| `/progress` browser TTFB | 889 ms | 1048 ms | |
-| `/progress` server total | 884 ms | 1043 ms | |
-| `/progress` Prisma queries, summed query time, DB wall time | 11, 1472 ms, 862 ms | 11, 1481 ms, 1022 ms | |
-| `/exercises` browser TTFB | 753 ms | 776 ms | |
-| `/exercises` server total | 750 ms | 766 ms | |
-| `/exercises` Prisma queries, summed query time, DB wall time | 8, 1042 ms, 727 ms | 8, 1128 ms, 752 ms | |
+| Dock tap to heading, Today to Exercises | 733 ms | 798 ms | 103 ms (p75 117, first uncached tap 713) |
+| Dock tap to heading, Exercises to Progress | 755 ms | 865 ms | 101 ms (p75 101, first uncached tap 654) |
+| Dock tap to heading, Progress to Today | 966 ms | 982 ms | 102 ms (p75 103, first uncached tap 706) |
+| Dock tap to heading, all 15 taps | 865 ms | 951 ms | 102 ms (p75 110, max 713) |
+| Dock tap to network idle, Exercises / Progress / Today | 733 / 755 / 966 ms | 798 / 865 / 982 ms | 103 / 101 / 102 ms (max 1037 / 1123 / 706) |
+| Dial, 10-detent drag: pointerdown to readout settled | 799 ms | 801 ms | 795 ms (p75 807) |
+| Dial: readout lag after the last pointer move | 17 ms | 17 ms | 13 ms (p75 14) |
+| Dial: long tasks over 50 ms during the drag | 0 | 0 | 0 |
+| Picker, 'bench press': key to results updated (30 of 55 keys change the DOM) | 33 ms | 36 ms | 32 ms (p75 33) |
+| Picker: key to next paint (Event Timing) | 24 ms | 25 ms | 17 ms (p75 24) |
+| Picker: 11 keystrokes, summed update time | 197 ms | 199 ms | 183 ms (p75 188) |
+| Picker: long tasks over 50 ms | 0 | 0 | 0 |
+| INP after the interactions (dial / picker / navigation) | 48 / 48 / 8 ms | n/a | 48 / 48 / 8 ms |
+| `/today` browser TTFB (unthrottled) | 1707 ms | 1764 ms | 132 ms (p75 189) |
+| `/today` server total (proxy to end of response) | 842 ms | 911 ms | 564 ms (p75 705) |
+| `/today` Prisma queries, summed query time, DB wall time | 18, 2045 ms, 825 ms | 18, 2405 ms, 891 ms | 9, 1164 ms, 547 ms (p75 9, 1558, 685) |
+| `/progress` browser TTFB | 889 ms | 1048 ms | 71 ms (p75 74) |
+| `/progress` server total | 884 ms | 1043 ms | 481 ms (p75 538) |
+| `/progress` Prisma queries, summed query time, DB wall time | 11, 1472 ms, 862 ms | 11, 1481 ms, 1022 ms | 5, 656 ms, 452 ms (p75 5, 724, 513) |
+| `/exercises` browser TTFB | 753 ms | 776 ms | 322 ms (p75 493) |
+| `/exercises` server total | 750 ms | 766 ms | 320 ms (p75 486) |
+| `/exercises` Prisma queries, summed query time, DB wall time | 8, 1042 ms, 727 ms | 8, 1128 ms, 752 ms | 4, 409 ms, 302 ms (p75 4, 558, 455) |
+| Dock tap to skeleton visible (new metric; only taps that showed one) | n/a | n/a | 89 ms (p75 93); 2 of 15 taps |
+| Dock tap to first feedback, skeleton else heading (new metric) | n/a | n/a | 101 ms (p75 102, max 713) |
 
 Lighthouse (mobile, simulated slow 4G / 4x CPU, `tools/lighthouse/run.ts`), one run, performance score:
 
 | Page | Perf | LCP | TBT | CLS | A11y | Best practices | After B2 |
 |---|---|---|---|---|---|---|---|
-| landing | 95 | 3005 ms | 36 ms | 0 | 100 | 100 | |
-| sign-in | 91 | 3457 ms | 20 ms | 0 | 100 | 100 | |
-| today | 81 | 3909 ms | 97 ms | 0.144 | 100 | 100 | |
-| progress series | 80 | 4210 ms | 277 ms | 0 | 100 | 100 | |
-| workout | 85 | 4371 ms | 62 ms | 0 | 100 | 100 | |
-| exercises | 87 | 4060 ms | 62 ms | 0 | 100 | 100 | |
+| landing | 95 | 3005 ms | 36 ms | 0 | 100 | 100 | 92, LCP 3378 ms, TBT 30 ms, CLS 0 |
+| sign-in | 91 | 3457 ms | 20 ms | 0 | 100 | 100 | 91, LCP 3456 ms, TBT 22 ms, CLS 0 |
+| today | 81 | 3909 ms | 97 ms | 0.144 | 100 | 100 | 84, LCP 4522 ms, TBT 81 ms, CLS 0.001 |
+| progress series | 80 | 4210 ms | 277 ms | 0 | 100 | 100 | 76, LCP 4841 ms, TBT 291 ms, CLS 0 |
+| workout | 85 | 4371 ms | 62 ms | 0 | 100 | 100 | 85, LCP 4380 ms, TBT 69 ms, CLS 0 |
+| exercises | 87 | 4060 ms | 62 ms | 0 | 100 | 100 | 88, LCP 3836 ms, TBT 39 ms, CLS 0 |
 
 ### Reading the numbers
 
@@ -57,6 +59,16 @@ Lighthouse (mobile, simulated slow 4G / 4x CPU, `tools/lighthouse/run.ts`), one 
 - The dial and the picker did **not** produce long tasks on this machine at 4x CPU. The dial readout trails the finger by one frame (about 17 ms). Typing is about 24 ms to paint. These two are healthy on a production build; the earlier report of lag may be dev-build or lower-end device specific, and is worth confirming on a real phone.
 - Lighthouse variance is large on the signed-in pages. The `/workout` score was 75 (LCP 10.8 s) on a first run taken while the demo user still had an active workout left over from the harness, and 85 once the account was clean. The `/workout` budget in `tools/lighthouse/run.ts` is 0.70 (same as progress) for now; the target is 0.80.
 - `/today` CLS is 0.144, above the 0.1 "good" threshold.
+
+### After B2 (measured 2026-10-16 after the B-VERIFY fixes; same setup, port 3002, `OVERLOAD_SERVER_TIMING=1` at build and runtime)
+
+- **Query counts roughly halved.** `/today` 18 to 9, `/progress` 11 to 5, `/exercises` 8 to 4, from one cached session and profile read per request plus the Better Auth cookie cache. Summed query time and DB wall time fell with them, and server total with those: `/today` 842 to 564 ms, `/progress` 884 to 481 ms, `/exercises` 750 to 320 ms.
+- **Browser TTFB fell much more than server time** (`/today` 1707 to 132 ms, `/progress` 889 to 71 ms). Do not read all of that as a win: the baseline's TTFB included the unexplained first-request cost and this run hit warm connections. Server total is the comparable number.
+- **Dock taps are about 100 ms at the median, but that is mostly the router cache.** `staleTimes.dynamic: 30` serves a revisited page from the client, and the spec taps the same three pages five times. The first, uncached tap of each is the comparable figure: 713 ms (Exercises), 654 ms (Progress), 706 ms (Today), against 733 / 755 / 966 ms before. A modest gain (3 to 27 percent): a cold tap still waits for the throttled link and one server render.
+- **Tap to skeleton** (new): 89 ms median, but only 2 of 15 taps showed one. Cached taps render at once, and `/exercises` and `/progress/<id>` deliberately have no loading boundary (the dock item's `LinkPending` indicator is the feedback). `/today` and the index pages of `/progress`, `/history`, `/templates` and `/insights` keep a skeleton.
+- **Dial and picker are unchanged** (within noise); B2 did not touch them. Both still show 0 long tasks.
+- **Lighthouse is flat within the 10 to 15 percent run-to-run noise**: today +3, exercises +1, landing -3, progress series -4 (TBT 291 ms, its charts load client-side), workout and sign-in unchanged. Under simulated slow 4G a 4 s LCP is dominated by JS and font transfer, so a 200 to 400 ms server saving barely shows. Today's CLS fell from 0.144 to 0.001. The LCP rises on today (+613 ms) and progress series (+631 ms) are not explained by this change; treat them as noise unless a repeat run shows them again.
+- **Why some routes have no skeleton:** a `loading.tsx` above a page that can call `notFound()` makes Next stream a 200 before the page runs, and streamed content needs JavaScript to replace its fallback. So `/exercises`, `/exercises/[id]`, `/progress/[exerciseId]` and `/insights/[week]` have no loading boundary, and each section's index page sits in an `(index)` route group so its `loading.tsx` does not wrap the detail routes.
 
 ### Not measured, and why
 

@@ -17,6 +17,16 @@ const LEG_PRESS = "cda4642e-23e8-5f6f-82b7-63f85195c232";
 const LEG_CURL = "047f5403-8ded-54bf-ad56-5704abcc7393";
 const COLD = { timeout: 30_000 };
 
+/** page.goto, once more when the previous page's delayed server refresh (router.refresh after a sync, which replaces history) lands mid-navigation. */
+async function open(page: Page, path: string) {
+  try {
+    await page.goto(path);
+  } catch (error) {
+    if (!/interrupted by another navigation/.test(String(error))) throw error;
+    await page.goto(path);
+  }
+}
+
 async function signInDemo(page: Page) {
   await resetRateLimitsIfProduction(page);
   for (let attempt = 0; ; attempt++) {
@@ -142,7 +152,7 @@ test.describe("progress (demo user)", () => {
     test(`no horizontal overflow at ${viewport.width}px`, async ({ page }) => {
       await page.setViewportSize(viewport);
       for (const path of ["/progress", `/progress/${SQUAT}`, `/progress/${LEG_PRESS}`, "/progress/body", "/progress/prs"]) {
-        await page.goto(path);
+        await open(page, path);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible(COLD);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         expect(overflow, `${path} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
@@ -161,7 +171,7 @@ test.describe("progress (demo user)", () => {
         ["/progress/body", "chart-weight"],
         ["/progress/prs", "pr-board"],
       ] as const) {
-        await page.goto(path);
+        await open(page, path);
         await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
         await expect(page.getByTestId(ready).first()).toBeVisible(COLD);
         if (ready.startsWith("chart-")) await expect(page.getByTestId(ready).locator("svg.recharts-surface")).toBeVisible(COLD);

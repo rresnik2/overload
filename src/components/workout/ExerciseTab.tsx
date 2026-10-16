@@ -58,6 +58,7 @@ export function ExerciseTab({ items, index, onGo }: ExerciseTabProps) {
                 type="button"
                 className="wk-jump__row"
                 aria-current={i === index ? "true" : undefined}
+                aria-label={`${item.name}, ${item.done} of ${item.total} ${item.total === 1 ? "set" : "sets"} done`}
                 onClick={() => {
                   setListOpen(false);
                   onGo(i);

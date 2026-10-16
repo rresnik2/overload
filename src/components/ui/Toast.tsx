@@ -14,7 +14,7 @@ export interface ToastInput {
   description?: ReactNode;
   /** One optional action ("Undo", "View"). */
   action?: { label: string; onClick: () => void };
-  /** Auto-dismiss in ms. Default 5000 (8000 for errors). 0 keeps it until dismissed. */
+  /** Auto-dismiss in ms. Default 5000 (3500 for records, 8000 for errors). 0 keeps it until dismissed. */
   duration?: number;
 }
 
@@ -41,7 +41,7 @@ const MAX_VISIBLE = 3;
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
   const kind = item.kind ?? "info";
   const Icon = ICONS[kind];
-  const duration = item.duration ?? (kind === "error" ? 8000 : 5000);
+  const duration = item.duration ?? (kind === "error" ? 8000 : kind === "pr" ? 3500 : 5000);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const disarm = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);

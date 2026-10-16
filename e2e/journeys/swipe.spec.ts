@@ -69,6 +69,7 @@ test.describe("tab swipes", () => {
     await expect(page).toHaveURL(/\/exercises$/, COLD);
     await expectNavType(page, "nav-back");
 
+    await settled(page); // the URL changes before React re-renders with the new pathname; a swipe in that gap uses the old one
     await swipe(page.locator("#main"), { dx: 140 });
     await expect(page).toHaveURL(/\/today$/, COLD);
 
@@ -282,7 +283,7 @@ test.describe("exercise tab on /workout", () => {
     await t.getByRole("button", { name: /^Jump to an exercise/ }).click();
     const list = page.getByRole("dialog", { name: "Jump to an exercise" });
     await expect(list.getByRole("button", { name: new RegExp(A) })).toHaveAttribute("aria-current", "true");
-    await expect(list.getByRole("button", { name: new RegExp(`${B}.*0/3 sets`) })).toBeVisible();
+    await expect(list.getByRole("button", { name: new RegExp(`${B}, 0 of 1 set done`) })).toBeVisible();
     await list.getByRole("button", { name: new RegExp(C) }).click();
     await expect(list).toBeHidden();
     expect(await focusedName(page)).toBe(C);
