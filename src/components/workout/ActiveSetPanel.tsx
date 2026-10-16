@@ -10,7 +10,7 @@ import { Term } from "@/components/ui/Term";
 import type { MachineProfileRow } from "@/contracts/entities";
 import type { SetType } from "@/contracts/enums";
 import { formatNumber, fromKg } from "@/lib/units";
-import { dialColors, dialSetup, pinOf, type DialMachine } from "./dial-setup";
+import { dialColors, dialSetup, pinOf } from "./dial-setup";
 import { EquipmentPicture } from "./EquipmentPicture";
 import { confirm, tick, useHapticsEnabled } from "./haptics";
 import { effortOptions, PANEL_COPY, readoutUnit, effortText, SET_TYPE_LABEL, setFields, weightSpoken } from "./labels";
@@ -87,7 +87,6 @@ export function ActiveSetPanel({
   const weight = fields.weight ? (entered ?? fromLast) : null;
   const reps = fields.reps ? (set.reps ?? ghost?.reps ?? null) : null;
   const setup = dialSetup({ exercise, unit, step, current: weight, machine });
-  const pin = setup.kind === "stack" && weight !== null ? pinOf(weight, setup) : null;
 
   const loadout = setup.kind === "bar" ? loadBar(weight ?? setup.bar ?? 0, setup.bar ?? 0, setup.plates) : null;
   const colors = dialColors(setup.kind, loadout ? heaviestTone(loadout.perSide) : null);
