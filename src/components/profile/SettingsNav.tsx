@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/settings/profile", label: "Profile" },
-  { href: "/settings/machines", label: "Machines" },
+  { href: "/settings/machines", label: "Machines and gear" },
   { href: "/settings/security", label: "Security" },
   { href: "/settings/account", label: "Account" },
 ] as const;

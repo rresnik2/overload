@@ -1248,8 +1248,19 @@ body:has(.wk-rest) .wk-panel__logrow {
   padding: 0;
   list-style: none;
 }
+.wk-gear {
+  display: grid;
+  gap: 0.9rem;
+  margin-bottom: var(--space-6);
+}
+.wk-section-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
 .wk-card {
   display: grid;
+  gap: 0.5rem;
   gap: 0.5rem;
 }
 .wk-card__head {
