@@ -14,6 +14,7 @@ import {
 import { dateToLocalDate, localDateToDate } from "@/lib/dates";
 import type { UserCtx } from "@/server/auth/ctx";
 import { prisma } from "@/server/db";
+import { loadProfileRowCached } from "@/server/profile/row";
 import { PENDING_STALE_MS } from "./constants";
 
 /** A stored report plus what the pipeline needs to decide whether to regenerate. `row` is null when the stored JSON no longer parses. */
@@ -105,7 +106,7 @@ async function reload(ctx: UserCtx, id: string): Promise<InsightReportRow> {
 
 export const prismaReportStore: ReportStore = {
   async timezoneOf(ctx) {
-    const p = await prisma.profile.findUnique({ where: { userId: ctx.id }, select: { timezone: true } });
+    const p = await loadProfileRowCached(ctx);
     return p?.timezone ?? null;
   },
 

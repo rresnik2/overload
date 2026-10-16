@@ -24,10 +24,12 @@ const DATE_LABEL = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "num
 
 export default async function TodayPage() {
   const { ctx } = await requireSessionInfo();
-  const today = await loadToday(ctx);
-  const [profile, report, lifts, overview, body] = await Promise.all([
-    getProfileRow(ctx),
-    latestReport(ctx),
+  // The profile row is read once per request (src/server/profile/row.ts): the layout's onboarding guard, loadToday and getProfileRow
+  // share it. The insight lookup does not need the date, so it runs beside it; the three data loaders need `today` and run together.
+  const reportPromise = latestReport(ctx);
+  const [today, profile] = await Promise.all([loadToday(ctx), getProfileRow(ctx)]);
+  const [report, lifts, overview, body] = await Promise.all([
+    reportPromise,
     loadTodayLifts(ctx, { today }),
     loadProgressOverview(ctx, { today }),
     loadBodyView(ctx, { today }),

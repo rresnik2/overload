@@ -25,6 +25,10 @@ interface TapResult {
   rep: number;
   headingMs: number;
   idleMs: number;
+  /** Tap to the route skeleton (loading.tsx) on screen; null when the page was ready first (router cache or fast response). */
+  skeletonMs: number | null;
+  /** Tap to the first thing that answers it: the skeleton, or the heading when there was no skeleton. */
+  feedbackMs: number;
 }
 
 test("dock taps: Today -> Exercises -> Progress -> Today", async ({ page }) => {
@@ -65,14 +69,16 @@ test("dock taps: Today -> Exercises -> Progress -> Today", async ({ page }) => {
       // Armed before the tap: records the pointerdown time and polls (every frame) until the target h1 shows.
       const armed = page.evaluate(
         ({ href, heading }) =>
-          new Promise<{ t0: number; tHeading: number }>((resolve, reject) => {
+          new Promise<{ t0: number; tHeading: number; tSkeleton: number | null }>((resolve, reject) => {
             let t0 = 0;
+            let tSkeleton: number | null = null;
             document.addEventListener("pointerdown", (e) => (t0 = performance.timeOrigin + e.timeStamp), { capture: true, once: true });
             const deadline = performance.now() + 30_000;
             const check = () => {
+              if (t0 && tSkeleton === null && document.querySelector("main .skel-page")) tSkeleton = performance.timeOrigin + performance.now();
               const h1 = document.querySelector("main h1, h1");
               const shown = h1 && h1.textContent?.trim() === heading && location.pathname === href && h1.getBoundingClientRect().height > 0;
-              if (t0 && shown) return resolve({ t0, tHeading: performance.timeOrigin + performance.now() });
+              if (t0 && shown) return resolve({ t0, tHeading: performance.timeOrigin + performance.now(), tSkeleton });
               if (performance.now() > deadline) return reject(new Error(`timed out waiting for ${heading}`));
               requestAnimationFrame(check);
             };
@@ -81,12 +87,19 @@ test("dock taps: Today -> Exercises -> Progress -> Today", async ({ page }) => {
         step,
       );
       await dock.locator(`a[href="${step.href}"]`).tap();
-      const { t0, tHeading } = await armed;
+      const { t0, tHeading, tSkeleton } = await armed;
 
       // Network idle: nothing in flight for 500 ms after the heading (or after the last request, if later).
       while (inflight > 0 || Date.now() - lastActivity < 500) await page.waitForTimeout(50);
       const idleAt = Math.max(tHeading, lastActivity);
-      results.push({ href: step.href, rep, headingMs: tHeading - t0, idleMs: idleAt - t0 });
+      results.push({
+        href: step.href,
+        rep,
+        headingMs: tHeading - t0,
+        idleMs: idleAt - t0,
+        skeletonMs: tSkeleton === null ? null : tSkeleton - t0,
+        feedbackMs: (tSkeleton ?? tHeading) - t0,
+      });
       await page.waitForTimeout(400); // let transitions and post-navigation work finish before the next tap
     }
   }
@@ -101,6 +114,14 @@ test("dock taps: Today -> Exercises -> Progress -> Today", async ({ page }) => {
     rows.push({ metric: `tap -> ${step.href} network idle`, unit: "ms", summary: summarize(mine.map((r) => r.idleMs)) });
   }
   rows.push({ metric: "tap -> heading, all taps", unit: "ms", summary: summarize(results.map((r) => r.headingMs)) });
+  const skeletonTaps = results.filter((r) => r.skeletonMs !== null);
+  rows.push({
+    metric: "tap -> skeleton visible (taps that showed one)",
+    unit: "ms",
+    summary: skeletonTaps.length ? summarize(skeletonTaps.map((r) => r.skeletonMs as number)) : null,
+    note: `${skeletonTaps.length} of ${results.length} taps showed a skeleton`,
+  });
+  rows.push({ metric: "tap -> first feedback (skeleton, else heading), all taps", unit: "ms", summary: summarize(results.map((r) => r.feedbackMs)) });
   if (entries) {
     for (const step of STEPS) {
       const rsc = entries.filter((e) => e.kind === "rsc" && e.path === step.href);

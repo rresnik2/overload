@@ -142,6 +142,64 @@ test("a userId injected into the profile action is rejected and never touches an
   await attacker.context.close();
 });
 
+// auth.session.cookieCache (src/server/auth/auth.ts) lets a device skip the session lookup for up to 5 minutes. On THIS device sign-out,
+// "sign out other devices" and a password change must still behave at once; the other device's DB session is gone immediately and its
+// cached snapshot lapses within the window. The specs below check this device and the database truth (disableCookieCache).
+const appOrigin = () => new URL(process.env.E2E_BASE_URL ?? `http://localhost:${process.env.PORT ?? 3000}`).origin;
+
+test("sign-out ends this device's session at once, cookie cache included", async ({ browser }) => {
+  const user = await newOnboardedUser(browser, "signout");
+  const { page, context } = user;
+  await page.goto("/today"); // warms the cached snapshot cookie
+  await page.goto("/settings/profile");
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/sign-in/, { timeout: 30_000 });
+  const names = (await context.cookies()).map((c) => c.name);
+  expect(names.filter((n) => n.includes("session"))).toEqual([]);
+  await page.goto("/today");
+  await expect(page).toHaveURL(/\/sign-in/);
+  await context.close();
+});
+
+test("sign out other devices and a password change keep this device signed in and end the other session", async ({ browser }) => {
+  const mine = await newOnboardedUser(browser, "devices");
+  const otherContext = await browser.newContext();
+  const other = await otherContext.newPage();
+  await resetRateLimitsIfProduction(other);
+  const signIn = await other.request.post("/api/auth/sign-in/email", { headers: { origin: appOrigin() }, data: { email: mine.email, password: mine.password } });
+  expect(signIn.ok()).toBe(true);
+  expect(await (await other.request.get("/api/auth/get-session?disableCookieCache=true")).json()).not.toBeNull();
+
+  await mine.page.goto("/settings/security");
+  const sessions = mine.page.getByRole("list", { name: "Active sessions" }).getByRole("listitem");
+  await expect(sessions).toHaveCount(2, { timeout: 30_000 });
+  await mine.page.getByRole("button", { name: "Sign out all other devices" }).click();
+  await expect(sessions).toHaveCount(1, { timeout: 30_000 });
+
+  // This device is still signed in, and the other one is gone in the database (the check that skips the cookie cache).
+  await mine.page.goto("/today");
+  await expect(mine.page).toHaveURL(/\/today$/);
+  expect(await (await other.request.get("/api/auth/get-session?disableCookieCache=true")).json()).toBeNull();
+
+  // Changing the password revokes other sessions too and also keeps this device signed in.
+  const again = await other.request.post("/api/auth/sign-in/email", { headers: { origin: appOrigin() }, data: { email: mine.email, password: mine.password } });
+  expect(again.ok()).toBe(true);
+  await mine.page.goto("/settings/security");
+  const form = mine.page.getByRole("form", { name: "Change password" });
+  const fresh = newPassword();
+  await form.getByLabel("Current password").fill(mine.password);
+  await form.getByLabel("New password", { exact: true }).fill(fresh);
+  await form.getByLabel("Confirm new password").fill(fresh);
+  await form.getByRole("button", { name: "Change password" }).click();
+  await expect(mine.page.getByText("Password changed. Other devices were signed out.")).toBeVisible({ timeout: 30_000 });
+  await mine.page.goto("/today");
+  await expect(mine.page).toHaveURL(/\/today$/);
+  expect(await (await other.request.get("/api/auth/get-session?disableCookieCache=true")).json()).toBeNull();
+
+  await otherContext.close();
+  await mine.context.close();
+});
+
 test("account deletion needs the typed phrase and the password, then removes the user", async ({ browser }) => {
   const user = await newOnboardedUser(browser, "doomed");
   const { page } = user;

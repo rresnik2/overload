@@ -30,7 +30,7 @@ export async function deleteAccount(ctx: UserCtx, input: unknown): Promise<Actio
       return failure("That password is not correct", { password: "That password is not correct" });
     }
   } else {
-    const session = await auth.api.getSession({ headers: requestHeaders });
+    const session = await auth.api.getSession({ headers: requestHeaders, query: { disableCookieCache: true } }); // destructive: always read the database
     if (!session || session.user.id !== ctx.id || !isRecentSession(new Date(session.session.createdAt))) {
       return failure("For your security, sign out and sign back in, then try again.");
     }

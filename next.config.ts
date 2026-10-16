@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   // cacheComponents stays OFF for v1 (see docs/PLAN.md).
+  experimental: {
+    // Client router cache for dynamic pages: a tab revisited within 30 s is served from memory instead of re-rendering on the
+    // server. Anything that changes server data must refresh the router afterwards (router.refresh() / revalidatePath()),
+    // see src/client/router-refresh.ts and the Server Actions.
+    staleTimes: { dynamic: 30 },
+  },
   images: {
     remotePatterns: [
       // Catalog exercise images (free-exercise-db, Unlicense). See src/lib/catalog-images.ts.

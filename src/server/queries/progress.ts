@@ -6,6 +6,7 @@ import { addDays, isoWeekStart, localDateToDate, toLocalDate, type LocalDate } f
 import { isUuid } from "@/lib/ids";
 import type { UserCtx } from "@/server/auth/ctx";
 import { prisma } from "@/server/db";
+import { loadProfileRowCached } from "@/server/profile/row";
 import { localDate as dateOnly } from "@/server/mappers";
 import {
   exerciseRowToMeta,
@@ -26,7 +27,7 @@ import {
 
 /** The user's current local date (their profile timezone; UTC before onboarding). Analytics never reads the clock itself. */
 export async function loadToday(ctx: UserCtx, now: Date = new Date()): Promise<LocalDate> {
-  const profile = await prisma.profile.findUnique({ where: { userId: ctx.id }, select: { timezone: true } });
+  const profile = await loadProfileRowCached(ctx);
   return toLocalDate(now, profile?.timezone ?? "UTC");
 }
 

@@ -14,7 +14,7 @@ Measured before any performance change, so later parts can show before and after
 
 ## Baseline
 
-| Metric | Median | p75 | After |
+| Metric | Median | p75 | After B2 |
 |---|---|---|---|
 | Dock tap to heading, Today to Exercises | 733 ms | 798 ms | |
 | Dock tap to heading, Exercises to Progress | 755 ms | 865 ms | |
@@ -41,7 +41,7 @@ Measured before any performance change, so later parts can show before and after
 
 Lighthouse (mobile, simulated slow 4G / 4x CPU, `tools/lighthouse/run.ts`), one run, performance score:
 
-| Page | Perf | LCP | TBT | CLS | A11y | Best practices | After |
+| Page | Perf | LCP | TBT | CLS | A11y | Best practices | After B2 |
 |---|---|---|---|---|---|---|---|
 | landing | 95 | 3005 ms | 36 ms | 0 | 100 | 100 | |
 | sign-in | 91 | 3457 ms | 20 ms | 0 | 100 | 100 | |

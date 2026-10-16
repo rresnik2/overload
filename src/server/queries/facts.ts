@@ -24,6 +24,7 @@ import type {
 } from "@/contracts/analytics";
 import { addDays, ageInYears, isoWeekStart, localDateToDate, type LocalDate } from "@/lib/dates";
 import { prisma } from "@/server/db";
+import { loadProfileRowCached } from "@/server/profile/row";
 import type { UserCtx } from "@/server/auth/ctx";
 import { iso, localDate, num } from "@/server/mappers";
 
@@ -175,7 +176,7 @@ export async function loadBodyFacts(ctx: UserCtx, range: { from: LocalDate; to: 
 }
 
 export async function loadProfileFact(ctx: UserCtx, today: LocalDate): Promise<ProfileFact> {
-  const row = await prisma.profile.findUnique({ where: { userId: ctx.id } });
+  const row = await loadProfileRowCached(ctx);
   return profileRowToFact(row, today);
 }
 

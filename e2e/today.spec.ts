@@ -3,6 +3,7 @@
 // No date-dependent assertions: "this week" can legitimately be empty for the demo history.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { logSetByTyping } from "./_support/logging";
 import { createUser, resetRateLimitsIfProduction } from "./_support/user";
 
 test.describe.configure({ timeout: 120_000 });
@@ -120,3 +121,57 @@ for (const theme of ["paper", "ink"] as const) {
     expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
   });
 }
+
+// next.config.ts keeps visited pages in the client router cache for 30 s (staleTimes.dynamic). These two specs navigate with in-app
+// links only (no reloads), so a page that was just visited is served from that cache unless something refreshes it.
+test("the router cache never hides a finished workout: Today shows it without a reload", async ({ page, isMobile }) => {
+  test.setTimeout(240_000);
+  await createUser(page, { tag: "stale-workout", name: "Stale Workout" });
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByText("No sets this week yet")).toBeVisible(COLD); // Today (empty) is now in the router cache
+
+  await page.getByRole("button", { name: "Start empty workout" }).click();
+  await expect(page).toHaveURL(/\/workout$/, COLD);
+  await expect(page.getByRole("textbox", { name: "Workout name" })).toBeVisible(COLD);
+  await page.getByRole("button", { name: "Add exercise" }).first().click();
+  const picker = page.getByRole("dialog");
+  await expect(picker.locator(".exercise-card").first()).toBeVisible(COLD);
+  await picker.getByPlaceholder("Search exercises").fill("barbell bench press");
+  const bench = "Barbell Bench Press - Medium Grip";
+  await picker.getByRole("button", { name: `Add ${bench}`, exact: true }).first().click();
+  await logSetByTyping(page.getByRole("region", { name: bench }), 1, "62.5", "8", isMobile);
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  await page.getByRole("button", { name: "Finish workout" }).click();
+  await expect(page.getByRole("heading", { name: "Workout saved" })).toBeVisible();
+  await page.getByRole("button", { name: "Done" }).click();
+
+  // Back by an in-app link, seconds after Today was cached. The sync push lands a moment later; either way Today must update itself.
+  await page.locator(".wk-topbar__back").click();
+  await expect(page).toHaveURL(/\/today$/);
+  await expect(page.getByTestId("today-hard-sets").getByRole("listitem").filter({ hasText: "Chest" })).toBeVisible({ timeout: 60_000 });
+});
+
+test("a settings change reaches pages visited in the last 30 seconds", async ({ page }) => {
+  test.setTimeout(180_000);
+  await createUser(page, { tag: "stale-units", name: "Stale Units" });
+  await expect(page).toHaveURL(/\/today$/);
+  const nav = (name: string) => page.getByRole("link", { name, exact: true }).first();
+
+  await nav("Progress").click();
+  await expect(page.getByRole("heading", { name: "Progress", level: 1 })).toBeVisible(COLD);
+  await nav("Body").click();
+  await expect(page.getByRole("heading", { name: "Body", level: 1 })).toBeVisible(COLD);
+  await expect(page.locator(".field__unit").first()).toHaveText("kg"); // /progress/body is now in the router cache
+
+  await page.getByRole("link", { name: /account settings/ }).click();
+  await expect(page.getByRole("form", { name: "Profile" })).toBeVisible(COLD);
+  await page.getByLabel("Weight unit").selectOption("LB");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page.getByText("Saved.")).toBeVisible(COLD);
+
+  await nav("Progress").click();
+  await expect(page.getByRole("heading", { name: "Progress", level: 1 })).toBeVisible(COLD);
+  await nav("Body").click();
+  await expect(page.getByRole("heading", { name: "Body", level: 1 })).toBeVisible(COLD);
+  await expect(page.locator(".field__unit").first()).toHaveText("lb");
+});
