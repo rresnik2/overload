@@ -322,20 +322,31 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
   </table></div>
   <p class="why"><b>Why typing only on desktop:</b> with a keyboard, typing “102.5” is quicker than turning anything, and dragging a dial with a mouse is awkward. Base the choice on <code>(pointer: coarse)</code> as well as width, so an iPad in landscape still gets the dial.</p>
 
+  <h3>Exercise tab (phones, <code>/workout</code>)</h3>
+  <p>The way to move between the stacked exercises. A slim tab fixed to the left or right screen edge, in the thumb zone. It shows only in the dial layout, with two or more exercises, and is hidden while a sheet or modal is open.</p>
+  <ul>
+    <li><b>Contents, top to bottom:</b> an up chevron (previous exercise), the count (“2/5”, <code>num</code>), a down chevron (next exercise). Each is a real button of at least <code>--tap-target</code>. Labels name the target: “Previous exercise: Bench press”, “Next exercise: Romanian deadlift”, “Jump to an exercise, 2 of 5”. The chevrons are disabled at the ends (no wrap-around).</li>
+    <li><b>Jump list:</b> the count opens a sheet listing every exercise in workout order with its progress (“3/4 sets”). The focused one is marked (<code>aria-current</code>, “Now”). Choosing a row focuses that exercise and closes the sheet. The sheet is a native dialog, so focus is trapped and restored.</li>
+    <li><b>Position:</b> against the chosen edge (<code>env(safe-area-inset-*)</code> respected), its bottom above the sticky Log set row (<code>--sab + 18 px + 54 px + --space-7</code>), and above the rest bar while that shows. The page reserves the tab’s width plus <code>--space-3</code> on that side, so it never covers the dial.</li>
+    <li><b>Look:</b> <code>--color-base-200</code> surface, <code>--color-line-strong</code> edge, <code>--radius-box</code> on the corners away from the screen edge and square against it, no shadow, no plate colours. It slides in from its edge in 200 ms (none under reduced motion).</li>
+    <li><b>Setting:</b> Settings → Profile → “Exercise tab: Left / Right”, per device (<code>localStorage</code> key <code>overload:exercise-tab-side</code>, default right; a blocked store means right). Changing it moves the tab live on an open workout.</li>
+    <li><b>Scrolling:</b> whenever focus changes (tap on a row, the tab, or auto-advance) the exercise scrolls into view, smooth or instant under reduced motion, with its top clear of the sticky workout bar (the bar is measured; the gap is <code>--space-6</code>).</li>
+  </ul>
+
   <h3>Swipe navigation (phones)</h3>
-  <p>Three horizontal gestures, all by touch or pen pointer events (<code>useSwipe</code>, <code>components/shell</code>). A mouse never swipes, and every gesture has a button or link that does the same thing.</p>
+  <p>Two horizontal gestures, all by touch or pen pointer events (<code>useSwipe</code>, <code>components/shell</code>). A mouse never swipes, and every gesture has a button or link that does the same thing.</p>
   <div class="tbl"><table>
     <thead><tr><th>Gesture</th><th>Where</th><th>What it does</th></tr></thead>
     <tbody>
-      <tr><td class="w-min">Swipe left / right</td><td><code>/workout</code> (dial layout)</td><td>Moves the dial panel to the next / previous exercise in workout order, with a short slide from that side. No wrap-around. The visible path is the <b>‹ Prev · 2 of 5 · Next ›</b> bar; its buttons name the exercise they go to and are disabled at the ends.</td></tr>
       <tr><td class="w-min">Swipe left / right</td><td><code>/today</code>, <code>/exercises</code>, <code>/progress</code> only (under 768 px)</td><td>Goes to the next / previous tab in dock order with <code>nav-forward</code> / <code>nav-back</code>. No wrap-around. Nested pages and the More pages ignore it. A dock tap picks the same direction from the tab’s position.</td></tr>
       <tr><td class="w-min">Edge swipe</td><td>Installed iPhone/iPad app only (<code>display-mode: standalone</code> on iOS)</td><td>A touch within 20 px of the left edge drags the page with the finger; releasing past 64 px (or with a fling) goes back one history entry as <code>nav-back</code>, otherwise it snaps back. Does nothing without an earlier entry. Android and Safari already have a system back gesture, so it is off there.</td></tr>
     </tbody>
   </table></div>
   <ul>
     <li><b>Intent:</b> horizontal only. The move must pass 10 px, then <code>|dx| &gt; 1.5 × |dy|</code>; it commits at 64 px or a fling (at least 24 px at 0.5 px/ms). Vertical intent cancels for good and the page scrolls as normal; the hook never calls <code>preventDefault</code>. Swipe areas use <code>touch-action: pan-y pinch-zoom</code>.</li>
-    <li><b>Opt-outs:</b> a gesture that starts inside <code>[data-no-swipe]</code>, a form field, or an element that really scrolls sideways is ignored. <code>data-no-swipe</code> is on the Dial, NumberStrip, Tabs and ModalityTabs, <code>.exercise-tabs</code>, <code>.settings-nav</code>, chart frames (plots and table scrollers), the learn table, the PR tables, dialogs and sheets, and the Prev/Next bar.</li>
+    <li><b>Opt-outs:</b> a gesture that starts inside <code>[data-no-swipe]</code>, a form field, or an element that really scrolls sideways is ignored. <code>data-no-swipe</code> is on the Dial, NumberStrip, Tabs and ModalityTabs, <code>.exercise-tabs</code>, <code>.settings-nav</code>, chart frames (plots and table scrollers), the learn table, the PR tables, dialogs and sheets, and the exercise tab.</li>
     <li><b>Reduced motion:</b> the gestures still work; the slides and the snap-back have no animation.</li>
+    <li><b>No sideways exercise swipe.</b> A swipe between exercises was tried on <code>/workout</code> and dropped after the phone test: the exercises are stacked vertically, so a sideways move made the page jump up or down. <code>/workout</code> has no swipe area at all.</li>
     <li><b>Page slides</b> are about 200 ms in total (<code>--page-out</code> 80 ms, <code>--page-in</code> 120 ms), and <code>::view-transition</code> has <code>pointer-events: none</code> so a tap during a slide reaches the page.</li>
   </ul>
 </section>
@@ -586,7 +597,7 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td>Active set</td><td>Activate or advance</td><td>The new panel expands from its compact row (height plus opacity) and the old one collapses</td><td>240 ms</td></tr>
       <tr><td>Readout number</td><td>Any change</td><td>None. Tabular figures keep the width stable.</td><td>–</td></tr>
       <tr><td>Page</td><td>Tab, link, swipe or history navigation</td><td>Old page slides out 1.5 rem and fades; new page slides in from the other side (<code>nav-forward</code> / <code>nav-back</code>)</td><td>80 ms out, 120 ms in</td></tr>
-      <tr><td>Exercise panel</td><td>Swipe or Prev / Next</td><td>The newly focused exercise slides in 1.5 rem from the side of the swipe</td><td>180 ms</td></tr>
+      <tr><td>Exercise tab</td><td>/workout opens (phones)</td><td>The tab slides in from its screen edge; a focus change scrolls the exercise into view</td><td>200 ms; scroll smooth</td></tr>
       <tr><td>Edge back peek</td><td>Edge swipe in the installed iPhone app</td><td>The page follows the finger; a short pull eases back</td><td>0 while dragging, 180 ms to settle</td></tr>
     </tbody>
   </table></div>
