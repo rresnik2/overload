@@ -7,7 +7,7 @@
 // recent entries as JSON and as a Server-Timing header for the harness.
 //
 // Request scoping uses React `cache()`: the first caller in a request gets a fresh stats object, every later caller in the
-// same render (the Prisma query listener, the probe) gets the same one.
+// same render (the Prisma client extension in db.ts, the probe) gets the same one.
 import { cache } from "react";
 
 export const SERVER_TIMING_FLAG = "OVERLOAD_SERVER_TIMING";
@@ -38,14 +38,26 @@ const fresh = (): RequestStats => ({ queries: 0, dbMs: 0, firstStart: Infinity, 
 // `cache` is a request-scoped memo in the react-server build; elsewhere (scripts, tests) it may be missing: then nothing is shared.
 export const requestStats: () => RequestStats = typeof cache === "function" ? cache(fresh) : fresh;
 
-/** Called by the Prisma `query` event listener (db.ts). */
-export function recordQuery(durationMs: number, endedAt: Date): void {
-  const s = requestStats();
-  const end = endedAt.getTime();
-  s.queries += 1;
-  s.dbMs += durationMs;
-  s.firstStart = Math.min(s.firstStart, end - durationMs);
-  s.lastEnd = Math.max(s.lastEnd, end);
+export function recordQuery(stats: RequestStats, durationMs: number, endedAtMs: number): void {
+  stats.queries += 1;
+  stats.dbMs += durationMs;
+  stats.firstStart = Math.min(stats.firstStart, endedAtMs - durationMs);
+  stats.lastEnd = Math.max(stats.lastEnd, endedAtMs);
+}
+
+/**
+ * Wraps one Prisma operation (the client extension in db.ts). The request's stats are resolved BEFORE the query runs, in the
+ * caller's async context, where React's `cache()` scope is still reachable. Prisma's own `$on("query")` listener fires outside
+ * that scope, which is why it recorded nothing.
+ */
+export async function measureQuery<T>(run: () => Promise<T>, stats: RequestStats = requestStats()): Promise<T> {
+  const start = Date.now();
+  try {
+    return await run();
+  } finally {
+    const end = Date.now();
+    recordQuery(stats, end - start, end);
+  }
 }
 
 const MAX_ENTRIES = 500;

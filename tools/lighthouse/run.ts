@@ -25,6 +25,9 @@ const PAGES = [
   { name: "sign-in", path: "/sign-in", auth: false, performance: 0.85 },
   { name: "today", path: "/today", auth: true, performance: 0.8 },
   { name: "progress series", path: `/progress/${SQUAT}`, auth: true, performance: 0.7 },
+  // Added by PERF-0: same budget as /today (signed-in, database-backed).
+  { name: "workout", path: "/workout", auth: true, performance: 0.8 },
+  { name: "exercises", path: "/exercises", auth: true, performance: 0.8 },
 ] as const;
 
 async function demoCookie(): Promise<string> {
