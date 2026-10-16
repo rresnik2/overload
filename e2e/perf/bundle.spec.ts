@@ -13,15 +13,20 @@ interface Bytes {
   raw: number;
   wire: number;
   files: number;
+  /** Of `raw`: bytes that arrived after the window `load` event (chunks imported on demand, such as the charts). */
+  lateRaw?: number;
 }
 
 test("JS and CSS per route", async ({ page }) => {
   await signInDemo(page);
   // Every route is a cold load: without this the second page would get the shared chunks from the memory cache (0 KB on the wire).
-  await (await page.context().newCDPSession(page)).send("Network.setCacheDisabled", { cacheDisabled: true });
+  // (A catch-all route makes Playwright turn the HTTP cache off for the page.)
+  await page.route("**/*", (route) => route.continue());
   const results: Record<string, { js: Bytes; css: Bytes; blockingCss: Bytes; fonts: Bytes }> = {};
   for (const route of ROUTES) {
-    const js: Bytes = { raw: 0, wire: 0, files: 0 };
+    const js: Bytes = { raw: 0, wire: 0, files: 0, lateRaw: 0 };
+    let loaded = false;
+    page.once("load", () => void (loaded = true));
     const css: Bytes = { raw: 0, wire: 0, files: 0 };
     const fonts: Bytes = { raw: 0, wire: 0, files: 0 };
     const pending: Promise<void>[] = [];
@@ -29,10 +34,12 @@ test("JS and CSS per route", async ({ page }) => {
       const type = response.headers()["content-type"] ?? "";
       const bucket = /javascript/.test(type) ? js : /text\/css/.test(type) ? css : /font/.test(type) ? fonts : null;
       if (!bucket) return;
+      const late = loaded;
       pending.push(
         (async () => {
           const [body, sizes] = await Promise.all([response.body().catch(() => Buffer.alloc(0)), response.request().sizes().catch(() => null)]);
           bucket.raw += body.length;
+          if (late && bucket === js) js.lateRaw = (js.lateRaw ?? 0) + body.length;
           bucket.wire += sizes?.responseBodySize ?? 0;
           bucket.files += 1;
         })(),
@@ -57,7 +64,7 @@ test("JS and CSS per route", async ({ page }) => {
   const one = (n: number) => ({ n: 1, median: n, p75: n, min: n, max: n });
   const kb = (n: number) => Math.round(n / 1024);
   for (const [route, r] of Object.entries(results)) {
-    rows.push({ metric: `${route} JS`, unit: "KB", summary: one(kb(r.js.raw)), note: `${kb(r.js.wire)} KB wire, ${r.js.files} files` });
+    rows.push({ metric: `${route} JS`, unit: "KB", summary: one(kb(r.js.raw)), note: `${kb(r.js.wire)} KB wire, ${r.js.files} files, ${kb(r.js.raw - (r.js.lateRaw ?? 0))} KB before load, ${kb(r.js.lateRaw ?? 0)} KB after` });
     rows.push({ metric: `${route} CSS`, unit: "KB", summary: one(kb(r.css.raw)), note: `${kb(r.css.wire)} KB wire, ${r.css.files} files, stylesheet links ${r.blockingCss.files} (${kb(r.blockingCss.raw)} KB raw)` });
     rows.push({ metric: `${route} fonts`, unit: "KB", summary: one(kb(r.fonts.raw)), note: `${r.fonts.files} files` });
   }

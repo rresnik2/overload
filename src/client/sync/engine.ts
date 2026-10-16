@@ -102,12 +102,14 @@ export function createEngine(options: EngineOptions): Engine {
   }
 
   async function refreshCatalog(reason: SyncReason): Promise<void> {
-    // A 304 is cheap but not free: check at app start and every few hours, not on every manual or reconnect sync.
-    const due = reason === "start" || now() - lastCatalogCheck > CATALOG_RECHECK_MS;
-    if (!due || !isOnline()) return;
+    if (!isOnline()) return;
+    // A 304 is cheap but not free: check at app start and every few hours, not on every manual or reconnect sync. A device that has
+    // never received the catalog (the first fetch failed) keeps trying on every sync: without it the exercise picker is empty.
+    const etag = await getMeta<string>(db, META_KEYS.catalogEtag);
+    const due = reason === "start" || etag === undefined || now() - lastCatalogCheck > CATALOG_RECHECK_MS;
+    if (!due) return;
     lastCatalogCheck = now();
     try {
-      const etag = await getMeta<string>(db, META_KEYS.catalogEtag);
       const res = await fetchImpl("/api/catalog", { headers: etag ? { "if-none-match": etag } : {}, credentials: "same-origin" });
       if (res.status !== 200) return; // 304: up to date; anything else (501 until the catalog ships): try again later
       const catalog = (await res.json()) as CatalogResponse;

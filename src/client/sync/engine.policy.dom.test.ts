@@ -131,8 +131,9 @@ describe("outside a workout", () => {
     expect(server.requests.every((r) => r.mutations.length === 0)).toBe(true);
   });
 
-  it("does not ask the catalog on every sync, only at start", async () => {
+  it("does not ask the catalog on every sync once it has it, only at start; until then it keeps asking", async () => {
     const { server, engine } = setup();
+    server.catalog = { version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [] };
     engine.start();
     await flush();
     expect(server.catalogRequests).toHaveLength(1);
@@ -142,6 +143,22 @@ describe("outside a workout", () => {
     void engine.syncNow("manual");
     await flush();
     expect(server.catalogRequests).toHaveLength(1);
+  });
+});
+
+describe("a device that never received the catalog", () => {
+  it("asks again on the next sync of any kind, so one failed first fetch does not leave the exercise picker empty", async () => {
+    const { server, engine } = setup(); // the fake server answers 501 until its catalog is set
+    engine.start();
+    await flush();
+    expect(server.catalogRequests).toHaveLength(1);
+    server.catalog = { version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [] };
+    void engine.syncNow("manual");
+    await flush();
+    expect(server.catalogRequests).toHaveLength(2);
+    void engine.syncNow("manual"); // now it has it
+    await flush();
+    expect(server.catalogRequests).toHaveLength(2);
   });
 });
 
