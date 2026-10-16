@@ -201,6 +201,60 @@ export async function resetProbe(page: Page): Promise<void> {
   });
 }
 
+/**
+ * Counts what one gesture costs the page, cheaply and without a dev build: IndexedDB transactions (a Dexie write is one
+ * read-write transaction) and, for the whole subtree under `root`, DOM mutation records and the batches they arrived in (one batch is
+ * roughly one React commit). Read with `readWork`, cleared with `resetWork`. Patches the IDBDatabase prototype in the page.
+ */
+export async function installWorkCounters(page: Page, root = ".wk-active"): Promise<void> {
+  await page.evaluate((rootSelector) => {
+    const w = window as unknown as { __perfWork?: { rw: number; ro: number; records: number; batches: number } };
+    if (w.__perfWork) return;
+    const work = { rw: 0, ro: 0, records: 0, batches: 0 };
+    w.__perfWork = work;
+    const original = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (this: IDBDatabase, ...args: Parameters<IDBDatabase["transaction"]>) {
+      if (args[1] === "readwrite") work.rw += 1;
+      else work.ro += 1;
+      return original.apply(this, args);
+    } as typeof IDBDatabase.prototype.transaction;
+    const el = document.querySelector(rootSelector);
+    if (el) {
+      new MutationObserver((records) => {
+        work.records += records.length;
+        work.batches += 1;
+      }).observe(el, { childList: true, characterData: true, attributes: true, subtree: true });
+    }
+  }, root);
+}
+
+export interface WorkCounts {
+  rw: number;
+  ro: number;
+  records: number;
+  batches: number;
+}
+
+export async function readWork(page: Page): Promise<WorkCounts> {
+  return page.evaluate(() => ({ ...(window as unknown as { __perfWork: WorkCounts }).__perfWork }));
+}
+
+export async function resetWork(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const work = (window as unknown as { __perfWork: WorkCounts }).__perfWork;
+    work.rw = 0;
+    work.ro = 0;
+    work.records = 0;
+    work.batches = 0;
+  });
+}
+
+/** Chrome's own counters (CDP Performance.getMetrics): style recalculations, layouts and script time since `Performance.enable`. */
+export async function browserMetrics(cdp: CDPSession): Promise<Record<string, number>> {
+  const { metrics } = (await cdp.send("Performance.getMetrics")) as { metrics: { name: string; value: number }[] };
+  return Object.fromEntries(metrics.map((m) => [m.name, m.value]));
+}
+
 export function longTaskStats(tasks: readonly { start: number; duration: number }[], from = -Infinity, to = Infinity): LongTaskStats {
   const inWindow = tasks.filter((t) => t.start + t.duration >= from && t.start <= to);
   return {
