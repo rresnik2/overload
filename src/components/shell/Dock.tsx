@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
 import { dockTransition, DOCK_ITEMS, isActive, MORE_ITEMS, START_WORKOUT } from "./nav";
+import { announceDirection } from "./nav-direction";
 import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -21,7 +22,7 @@ export function Dock() {
   const link = (item: (typeof DOCK_ITEMS)[number]) => {
     const active = isActive(pathname, item.href);
     return (
-      <Link key={item.href} href={item.href} className={clsx(active && "dock-active")} aria-current={active ? "page" : undefined} transitionTypes={[dockTransition(pathname, item.href)]}>
+      <Link key={item.href} href={item.href} className={clsx(active && "dock-active")} aria-current={active ? "page" : undefined} transitionTypes={[dockTransition(pathname, item.href)]} onClick={() => announceDirection(dockTransition(pathname, item.href))}>
         <NavIcon name={item.icon} />
         <span className="dock-label">{item.label}</span>
       </Link>

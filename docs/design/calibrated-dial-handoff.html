@@ -321,6 +321,23 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
     </tbody>
   </table></div>
   <p class="why"><b>Why typing only on desktop:</b> with a keyboard, typing “102.5” is quicker than turning anything, and dragging a dial with a mouse is awkward. Base the choice on <code>(pointer: coarse)</code> as well as width, so an iPad in landscape still gets the dial.</p>
+
+  <h3>Swipe navigation (phones)</h3>
+  <p>Three horizontal gestures, all by touch or pen pointer events (<code>useSwipe</code>, <code>components/shell</code>). A mouse never swipes, and every gesture has a button or link that does the same thing.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Gesture</th><th>Where</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td class="w-min">Swipe left / right</td><td><code>/workout</code> (dial layout)</td><td>Moves the dial panel to the next / previous exercise in workout order, with a short slide from that side. No wrap-around. The visible path is the <b>‹ Prev · 2 of 5 · Next ›</b> bar; its buttons name the exercise they go to and are disabled at the ends.</td></tr>
+      <tr><td class="w-min">Swipe left / right</td><td><code>/today</code>, <code>/exercises</code>, <code>/progress</code> only (under 768 px)</td><td>Goes to the next / previous tab in dock order with <code>nav-forward</code> / <code>nav-back</code>. No wrap-around. Nested pages and the More pages ignore it. A dock tap picks the same direction from the tab’s position.</td></tr>
+      <tr><td class="w-min">Edge swipe</td><td>Installed iPhone/iPad app only (<code>display-mode: standalone</code> on iOS)</td><td>A touch within 20 px of the left edge drags the page with the finger; releasing past 64 px (or with a fling) goes back one history entry as <code>nav-back</code>, otherwise it snaps back. Does nothing without an earlier entry. Android and Safari already have a system back gesture, so it is off there.</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Intent:</b> horizontal only. The move must pass 10 px, then <code>|dx| &gt; 1.5 × |dy|</code>; it commits at 64 px or a fling (at least 24 px at 0.5 px/ms). Vertical intent cancels for good and the page scrolls as normal; the hook never calls <code>preventDefault</code>. Swipe areas use <code>touch-action: pan-y pinch-zoom</code>.</li>
+    <li><b>Opt-outs:</b> a gesture that starts inside <code>[data-no-swipe]</code>, a form field, or an element that really scrolls sideways is ignored. <code>data-no-swipe</code> is on the Dial, NumberStrip, Tabs and ModalityTabs, <code>.exercise-tabs</code>, <code>.settings-nav</code>, chart frames (plots and table scrollers), the learn table, the PR tables, dialogs and sheets, and the Prev/Next bar.</li>
+    <li><b>Reduced motion:</b> the gestures still work; the slides and the snap-back have no animation.</li>
+    <li><b>Page slides</b> are about 200 ms in total (<code>--page-out</code> 80 ms, <code>--page-in</code> 120 ms), and <code>::view-transition</code> has <code>pointer-events: none</code> so a tap during a slide reaches the page.</li>
+  </ul>
 </section>
 
 <!-- 05 -->
@@ -568,6 +585,9 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td>Log set</td><td>Logged</td><td>Background colour cross-fade</td><td>150 ms</td></tr>
       <tr><td>Active set</td><td>Activate or advance</td><td>The new panel expands from its compact row (height plus opacity) and the old one collapses</td><td>240 ms</td></tr>
       <tr><td>Readout number</td><td>Any change</td><td>None. Tabular figures keep the width stable.</td><td>–</td></tr>
+      <tr><td>Page</td><td>Tab, link, swipe or history navigation</td><td>Old page slides out 1.5 rem and fades; new page slides in from the other side (<code>nav-forward</code> / <code>nav-back</code>)</td><td>80 ms out, 120 ms in</td></tr>
+      <tr><td>Exercise panel</td><td>Swipe or Prev / Next</td><td>The newly focused exercise slides in 1.5 rem from the side of the swipe</td><td>180 ms</td></tr>
+      <tr><td>Edge back peek</td><td>Edge swipe in the installed iPhone app</td><td>The page follows the finger; a short pull eases back</td><td>0 while dragging, 180 ms to settle</td></tr>
     </tbody>
   </table></div>
 </section>

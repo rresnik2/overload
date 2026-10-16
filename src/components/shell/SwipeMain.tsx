@@ -3,6 +3,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useRef } from "react";
 import type { ReactNode } from "react";
 import { dockTransition, tabNeighbour } from "./nav";
+import { announceDirection } from "./nav-direction";
 import { SWIPE } from "./swipe-logic";
 import { useMediaQuery } from "./useMediaQuery";
 import { useSwipe } from "./useSwipe";
@@ -28,7 +29,10 @@ export function SwipeMain({ children }: { children: ReactNode }) {
     startFilter: (e) => !(document.documentElement.dataset.edgeBack && e.clientX <= SWIPE.edge),
     onSwipe: (direction) => {
       const href = tabNeighbour(pathname, direction === "left" ? 1 : -1);
-      if (href) router.push(href, { transitionTypes: [dockTransition(pathname, href)] });
+      if (!href) return;
+      const type = dockTransition(pathname, href);
+      announceDirection(type);
+      router.push(href, { transitionTypes: [type] });
     },
   });
 
