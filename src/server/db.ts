@@ -9,6 +9,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { recordQuery, serverTimingEnabled } from "@/server/perf/server-timing";
 
 const globalForPrisma = globalThis as unknown as { __overloadPrisma?: PrismaClient };
 
@@ -24,11 +25,16 @@ function createClient(): PrismaClient {
   }
   const pool = new Pool({ connectionString, max: Number(process.env.DATABASE_POOL_MAX ?? 10) });
   attachDatabasePool(pool);
-  return new PrismaClient({
+  const options = {
     adapter: new PrismaPg(pool),
     // Keep transactions short on Neon; the sync transaction is the longest one.
     transactionOptions: { maxWait: 5_000, timeout: 15_000 },
-  });
+  };
+  if (!serverTimingEnabled()) return new PrismaClient(options);
+  // OVERLOAD_SERVER_TIMING=1 only (measurement, see src/server/perf/server-timing.ts): count queries and database time per request.
+  const measured = new PrismaClient({ ...options, log: [{ emit: "event", level: "query" }] });
+  measured.$on("query", (e) => recordQuery(e.duration, e.timestamp));
+  return measured as unknown as PrismaClient;
 }
 
 function getClient(): PrismaClient {

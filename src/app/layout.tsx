@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 import { resolveAppUrl } from "@/lib/app-url";
 import { THEME_COLORS, themeInitScript } from "@/lib/theme";
 import "@/styles/globals.css";
+import { ServerTimingProbe } from "./server-timing-probe";
+import { WebVitals } from "./web-vitals";
 
 // One family for display and body: Archivo, variable in weight (100-900) and width (wdth 62-125). Display type sets
 // font-stretch: 62% with italic 850; body stays at 100%. --font-display and --font-body both resolve to it (theme.css).
@@ -53,6 +55,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === "development"} reloadOnOnline={false}>
           {children}
         </SerwistProvider>
+        <WebVitals />
+        {process.env.OVERLOAD_SERVER_TIMING === "1" ? <ServerTimingProbe /> : null}
       </body>
     </html>
   );

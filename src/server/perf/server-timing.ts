@@ -1,0 +1,83 @@
+// Measurement only (stream DIAL, PERF-0): per-request Prisma query count and database time, behind OVERLOAD_SERVER_TIMING=1.
+// With the flag off nothing here runs: db.ts does not subscribe to query events, the proxy adds no header and the root layout
+// renders no probe.
+//
+// A page response cannot carry a Server-Timing header with the final numbers (headers leave before streaming finishes), so each
+// request records one entry when it completes (`after()`), the server logs one line, and /api/perf/server-timing serves the
+// recent entries as JSON and as a Server-Timing header for the harness.
+//
+// Request scoping uses React `cache()`: the first caller in a request gets a fresh stats object, every later caller in the
+// same render (the Prisma query listener, the probe) gets the same one.
+import { cache } from "react";
+
+export const SERVER_TIMING_FLAG = "OVERLOAD_SERVER_TIMING";
+export const serverTimingEnabled = (): boolean => process.env[SERVER_TIMING_FLAG] === "1";
+
+export interface RequestStats {
+  queries: number;
+  /** Sum of every query's duration. Concurrent queries overlap, so this can exceed the wall time. */
+  dbMs: number;
+  /** Earliest query start and latest query end (epoch ms): their difference is the wall time the database was busy. */
+  firstStart: number;
+  lastEnd: number;
+}
+
+export interface TimingEntry {
+  path: string;
+  kind: "html" | "rsc";
+  /** Epoch ms when the request completed on the server. */
+  at: number;
+  queries: number;
+  dbMs: number;
+  dbWallMs: number;
+  /** Proxy to end of response (render plus streaming) as seen by the server. */
+  totalMs: number;
+}
+
+const fresh = (): RequestStats => ({ queries: 0, dbMs: 0, firstStart: Infinity, lastEnd: 0 });
+// `cache` is a request-scoped memo in the react-server build; elsewhere (scripts, tests) it may be missing: then nothing is shared.
+export const requestStats: () => RequestStats = typeof cache === "function" ? cache(fresh) : fresh;
+
+/** Called by the Prisma `query` event listener (db.ts). */
+export function recordQuery(durationMs: number, endedAt: Date): void {
+  const s = requestStats();
+  const end = endedAt.getTime();
+  s.queries += 1;
+  s.dbMs += durationMs;
+  s.firstStart = Math.min(s.firstStart, end - durationMs);
+  s.lastEnd = Math.max(s.lastEnd, end);
+}
+
+const MAX_ENTRIES = 500;
+const g = globalThis as unknown as { __overloadTimings?: TimingEntry[] };
+const entries = (): TimingEntry[] => (g.__overloadTimings ??= []);
+
+const round = (n: number): number => Math.round(n * 10) / 10;
+
+/** `db;dur=12.3;desc="9 queries", dbwall;dur=8.1, app;dur=40.2` */
+export function serverTimingHeader(e: TimingEntry): string {
+  return `db;dur=${e.dbMs};desc="${e.queries} queries", dbwall;dur=${e.dbWallMs}, app;dur=${e.totalMs}`;
+}
+
+export function finishRequest(path: string, kind: TimingEntry["kind"], startedAt: number, stats: RequestStats): TimingEntry {
+  const now = Date.now();
+  const entry: TimingEntry = {
+    path,
+    kind,
+    at: now,
+    queries: stats.queries,
+    dbMs: round(stats.dbMs),
+    dbWallMs: stats.queries ? round(stats.lastEnd - stats.firstStart) : 0,
+    totalMs: round(now - startedAt),
+  };
+  const all = entries();
+  all.push(entry);
+  if (all.length > MAX_ENTRIES) all.splice(0, all.length - MAX_ENTRIES);
+  console.info(`[server-timing] ${kind} ${path} ${serverTimingHeader(entry)}`);
+  return entry;
+}
+
+export const recentTimings = (): TimingEntry[] => [...entries()];
+export const resetTimings = (): void => {
+  entries().length = 0;
+};

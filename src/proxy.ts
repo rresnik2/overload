@@ -10,6 +10,13 @@ export function proxy(request: NextRequest) {
     url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
     return NextResponse.redirect(url);
   }
+  if (process.env.OVERLOAD_SERVER_TIMING === "1") {
+    // Measurement only (src/server/perf/server-timing.ts): tell the render which route it is serving and when it started.
+    const headers = new Headers(request.headers);
+    headers.set("x-overload-path", request.nextUrl.pathname);
+    headers.set("x-overload-start", String(Date.now()));
+    return NextResponse.next({ request: { headers } });
+  }
   return NextResponse.next();
 }
 
