@@ -28,8 +28,8 @@ export function PageIntroPlaceholder({ id, children, className }: PageIntroProps
 }
 
 /**
- * A short note under a page header, shown on the first visit only: it stays for that visit, and "Got it" removes it at once.
- * Settings → Show tips brings every note back.
+ * A short note under a page header, shown in the first session only (TIP_SESSION_MS after it first appears, reloads included);
+ * "Got it" removes it at once. Settings → Show tips brings every note back.
  */
 export function PageIntro({ id, children, className }: PageIntroProps) {
   const hidden = useTipHidden(id);
