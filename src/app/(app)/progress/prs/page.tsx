@@ -1,5 +1,6 @@
 // Personal records per series. Machine series are separate boards; nothing here is converted between machines and barbells.
 import Link from "next/link";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { PageIntro } from "@/components/ui/PageIntro";
@@ -7,13 +8,17 @@ import { Term } from "@/components/ui/Term";
 import { PrBoardView } from "@/components/progress/PrBoardView";
 import { requireUser } from "@/server/auth/session";
 import { loadPrBoard } from "@/server/queries/prs";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Records" };
 
 export default async function PrsPage() {
-  const board = await loadPrBoard(await requireUser());
+  const ctx = await requireUser();
+  const syncVersion = await pageSyncVersion(ctx); // before the first synced row is read (src/server/sync/page-version.ts)
+  const board = await loadPrBoard(ctx);
   return (
     <>
+      <SyncVersionStamp version={syncVersion} />
       <PageHeader
         title="Records"
         meta={["Progress", `${board.series.length} series`]}

@@ -45,6 +45,9 @@ describe("push and pull", () => {
     expect(a.status.get().lastSyncedAt).toBeTruthy();
     expect(a.synced).toHaveLength(1);
     expect(await getMeta(a.db, META_KEYS.cursor)).toBe(server.version);
+    // the version the sync caught up to travels with the result and the listener call (the server pages compare it with theirs)
+    expect(result.serverVersion).toBe(server.version);
+    expect(a.synced[0]).toMatchObject({ pushed: 4, serverVersion: server.version });
 
     // an immediate second sync has nothing to do
     const again = await a.engine.syncNow("manual");

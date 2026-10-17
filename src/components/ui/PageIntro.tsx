@@ -11,6 +11,22 @@ export interface PageIntroProps {
   className?: string;
 }
 
+/**
+ * The same note for a loading skeleton: identical text and box, so the swap to the real page moves nothing, but inert and hidden from
+ * assistive technology (the real note replaces it a moment later). It is real text in the first flush of the document, so the browser
+ * paints the page's largest text, its Largest Contentful Paint, without waiting for the page's data. It hides for a dismissed tip.
+ */
+export function PageIntroPlaceholder({ id, children, className }: PageIntroProps) {
+  const hidden = useTipHidden(id);
+  if (hidden) return null;
+  return (
+    <div className={clsx("page-intro", className)} aria-hidden="true">
+      <p className="page-intro__text">{children}</p>
+      <span className="page-intro__dismiss page-intro__dismiss--static">Got it</span>
+    </div>
+  );
+}
+
 /** A short note under a page header. Dismiss it once and it stays away on this device; Settings → Show tips brings it back. */
 export function PageIntro({ id, children, className }: PageIntroProps) {
   const hidden = useTipHidden(id);

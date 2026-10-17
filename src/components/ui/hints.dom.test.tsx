@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setTipsEnabled } from "@/components/ui/tips";
 import { GLOSSARY } from "@/lib/glossary";
 import { InfoHint } from "./InfoHint";
-import { PageIntro } from "./PageIntro";
+import { PageIntro, PageIntroPlaceholder } from "./PageIntro";
 import { Term } from "./Term";
 
 function mockPointer(fine: boolean) {
@@ -189,5 +189,30 @@ describe("PageIntro", () => {
     render(<PageIntro id="history">Your log.</PageIntro>);
     expect(screen.getByText("Your log.")).toBeInTheDocument();
     vi.restoreAllMocks();
+  });
+});
+
+describe("PageIntroPlaceholder (the intro in a loading skeleton)", () => {
+  it("has the same text and box as PageIntro but is inert and hidden from assistive technology", () => {
+    render(<PageIntroPlaceholder id="today">Start here.</PageIntroPlaceholder>);
+    const note = screen.getByText("Start here.").closest(".page-intro") as HTMLElement;
+    expect(note).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByRole("button")).toBeNull(); // nothing focusable inside an aria-hidden region
+    expect(note.querySelector(".page-intro__dismiss")?.tagName).toBe("SPAN");
+    // the skeleton's copy is not in the accessibility tree, so it never duplicates the real note
+    expect(screen.queryByRole("note")).toBeNull();
+  });
+
+  it("hides for a dismissed tip and when tips are off, like the real note", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<PageIntro id="today">Start here.</PageIntro>);
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    unmount();
+    render(<PageIntroPlaceholder id="today">Start here.</PageIntroPlaceholder>);
+    expect(screen.queryByText("Start here.")).toBeNull();
+    act(() => setTipsEnabled(true));
+    expect(screen.getByText("Start here.")).toBeInTheDocument();
+    act(() => setTipsEnabled(false));
+    expect(screen.queryByText("Start here.")).toBeNull();
   });
 });

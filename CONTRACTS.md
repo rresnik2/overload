@@ -134,7 +134,7 @@ Owner of the implementation: **E1**. Shapes are frozen.
 * **Request**: `deviceId`, `cursor`, `clientHlc`, ≤ `SYNC_MAX_MUTATIONS` (200) mutations, validated by `syncRequestSchema`. Each mutation: `mutationId`, `entity`, `id`, `fields` (only writable fields + `deletedAt`), `fieldHlc` (exactly one HLC per field).
 * **Server order of operations**: validate each mutation (shape, owner, references, catalog read-only) → a bad one gets `rejected` and a `SyncDeadLetter` row and never blocks the rest → lock the user's `SyncState` row (`FOR UPDATE`) → merge fields by HLC → every changed row gets the next per-user `version` → derive `workoutId/exerciseId/machineProfileId/seriesKey/localDate/effectiveLoadKg/e1rmKg` for sets → rebuild PRs for each affected `seriesKey` → return rows with `version > cursor`, ≤ `SYNC_MAX_PULL_ROWS` (1000) per page, ordered by version across all entities.
 * A mutation referencing a parent that is missing for this user is `MISSING_REFERENCE`. Mutations in one batch are applied in `SYNC_ORDER` (parents first). Children of a tombstoned parent are tombstoned by the server (orphan rule).
-* **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; exerciseFavorites; then machineProfiles and exercises).
+* **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; exerciseFavorites; then machineProfiles and exercises). `PersonalRecord.workout` is the one `Cascade` into derived data, so GC first rebuilds the PRs of any series whose records point at a workout or set it is about to collect, and never hard-deletes a workout a PR still references. `collectTombstones(now, ttlDays, scope?)` takes `{ userIds }`; only the cron calls it unscoped, and tests must scope it (an unscoped run on a shared database collects every user's tombstones and raises every user's `gcFloorVersion`).
 * **Triggers** (client), by `isWorkoutActive()` (`src/lib/pwa.ts`). Outside a workout: app start, `online`, `visibilitychange` (at most once per 30 s), 1.5 s after a write, every 30 s while pending (the retry), manual. During a workout: app start, manual (the "Sync now" button), and at most one sync per 5 minutes while changes are pending (`online` is throttled to the same rule; writes and `visibilitychange` trigger nothing). Finishing or discarding a workout syncs immediately. A request with no mutations is answered without a write transaction. `navigator.locks` ensures one sync at a time (a manual sync waits its turn, the others skip). iOS has no Background Sync.
 
 <!-- sig: src/contracts/sync.ts#SyncRequest,MutationResult,SyncResponse,SyncStatus,SyncReason,SyncResult,SyncedInfo -->
@@ -187,6 +187,11 @@ export interface SyncResult {
   pulled: number;
   rejected: number;
   newPrs: PersonalRecordRow[];
+  /**
+   * The server version (`SyncResponse.cursor` of the last round) this device has caught up to. A server-rendered page that was
+   * rendered at a version >= this one already shows everything the sync pushed or pulled, so it needs no refresh.
+   */
+  serverVersion?: number;
   /** Set when ok is false. */
   error?: string;
   /** true when another sync was already running (navigator.locks) and this call did nothing. */
@@ -194,7 +199,7 @@ export interface SyncResult {
 }
 
 /** Info passed to useOnSynced listeners after every completed sync that pulled or pushed something. */
-export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs">;
+export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs" | "serverVersion">;
 ```
 
 Server entry point and route:
@@ -347,6 +352,8 @@ export function useSyncStatus(): SyncStatus;
 /** Calls `callback` after every sync that pushed or pulled something (e.g. to show a PR toast). Stable identity not required. */
 export function useOnSynced(_callback: (info: SyncedInfo) => void): void;
 ```
+
+Server-rendered pages that show synced data (`/today`, `/progress/*`, `/exercises`, `/exercises/[id]`, `/insights/*`) render `<SyncVersionStamp version={await pageSyncVersion(ctx)} />` (`src/client/sync/SyncVersionStamp.tsx`, `src/server/sync/page-version.ts`). The version is `SyncState.version` read **before** the page's own synced-row queries, so the page contains every row up to it. After a sync that pushed or pulled something, `useRefreshServerDataOnSync` calls `router.refresh()` only if the open page's version is below `SyncResult.serverVersion` (the cursor the sync reached); a page with no stamp, or a sync with no version, refreshes (correctness over savings). Both numbers are the server's own counter, so no clock is compared.
 
 <!-- sig: src/contracts/sync-client.ts#SyncProviderProps -->
 ```ts

@@ -3,7 +3,9 @@
 // bodyweight trend. Each card handles its own empty state, so a brand-new user sees invitations rather than blank charts. The async
 // data resolves in parallel and the page renders once: streaming cards in behind Suspense fallbacks moved the layout (CLS 0.3).
 // Layout (src/styles/today.css): one column under 768 px, two columns to 1023 px, then 290 px / 1fr / 270 px.
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { E1rmChart } from "@/components/today/E1rmChart";
+import { TODAY_INTRO } from "@/components/today/intro";
 import { E1rmTiles } from "@/components/today/E1rmTiles";
 import { TodayBodyCard } from "@/components/today/TodayBodyCard";
 import { TodayHardSetsCard } from "@/components/today/TodayHardSetsCard";
@@ -17,6 +19,7 @@ import { getProfileRow } from "@/server/profile/profile";
 import { loadBodyView } from "@/server/queries/body";
 import { loadProgressOverview, loadToday } from "@/server/queries/progress";
 import { loadTodayLifts } from "@/server/queries/progress.today";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Today" };
 
@@ -26,8 +29,10 @@ export default async function TodayPage() {
   const { ctx } = await requireSessionInfo();
   // The profile row is read once per request (src/server/profile/row.ts): the layout's onboarding guard, loadToday and getProfileRow
   // share it. The insight lookup does not need the date, so it runs beside it; the three data loaders need `today` and run together.
+  // The sync version is read beside the profile (neither touches synced rows) and so before the three loaders start: that ordering
+  // is what lets the client skip a refresh when a sync only brings what this page already shows (src/server/sync/page-version.ts).
   const reportPromise = latestReport(ctx);
-  const [today, profile] = await Promise.all([loadToday(ctx), getProfileRow(ctx)]);
+  const [today, profile, syncVersion] = await Promise.all([loadToday(ctx), getProfileRow(ctx), pageSyncVersion(ctx)]);
   const [report, lifts, overview, body] = await Promise.all([
     reportPromise,
     loadTodayLifts(ctx, { today }),
@@ -37,11 +42,12 @@ export default async function TodayPage() {
   const unit = profile?.unitPreference ?? "KG";
   return (
     <div className="today">
+      <SyncVersionStamp version={syncVersion} />
       <header className="today-head">
         <p className="type-label today-label">{DATE_LABEL.format(new Date(`${today}T00:00:00Z`)).replace(",", "")}</p>
         <h1 className="type-display-xl today-title">Today</h1>
       </header>
-      <PageIntro id="today">Start a workout here, then watch your estimated 1RMs, this week&rsquo;s sets and your bodyweight trend fill in. Your latest insight is on the page too.</PageIntro>
+      <PageIntro id="today">{TODAY_INTRO}</PageIntro>
       <div className="today-grid">
         <div className="today-col today-col--a">
           <div className="today-cell today-cell--start">

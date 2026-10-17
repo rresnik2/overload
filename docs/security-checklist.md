@@ -35,7 +35,7 @@ Two suites prove it with two real users, A (the attacker) and B (the victim):
 | Anonymous callers | `/api/sync`, `/api/catalog`, `/api/sync/gc`, `/api/cron/insights` answer 401; the export and every app page redirect to `/sign-in` | HTTP: `anonymous callers get 401...` |
 | Cron routes | `Authorization: Bearer ${CRON_SECRET}` required (timing-safe compare, minimum 16 characters); wrong secret is 401 | HTTP (above); `src/server/insights/*.test.ts` |
 | `/api/auth/test-mailbox` | 404 in production | `e2e/_support/db.ts` probe (production runs depend on it) |
-| Tombstone GC (`collectTombstones`) | per-user transactions, filters on each user's own rows; old unstarred favorites are collected, live ones never | `src/server/sync/apply.integration.test.ts` (garbage collection, exerciseFavorite) |
+| Tombstone GC (`collectTombstones`) | per-user transactions, filters on each user's own rows; old unstarred favorites are collected, live ones never; a run scoped to `userIds` leaves other users' tombstones, dead letters and gc floor alone; PR rows are rebuilt, never cascaded away | `src/server/sync/apply.integration.test.ts` (garbage collection, exerciseFavorite) |
 
 ## Review notes
 

@@ -81,10 +81,6 @@ export async function completeOnboarding(page: Page, opts: OnboardingOptions = {
   await page.getByRole("button", { name: "Finish" }).click();
   await expect(page).toHaveURL(/\/today$/, { timeout: COLD_ROUTE_MS });
   await expect(page.getByRole("heading", { name: "Today" })).toBeVisible();
-  // The first sync (catalog pull) triggers one delayed router.refresh(), which replaces the history entry about 2 s after arrival
-  // (measured: pushState at 1.1 s, replaceState at 3.1 s). WebKit reports a page.goto issued in that window as "interrupted by another
-  // navigation to /today", so let the refresh land first. Chromium does not.
-  if (page.context().browser()?.browserType().name() === "webkit") await page.waitForTimeout(2500);
 }
 
 /**

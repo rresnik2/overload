@@ -1,5 +1,9 @@
 // /today skeleton: the same grid and cell classes as page.tsx, with fixed-height blocks (sizes per breakpoint in shell.css).
+// It carries the page's intro note as real text: that note is the largest text on the page, so it is what the browser reports as the
+// Largest Contentful Paint, and it should not wait for the page's database reads (the page replaces it with the identical note).
 import { Skel, SkeletonPage } from "@/components/shell/Skeleton";
+import { TODAY_INTRO } from "@/components/today/intro";
+import { PageIntroPlaceholder } from "@/components/ui/PageIntro";
 
 export default function TodayLoading() {
   return (
@@ -8,6 +12,7 @@ export default function TodayLoading() {
         <p className="type-label today-label">&nbsp;</p>
         <p className="type-display-xl today-title">Today</p>
       </header>
+      <PageIntroPlaceholder id="today">{TODAY_INTRO}</PageIntroPlaceholder>
       <div className="today-grid">
         <div className="today-col today-col--a">
           <div className="today-cell today-cell--start">
