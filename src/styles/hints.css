@@ -147,6 +147,12 @@
   text-underline-offset: 3px;
   cursor: pointer;
 }
+/* The skeleton's copy (PageIntroPlaceholder) is a span with the button's box, not a control. */
+.page-intro__dismiss--static {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
 
 /* Label + hint pairs (section titles, column headers). */
 .label-hint {

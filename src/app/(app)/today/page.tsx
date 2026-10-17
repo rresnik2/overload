@@ -5,6 +5,7 @@
 // Layout (src/styles/today.css): one column under 768 px, two columns to 1023 px, then 290 px / 1fr / 270 px.
 import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { E1rmChart } from "@/components/today/E1rmChart";
+import { TODAY_INTRO } from "@/components/today/intro";
 import { E1rmTiles } from "@/components/today/E1rmTiles";
 import { TodayBodyCard } from "@/components/today/TodayBodyCard";
 import { TodayHardSetsCard } from "@/components/today/TodayHardSetsCard";
@@ -46,7 +47,7 @@ export default async function TodayPage() {
         <p className="type-label today-label">{DATE_LABEL.format(new Date(`${today}T00:00:00Z`)).replace(",", "")}</p>
         <h1 className="type-display-xl today-title">Today</h1>
       </header>
-      <PageIntro id="today">Start a workout here, then watch your estimated 1RMs, this week&rsquo;s sets and your bodyweight trend fill in. Your latest insight is on the page too.</PageIntro>
+      <PageIntro id="today">{TODAY_INTRO}</PageIntro>
       <div className="today-grid">
         <div className="today-col today-col--a">
           <div className="today-cell today-cell--start">
