@@ -38,4 +38,8 @@ export async function logSetByTyping(block: Locator, n: number, weight: string, 
   await setRepsOnStrip(block, n, Number(reps));
   await block.getByRole("button", { name: /^Log set/ }).click();
   await expect(block.getByRole("button", { name: "Logged ✓" })).toBeVisible();
+  // Playwright's mouse is a real mouse (pointerType "mouse", also in the Pixel and iPhone profiles) and it stays where the click left it,
+  // which can be under the toast that a record or a rest start raises just above the dock. A toast under a resting mouse is held open (a
+  // mouse hover pauses its timer, as it should), and it then covers the next "Add set". Park the mouse in the corner instead.
+  await block.page().mouse.move(0, 0);
 }
