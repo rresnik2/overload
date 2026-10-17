@@ -365,6 +365,15 @@ describe("EquipmentPicture", () => {
     expect(goblet.container.querySelector(".eq__caption")).toHaveTextContent("One 32 kg dumbbell");
   });
 
+  it("without a weight yet the caption prompts instead of describing a default weight", () => {
+    for (const [equipment, loadType] of [["DUMBBELL", "PER_IMPLEMENT"], ["KETTLEBELL", "TOTAL"], ["MACHINE_SELECTORIZED", "STACK"]] as const) {
+      const view = draw(equipment, loadType, null);
+      expect(view.container.querySelector(".eq__caption")).toHaveTextContent("Turn the dial to choose a weight");
+      expect(view.container.querySelector(".eq__caption")).not.toHaveTextContent(/total|kg/);
+      view.unmount();
+    }
+  });
+
   it("kettlebell: the bell takes the colour and stamped number of its size, in kg and lb", () => {
     const kg = draw("KETTLEBELL", "TOTAL", 24);
     expect(kg.container.querySelector<SVGPathElement>(".eq-kb__body")!.style.fill).toBe("rgb(47, 154, 79)");
