@@ -10,12 +10,17 @@ import { Pagination } from "@/components/exercises/Pagination";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { requireUser } from "@/server/auth/session";
+import { listLastLoads, listRecentExercises } from "@/server/catalog/last-loads";
 import { listLibrary } from "@/server/catalog/queries";
+import { getProfileRow } from "@/server/profile/profile";
+import { loadToday } from "@/server/queries/progress";
 import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Exercises" };
 
 const BASE_PATH = "/exercises";
+/** How many of the lifter's own exercises lead the first page. */
+const RECENT = 8;
 
 export default async function ExercisesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await requireUser();
@@ -31,6 +36,15 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
     pageSize: LIBRARY_PAGE_SIZE,
   });
 
+  // The rows draw the lifter's last load; the first, unfiltered page leads with the exercises they trained most recently.
+  const browsing = filters.page <= 1 && !filters.q && !filters.modality && !filters.equipment && !filters.muscle && !filters.fav;
+  const [profile, today, loads, recent] = await Promise.all([
+    getProfileRow(ctx),
+    loadToday(ctx),
+    listLastLoads(ctx, { exerciseIds: result.exercises.map((e) => e.id) }),
+    browsing ? listRecentExercises(ctx, RECENT) : Promise.resolve(null),
+  ]);
+  const unit = profile?.unitPreference ?? "KG";
   const favoriteIds = new Set(result.favoriteIds);
   const allCount = MODALITY_ORDER.reduce((sum, m) => sum + result.modalityCounts[m], 0);
   const tabs = [
@@ -59,15 +73,41 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
       />
       <PageIntro id="exercises">Browse or search every exercise. Tap the star to favorite one, and open an exercise to see how its weight is logged and how you are progressing on it.</PageIntro>
       <ExerciseFilters basePath={BASE_PATH} filters={filters} tabs={tabs} equipmentOptions={result.equipmentOptions} />
+      {recent && recent.exercises.length > 0 ? (
+        <section aria-labelledby="library-yours">
+          <div className="library-section">
+            <h2 id="library-yours" className="type-label">
+              Yours · last load
+            </h2>
+          </div>
+          <ExerciseList
+            exercises={recent.exercises}
+            label="Your recent exercises"
+            hrefFor={(exercise) => `${BASE_PATH}/${exercise.id}`}
+            headingLevel={3}
+            favoriteIds={favoriteIds}
+            renderAction={(exercise, isFavorite) => <FavoriteButton exerciseId={exercise.id} name={exercise.name} initial={isFavorite} />}
+            lastLoads={recent.loads}
+            unit={unit}
+            today={today}
+          />
+          <div className="library-section">
+            <h2 className="type-label">All exercises · A to Z</h2>
+          </div>
+        </section>
+      ) : null}
       <p className="library-count num" role="status">
         {result.total} {result.total === 1 ? "exercise" : "exercises"}
       </p>
       <ExerciseList
         exercises={result.exercises}
         hrefFor={(exercise) => `${BASE_PATH}/${exercise.id}`}
-        headingLevel={2}
+        headingLevel={recent && recent.exercises.length > 0 ? 3 : 2}
         favoriteIds={favoriteIds}
         renderAction={(exercise, isFavorite) => <FavoriteButton exerciseId={exercise.id} name={exercise.name} initial={isFavorite} />}
+        lastLoads={loads}
+        unit={unit}
+        today={today}
         empty={
           filters.fav && !filters.q && !filters.muscle && !filters.equipment && !filters.modality
             ? {
