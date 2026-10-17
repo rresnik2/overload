@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { resetAllDbs } from "@/client/db/active";
 import { exerciseInput, newDevice, type TestDevice } from "@/client/repo/test-utils";
 import type { WorkoutSetRow } from "@/contracts/entities";
-import { addExerciseToWorkout, addSet, completionPatch, finishWorkout, ghostSet, duplicateTemplate, movedPosition, saveWorkoutAsTemplate, shownWeight, startWorkout, supersetLabels, supersetPatches, templatesByRecentUse, unitForSet, weightPatch, weightStep } from "./session";
+import { addExerciseToWorkout, addSet, carryForwardPatch, completionPatch, finishWorkout, ghostSet, duplicateTemplate, movedPosition, saveWorkoutAsTemplate, shownWeight, startWorkout, supersetLabels, supersetPatches, templatesByRecentUse, unitForSet, weightPatch, weightStep } from "./session";
 
 let device: TestDevice;
 const fresh = () => (device = newDevice());
@@ -41,6 +41,34 @@ describe("startWorkout", () => {
     expect((await repo.workouts.active())?.id).toBe(w.id);
     expect((await startWorkout(repo, { unit: "KG" })).id).toBe(w.id);
     expect(await device.db.workout.count()).toBe(1);
+  });
+
+  it("repeats a past workout: its title, exercises in order and completed set counts, prefilled from that session", async () => {
+    const { repo } = fresh();
+    const squat = await repo.exercises.create(exerciseInput({ slug: "squat", name: "Squat" }));
+    const curl = await repo.exercises.create(exerciseInput({ slug: "curl", name: "Leg curl" }));
+    const past = await repo.workouts.create({ title: "Lower A", startedAt: "2026-10-12T17:00:00.000Z", localDate: "2026-10-12", timezone: "UTC", endedAt: "2026-10-12T18:00:00.000Z" });
+    const weSquat = await repo.workoutExercises.create({ workoutId: past.id, exerciseId: squat.id, machineProfileId: null, position: "a0", restSec: 180 });
+    const weCurl = await repo.workoutExercises.create({ workoutId: past.id, exerciseId: curl.id, machineProfileId: null, position: "a1" });
+    const done = (we: string, position: string, setType: "WARMUP" | "WORKING", weightKg: number, reps: number, completed = true) =>
+      repo.sets.create({ workoutExerciseId: we, position, setType, weightKg, inputUnit: "KG", reps, completedAt: completed ? "2026-10-12T17:10:00.000Z" : null });
+    await done(weSquat.id, "a0", "WARMUP", 60, 8);
+    await done(weSquat.id, "a1", "WORKING", 110, 6);
+    await done(weSquat.id, "a2", "WORKING", 110, 5);
+    await done(weSquat.id, "a3", "WORKING", 110, 5, false);
+    await done(weCurl.id, "a0", "WORKING", 40, 15);
+
+    const w = await startWorkout(repo, { repeat: past, unit: "KG", now: at("2026-10-16T17:00:00.000Z"), timeZone: "UTC" });
+    expect(w).toMatchObject({ title: "Lower A", templateId: null, localDate: "2026-10-16" });
+    const wes = await repo.workoutExercises.forWorkout(w.id);
+    expect(wes.map((e) => e.exerciseId)).toEqual([squat.id, curl.id]);
+    expect(wes[0]).toMatchObject({ restSec: 180 });
+    const squatSets = await repo.sets.forWorkoutExercise((wes[0] as { id: string }).id);
+    expect(squatSets.map((s) => [s.setType, s.weightKg, s.reps, s.completedAt])).toEqual([
+      ["WARMUP", 60, 8, null],
+      ["WORKING", 110, 6, null],
+      ["WORKING", 110, 5, null],
+    ]);
   });
 
   it("creates the workout from a template: exercises, machine, set counts, superset and rest, prefilled from last time", async () => {
@@ -104,6 +132,55 @@ describe("last-time lookup keeps machines apart", () => {
     expect(ghostSet(lastB, sets, sets[1] as WorkoutSetRow)).toMatchObject({ weightKg: 45, reps: 10 });
     expect(ghostSet(lastB, [...sets, { ...(sets[1] as WorkoutSetRow), id: "x", position: "z" }], { ...(sets[1] as WorkoutSetRow), id: "x" })).toMatchObject({ weightKg: 45 });
     expect(ghostSet(undefined, sets, sets[0] as WorkoutSetRow)).toBeNull();
+  });
+});
+
+describe("carrying a changed weight to the next set", () => {
+  async function liveBench() {
+    const { repo } = fresh();
+    const bench = await repo.exercises.create(exerciseInput({ slug: "bench", name: "Bench" }));
+    await log(device, bench.id, "2026-10-05", [
+      { weightKg: 40, reps: 10, setType: "WARMUP" },
+      { weightKg: 80, reps: 8 },
+      { weightKg: 82.5, reps: 6 },
+      { weightKg: 85, reps: 6 },
+    ]);
+    const w = await startWorkout(repo, { unit: "KG", now: at("2026-10-12T17:00:00.000Z"), timeZone: "UTC" });
+    const we = await addExerciseToWorkout(repo, { workoutId: w.id, exercise: bench, machineProfileId: null, unit: "KG", from: undefined });
+    const last = await repo.sets.lastTime({ exerciseId: bench.id, machineProfileId: null, beforeLocalDate: "2026-10-12" });
+    const sets = await repo.sets.forWorkoutExercise(we.id);
+    return { repo, sets, last };
+  }
+  const withWeight = (set: WorkoutSetRow, weightKg: number | null, completedAt: string | null = "2026-10-12T17:20:00.000Z") => ({ ...set, weightKg, completedAt });
+
+  it("moves the next untouched set to the weight the lifter dialled", async () => {
+    const { sets, last } = await liveBench();
+    const [first, second] = sets.filter((s) => s.setType === "WORKING") as [WorkoutSetRow, WorkoutSetRow];
+    expect([first.weightKg, second.weightKg]).toEqual([80, 82.5]);
+    const logged = withWeight(first, 95);
+    expect(carryForwardPatch(sets.map((s) => (s.id === logged.id ? logged : s)), logged, last)).toEqual({ id: second.id, patch: { weightKg: 95, inputUnit: first.inputUnit } });
+  });
+
+  it("leaves everything alone when the planned weight was logged, the next set was edited, or the set is a warm-up", async () => {
+    const { sets, last } = await liveBench();
+    const [first, second] = sets.filter((s) => s.setType === "WORKING") as [WorkoutSetRow, WorkoutSetRow];
+    expect(carryForwardPatch(sets, withWeight(first, 80), last)).toBeNull();
+    const edited = sets.map((s) => (s.id === second.id ? { ...s, weightKg: 90 } : s));
+    expect(carryForwardPatch(edited, withWeight(first, 95), last)).toBeNull();
+    const warm = sets.find((s) => s.setType === "WARMUP") as WorkoutSetRow;
+    expect(carryForwardPatch(sets, withWeight(warm, 60), last)).toBeNull();
+    const finalSet = sets[sets.length - 1] as WorkoutSetRow;
+    expect(carryForwardPatch(sets, withWeight(finalSet, 100), last)).toBeNull();
+  });
+
+  it("chains: a carried weight that is logged as is carries on, and a set with no history takes the weight too", async () => {
+    const { sets, last } = await liveBench();
+    const working = sets.filter((s) => s.setType === "WORKING") as WorkoutSetRow[];
+    const afterFirst = sets.map((s) => (s.id === working[1]?.id ? { ...s, weightKg: 95 } : s));
+    const secondLogged = withWeight(afterFirst.find((s) => s.id === working[1]?.id) as WorkoutSetRow, 95);
+    expect(carryForwardPatch(afterFirst, secondLogged, last)).toMatchObject({ id: working[2]?.id, patch: { weightKg: 95 } });
+    const bare = [withWeight(working[0] as WorkoutSetRow, 70, null), { ...(working[1] as WorkoutSetRow), weightKg: null }];
+    expect(carryForwardPatch(bare, withWeight(bare[0] as WorkoutSetRow, 70), undefined)).toMatchObject({ id: working[1]?.id, patch: { weightKg: 70 } });
   });
 });
 

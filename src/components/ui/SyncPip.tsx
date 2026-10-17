@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { Check, CloudOff, LoaderCircle, LogOut, TriangleAlert } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { useSyncStatus } from "@/client/sync";
+import { useUnsyncedRows } from "@/client/sync/unsynced";
 import type { SyncState } from "@/contracts/sync";
 
 const subscribeOnline = (cb: () => void) => {
@@ -26,7 +27,7 @@ const COPY: Record<SyncState, string> = {
 
 export interface SyncPipViewProps {
   state: SyncState;
-  /** Mutations waiting to upload; shown as "N waiting". */
+  /** Rows waiting to upload; shown as "N waiting" (or "N unsynced" when idle, the wording of the workout bar's Sync now). */
   pendingCount?: number;
   /** Hide the visible text (the dock shows only the icon); the text stays available to screen readers. */
   compact?: boolean;
@@ -36,7 +37,12 @@ export interface SyncPipViewProps {
 /** Presentational pip: icon + text, so the state is never colour alone. */
 export function SyncPipView({ state, pendingCount = 0, compact = false, className }: SyncPipViewProps) {
   const Icon = { idle: Check, syncing: LoaderCircle, offline: CloudOff, error: TriangleAlert, "signed-out": LogOut }[state];
-  const text = pendingCount > 0 && state !== "idle" && state !== "signed-out" ? `${COPY[state]}, ${pendingCount} waiting` : COPY[state];
+  const text =
+    state === "idle" && pendingCount > 0
+      ? `${pendingCount} unsynced`
+      : pendingCount > 0 && state !== "idle" && state !== "signed-out"
+        ? `${COPY[state]}, ${pendingCount} waiting`
+        : COPY[state];
   return (
     <span role="status" className={clsx("sync-pip", `sync-pip--${state}`, className)} data-state={state}>
       <Icon size={14} aria-hidden="true" className={state === "syncing" ? "sync-pip__spin" : undefined} />
@@ -50,5 +56,6 @@ export function SyncPip({ compact, className }: Pick<SyncPipViewProps, "compact"
   const status = useSyncStatus();
   const online = useSyncExternalStore(subscribeOnline, getOnline, getOnlineServer);
   const state: SyncState = !online && (status.state === "idle" || status.state === "syncing") ? "offline" : status.state;
-  return <SyncPipView state={state} pendingCount={status.pendingCount} compact={compact} className={className} />;
+  const rows = useUnsyncedRows();
+  return <SyncPipView state={state} pendingCount={rows ?? status.pendingCount} compact={compact} className={className} />;
 }

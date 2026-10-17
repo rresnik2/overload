@@ -151,9 +151,9 @@ describe("exercise tab side store", () => {
 });
 
 describe("scrolling a newly focused exercise into view", () => {
-  function Block({ focused, enabled = true }: { focused: boolean; enabled?: boolean }) {
+  function Block({ focused, enabled = true, onMount = false }: { focused: boolean; enabled?: boolean; onMount?: boolean }) {
     const ref = useRef<HTMLElement>(null);
-    useScrollIntoViewOnFocus(ref, focused, enabled);
+    useScrollIntoViewOnFocus(ref, focused, enabled, onMount);
     return <section ref={ref} />;
   }
   let scroll: ReturnType<typeof vi.fn>;
@@ -172,6 +172,52 @@ describe("scrolling a newly focused exercise into view", () => {
     rerender(<Block focused={false} enabled={false} />);
     rerender(<Block focused enabled={false} />);
     expect(scroll).toHaveBeenCalledTimes(1);
+  });
+
+  it("scrolls a just-added exercise once it is focused and can show its panel, and only once", () => {
+    const { rerender } = render(<Block focused enabled={false} onMount />);
+    expect(scroll).not.toHaveBeenCalled(); // the dial layout is not on yet
+    rerender(<Block focused onMount />);
+    expect(scroll).toHaveBeenCalledTimes(1);
+    rerender(<Block focused onMount />);
+    expect(scroll).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not scroll an unfocused just-added exercise until it is focused", () => {
+    const { rerender } = render(<Block focused={false} onMount />);
+    expect(scroll).not.toHaveBeenCalled();
+    rerender(<Block focused onMount />);
+    expect(scroll).toHaveBeenCalledTimes(1);
+  });
+
+  it("scrolls a tall panel up to the gap under the bar, so the dial clears the sticky Log set row where it can", () => {
+    const rect = (top: number, height: number) => ({ top, bottom: top + height, height, left: 0, right: 0, width: 0, x: 0, y: top }) as DOMRect;
+    const bar = document.createElement("div");
+    bar.className = "wk-topbar";
+    bar.getBoundingClientRect = () => rect(0, 53);
+    const section = document.createElement("section");
+    section.innerHTML = '<div class="dial__face"></div><div class="wk-panel__logrow" style="bottom: 86px"></div>';
+    document.body.append(bar, section);
+    vi.spyOn(window, "innerHeight", "get").mockReturnValue(844);
+    const face = section.querySelector<HTMLElement>(".dial__face")!;
+    const row = section.querySelector<HTMLElement>(".wk-panel__logrow")!;
+    row.getBoundingClientRect = () => rect(0, 88); // sticks at 844 - 86 - 88 = 670
+    section.getBoundingClientRect = () => rect(400, 900);
+    // Margin 53 + 16 = 69 moves the page 331px. A dial 440px below the section top (bottom at 840 + 187 - 331 = 696) hangs 34px
+    // over the row with the 8px clearance; the exercise may rise 16px (to the bar), so it does, and no more.
+    face.getBoundingClientRect = () => rect(840, 187);
+    scrollExerciseIntoView(section);
+    expect(parseFloat(section.style.scrollMarginTop)).toBeCloseTo(69 - 16, 5);
+    // A dial 20px higher hangs 14px over the row with the clearance: it rises by exactly that.
+    face.getBoundingClientRect = () => rect(820, 187);
+    scrollExerciseIntoView(section);
+    expect(parseFloat(section.style.scrollMarginTop)).toBeCloseTo(69 - 14, 5);
+    // A dial that already clears the row asks for nothing more.
+    face.getBoundingClientRect = () => rect(600, 187);
+    scrollExerciseIntoView(section);
+    expect(parseFloat(section.style.scrollMarginTop)).toBeCloseTo(69, 5);
+    bar.remove();
+    section.remove();
   });
 
   it("is instant under reduced motion and clears the measured sticky bar", () => {

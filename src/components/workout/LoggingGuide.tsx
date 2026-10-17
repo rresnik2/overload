@@ -29,7 +29,7 @@ export function LoggingGuide({ onClose }: { onClose: () => void }) {
         </h2>
       </div>
       <ol className="log-guide__steps">
-        <li>Add an exercise, then fill in each set: the weight (its <Term id="loadLabel">label</Term> says what the number means), the reps, and how hard it felt (<Term id="rir">reps in reserve</Term>). Most sets work best 0 to 3 reps short of <Term id="failure">failure</Term>. On a phone, turn the <Term id="weightDial">weight dial</Term> to change the weight, or tap the number to type it.</li>
+        <li>Add an exercise, then fill in each set: the weight (its <Term id="loadLabel">label</Term> says what the number means), the reps, and how hard it felt <span className="hint-keep">(<Term id="rir">reps in reserve</Term>)</span>. Most sets work best 0 to 3 reps short of <Term id="failure">failure</Term>. On a phone, turn the <Term id="weightDial">weight dial</Term> to change the weight, or tap the number to type it.</li>
         <li>Tap the check when a set is done. Any box you left empty is filled from last time, and the <Term id="restTimer">rest timer</Term> starts.</li>
         <li>Use the set type menu for <Term id="warmupSet">warm-ups</Term>, <Term id="dropSet">drop sets</Term> and <Term id="amrap">AMRAP</Term>. Only <Term id="hardSet">hard sets</Term> count toward your weekly totals.</li>
         <li>Tap Finish when you are done. Overload saves the workout, looks for personal records and updates your charts.</li>

@@ -1,5 +1,6 @@
 "use client";
 import { Share, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useState, useSyncExternalStore } from "react";
 
 const DISMISS_KEY = "overload-install-hint-dismissed";
@@ -19,11 +20,12 @@ function shouldShow(): boolean {
 }
 const subscribe = () => () => {};
 
-/** One-time, dismissible, remembered hint for iPhone Safari users: Share -> Add to Home Screen. */
+/** One-time, dismissible, remembered hint for iPhone Safari users: Share -> Add to Home Screen. On Today only, not on every tab. */
 export function InstallHint() {
   const eligible = useSyncExternalStore(subscribe, shouldShow, () => false);
   const [dismissed, setDismissed] = useState(false);
-  if (!eligible || dismissed) return null;
+  const onToday = usePathname() === "/today";
+  if (!eligible || dismissed || !onToday) return null;
   return (
     <aside className="install-hint" aria-label="Install Overload">
       <Share size={20} aria-hidden="true" className="install-hint__icon" />

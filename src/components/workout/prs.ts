@@ -4,7 +4,7 @@ import type { PrCandidate, PrSetInput } from "@/contracts/prs";
 import type { PrType, WeightUnit } from "@/contracts/enums";
 import type { WorkoutSetRow } from "@/contracts/entities";
 import { detectNewPrs } from "@/lib/sync/prs";
-import { formatWeight } from "@/lib/units";
+import { formatNumber, formatWeight, fromKg } from "@/lib/units";
 
 /** Every live set of the given progression series (all workouts). One indexed read per series: the PR history. */
 export async function seriesHistory(seriesKeys: Iterable<string>): Promise<WorkoutSetRow[]> {
@@ -48,10 +48,12 @@ export function headlinePr(candidates: PrCandidate[]): PrCandidate | undefined {
 }
 
 export function describePr(pr: Pick<PrCandidate, "type" | "reps" | "value">, unit: WeightUnit): string {
+  // A load the lifter put on the bar is shown as entered; an estimate or a total is rounded to one decimal, like Today and Progress.
   const kg = (value: number) => formatWeight(value, unit);
+  const derived = (value: number) => `${formatNumber(fromKg(value, unit), 1)} ${unit === "KG" ? "kg" : "lb"}`;
   switch (pr.type) {
     case "E1RM":
-      return `Estimated 1RM ${kg(pr.value)}`;
+      return `Estimated 1RM ${derived(pr.value)}`;
     case "MAX_LOAD":
       return `Heaviest set ${kg(pr.value)}`;
     case "REP_MAX":
@@ -59,8 +61,8 @@ export function describePr(pr: Pick<PrCandidate, "type" | "reps" | "value">, uni
     case "MAX_REPS":
       return `Most reps in a set: ${pr.value}`;
     case "MAX_SET_VOLUME":
-      return `Set volume ${kg(pr.value)}`;
+      return `Set volume ${derived(pr.value)}`;
     case "MAX_SESSION_VOLUME":
-      return `Session volume ${kg(pr.value)}`;
+      return `Session volume ${derived(pr.value)}`;
   }
 }

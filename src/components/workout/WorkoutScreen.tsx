@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { useOnSynced } from "@/client/sync";
@@ -27,6 +28,7 @@ type FinishState = { phase: "confirm" | "done"; workoutId: string; summary: Work
 export function WorkoutScreen() {
   const prefs = useWorkoutPrefs();
   const { toast } = useToast();
+  const router = useRouter();
   const active = useLive(async () => ({ workout: (await repo.workouts.active()) ?? null }));
   const templates = useLive(async () => (await repo.templates.list()).sort((a, b) => (a.position < b.position ? -1 : a.position > b.position ? 1 : 0)));
   const [busy, setBusy] = useState(false);
@@ -79,6 +81,14 @@ export function WorkoutScreen() {
     }
   };
 
+  // Closing "Workout saved" ends the session: the empty start screen behind it has nothing to say, so go home. Offline there is no
+  // page to fetch, and the lifter stays here (the saved workout is in history either way).
+  const closeFinish = () => {
+    const saved = finish?.phase === "done";
+    setFinish(null);
+    if (saved && navigator.onLine) router.push("/today");
+  };
+
   const sheets = (
     <>
       <FinishSheet
@@ -89,7 +99,7 @@ export function WorkoutScreen() {
         busy={busy}
         historyHref={finish ? `/history/${finish.workoutId}` : undefined}
         onConfirm={() => void confirmFinish()}
-        onClose={() => setFinish(null)}
+        onClose={closeFinish}
         onSaveTemplate={finish?.phase === "done" ? () => setTemplateFor(finish.workoutId) : undefined}
       />
       <SaveTemplateModal

@@ -64,21 +64,22 @@
   color: var(--color-muted);
 }
 
-/* ── list and card ── */
+/* ── list and row ── */
+/* One exercise per row: the equipment drawing, then the tag, the name and one line (the last load, or the muscles). */
 .exercise-list {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr); /* never wider than the page: a one-line tag must not set the row's width */
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
-@media (min-width: 40rem) {
+@media (min-width: 48rem) {
   .exercise-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (min-width: 64rem) {
+@media (min-width: 72rem) {
   .exercise-list {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -87,23 +88,27 @@
   position: relative;
   height: 100%;
   display: flex;
-  flex-direction: column;
-  overflow: hidden; /* the photo follows the panel radius */
+  align-items: center;
 }
-/* The star sits in the corner, outside the card link (a button inside a link would be invalid). */
+/* The star sits at the row's end, outside the link (a button inside a link would be invalid). */
 .exercise-card__star {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 50%;
+  right: var(--space-3);
   z-index: 1;
+  transform: translateY(-50%);
 }
 .exercise-card--starrable .exercise-card__body {
-  padding-right: 4rem;
+  padding-right: 3.75rem;
 }
 .exercise-card__link {
   display: flex;
-  flex-direction: column;
   flex: 1;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+  min-height: 5rem;
+  padding: var(--space-3) var(--space-5);
   color: inherit;
   text-decoration: none;
 }
@@ -111,37 +116,92 @@
   outline: 2px solid var(--color-base-content);
   outline-offset: -2px;
 }
-.exercise-card__photo {
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  background: var(--color-base-300);
-}
-.exercise-card__photo img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.exercise-card__art {
+  width: 96px;
+  height: 44px;
 }
 .exercise-card__body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.9rem 1rem 1rem;
+  gap: 2px;
+  min-width: 0;
+}
+/* One line in a row: the drawing already shows the equipment, so a long tag is cut rather than wrapped. */
+.exercise-card__body .modality-badge {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  padding: 1px 6px;
+}
+.exercise-card__body .modality-badge__slash {
+  margin-inline: 0.3ch;
 }
 .exercise-card__name {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 15px;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.3;
 }
+.exercise-card__meta,
+.exercise-card__load,
 .exercise-card__custom {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 13px;
+  line-height: 1.35;
   color: var(--color-muted);
 }
+.exercise-card__meta--last {
+  color: var(--color-base-content);
+  font-weight: 600;
+}
 .exercise-card__actions {
-  padding: 0 1rem 1rem;
+  flex: none;
+  padding-right: var(--space-5);
+}
+.exercise-card--actions.exercise-card--starrable .exercise-card__star {
+  position: static;
+  transform: none;
+  order: 2;
+}
+.exercise-card--actions.exercise-card--starrable .exercise-card__body {
+  padding-right: 0;
+}
+.exercise-card--actions .exercise-card__actions {
+  order: 3;
+  padding-left: var(--space-2);
+}
+.exercise-card--actions .exercise-card__link {
+  order: 1;
+  padding-right: var(--space-2);
+}
+.exercise-card--actions .exercise-card__load {
+  display: none; /* the picker row stays two lines: the drawing already says how the weight is held */
+}
+@media (max-width: 26rem) {
+  .exercise-card--actions .exercise-card__art {
+    width: 64px;
+    height: 32px;
+  }
+  .exercise-card__link {
+    gap: var(--space-4);
+    padding-inline: var(--space-4);
+  }
+}
+
+/* The library's two lists: yours (with last loads) above the full A to Z. */
+.library-section {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 var(--space-3);
+}
+.library-section:first-of-type {
+  margin-top: 0;
 }
 
 /* ── filters ── */
@@ -184,11 +244,33 @@
   font-size: 0.8rem;
   color: var(--color-muted);
 }
+/* Phones: two rows (search and Apply, then the two selects side by side) so the list starts on the first screen. The select
+   labels are visually hidden there; each select's first option names it ("All equipment"). */
 .exercise-filter-form {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.5rem;
   align-items: end;
+}
+@media (max-width: 47.99rem) {
+  .exercise-filter-form__search {
+    grid-column: 1 / 3;
+  }
+  .exercise-filter-form__actions {
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .exercise-filter-form__field:not(.exercise-filter-form__search) .exercise-filter-form__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .exercise-filter-form__field:nth-of-type(3) {
+    grid-column: 2 / 4;
+  }
 }
 @media (min-width: 48rem) {
   .exercise-filter-form {

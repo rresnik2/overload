@@ -204,6 +204,12 @@
   margin-block-start: 0.75rem;
 }
 
+/* A Term button is an inline-block, so a line may break between it and a bracket beside it ("felt (" / "reps in reserve)"). Wrapping
+   the bracketed term in this keeps them together. */
+.hint-keep {
+  white-space: nowrap;
+}
+
 /* Goal cards (onboarding + settings). */
 .goal-cards {
   display: grid;

@@ -1,4 +1,5 @@
 "use client";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { repo, useLive } from "@/client/repo";
@@ -9,7 +10,10 @@ import { Sheet } from "@/components/ui/Sheet";
 import { ModalityTabs, type ModalityTab } from "@/components/ui/Tabs";
 import type { ExerciseRow, MachineProfileRow } from "@/contracts/entities";
 import type { WeightUnit } from "@/contracts/enums";
+import type { LastLoad } from "@/lib/analytics/last-load";
+import type { LocalDate } from "@/lib/dates";
 import { MachineChooser } from "./MachineChooser";
+import { usePickerLastLoads } from "./picker-loads";
 
 export interface ExercisePickerProps {
   open: boolean;
@@ -25,8 +29,9 @@ const needsMachine = (e: ExerciseRow) => e.modality === "MACHINE" || e.modality 
 
 /**
  * Exercise picker sheet: tabs by modality (Free weight / Machine / Cable / Bodyweight), search across everything, favorites then
- * recent first. Every row has a star. Built on `repo.exercises.search` (keyword search; favorites win ties) and the catalog's
- * ExerciseList. Machine and cable picks continue to the machine chooser.
+ * recent first. Every row has a star, and draws the lifter's last top set from the local database ("110 kg × 6 · Mon 12 Oct"),
+ * so it works offline. Built on `repo.exercises.search` (keyword search; favorites win ties) and the catalog's ExerciseList.
+ * Machine and cable picks continue to the machine chooser.
  */
 export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exercise" }: ExercisePickerProps) {
   const [tab, setTab] = useState<ModalityTab>("FREE_WEIGHT");
@@ -47,6 +52,9 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
   const recent = recentAll?.filter((e) => !favoriteIds.has(e.id)).slice(0, 6);
   const shown = results?.slice(0, limit);
   const more = (results?.length ?? 0) > limit;
+  // Last loads for the rows on screen only, once every section has its rows (one lookup on open rather than one per section).
+  const listed = favorites && recent && shown ? [...(query ? [] : [...favorites, ...recent]), ...shown] : [];
+  const loads = usePickerLastLoads(listed);
 
   const pick = async (exercise: ExerciseRow, machine: MachineProfileRow | null) => {
     await onPick(exercise, machine);
@@ -80,7 +88,7 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
             <section aria-label="Favorite exercises">
               <h3 className="wk-picker__heading">Favorites</h3>
               {favorites && favorites.length > 0 ? (
-                <PickList exercises={favorites} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
+                <PickList exercises={favorites} unit={unit} {...loads} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
               ) : favorites ? (
                 <p className="wk-muted">Star an exercise to pin it here.</p>
               ) : null}
@@ -90,7 +98,7 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
           {!query && recent && recent.length > 0 ? (
             <section aria-label="Recent exercises">
               <h3 className="wk-picker__heading">Recent</h3>
-              <PickList exercises={recent} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
+              <PickList exercises={recent} unit={unit} {...loads} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
             </section>
           ) : null}
 
@@ -99,6 +107,8 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
             {shown ? (
               <PickList
                 exercises={shown}
+                unit={unit}
+                {...loads}
                 onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))}
                 empty={{ title: "No exercises match", description: "Try another search, or create your own exercise.", action: <Link href="/exercises/new" className="ui-btn ui-btn--ink">New exercise</Link> }}
               />
@@ -120,16 +130,27 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
   );
 }
 
-function PickList({ exercises, onChoose, empty }: { exercises: ExerciseRow[]; onChoose: (e: ExerciseRow) => void; empty?: { title: string; description?: string; action?: React.ReactNode } }) {
+interface PickListProps {
+  exercises: ExerciseRow[];
+  unit: WeightUnit;
+  lastLoads: ReadonlyMap<string, LastLoad>;
+  today: LocalDate | null;
+  onChoose: (e: ExerciseRow) => void;
+  empty?: { title: string; description?: string; action?: React.ReactNode };
+}
+
+function PickList({ exercises, unit, lastLoads, today, onChoose, empty }: PickListProps) {
   return (
     <ExerciseList
       exercises={exercises}
-      showImages={false}
+      unit={unit}
+      lastLoads={lastLoads}
+      today={today}
       empty={empty}
       renderAction={(exercise) => <FavoriteButton exerciseId={exercise.id} name={exercise.name} />}
       actionsFor={(exercise) => (
-        <Button variant="primary" onClick={() => onChoose(exercise)} aria-label={`Add ${exercise.name}`}>
-          Add
+        <Button variant="primary" className="wk-picker__add" onClick={() => onChoose(exercise)} aria-label={`Add ${exercise.name}`}>
+          <Plus size={22} aria-hidden="true" strokeWidth={2.5} />
         </Button>
       )}
     />

@@ -55,7 +55,7 @@ export function TodayTemplatesCard({ unit }: { unit: WeightUnit }) {
       ) : shown.length === 0 ? (
         <>
           <p className="today-muted">No templates yet. A template is a saved workout plan you can start in one tap.</p>
-          <ButtonLink href="/templates" variant="ink">
+          <ButtonLink href="/templates" variant="ghost">
             Create a template
           </ButtonLink>
         </>

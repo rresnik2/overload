@@ -63,6 +63,18 @@ describe("ActiveSetPanel", () => {
     expect(screen.getByRole("button", { name: "Log set · 100 kg × 5" })).toBeEnabled();
   });
 
+  it("bodyweight-plus: the belt picture carries the bodyweight caption; a cable shows its pin step and speaks the pin", () => {
+    const { unmount } = render(<Harness exercise={ex("BODYWEIGHT", "BODYWEIGHT_PLUS")} exerciseName="Weighted Pull Ups" bodyweightKg={82.5} initial={{ weightKg: 20 }} />);
+    expect(screen.getByRole("img", { name: "Dip belt with 20 kilograms hanging" })).toBeInTheDocument();
+    expect(document.querySelector(".eq__caption")).toHaveTextContent(/^On the belt\s*20\s*Added to 82\.5 kg bodyweight$/);
+    expect(slider()).toHaveAttribute("aria-valuetext", "20 kilograms added");
+    unmount();
+    render(<Harness exercise={ex("CABLE", "STACK")} exerciseName="Cable Rope Overhead Triceps Extension" initial={{ weightKg: 22.5 }} />);
+    expect(screen.getByText(/Cable · 2\.5 kg pin step · set 1 of 4/)).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /^Cable column with a rope, the pin at plate 9/ })).toBeInTheDocument();
+    expect(slider()).toHaveAttribute("aria-valuetext", "Pin 9, 22.5 kilograms");
+  });
+
   it("writes dial turns through weightPatch in kg", async () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
@@ -305,13 +317,16 @@ describe("SetRow compact", () => {
 });
 
 describe("EquipmentPicture", () => {
-  const draw = (equipment: Equipment, loadType: LoadType, value: number | null, opts: { unit?: WeightUnit; step?: number; machine?: Parameters<typeof dialSetup>[0]["machine"]; isUnilateral?: boolean } = {}) => {
+  type DrawOpts = { unit?: WeightUnit; step?: number; machine?: Parameters<typeof dialSetup>[0]["machine"]; isUnilateral?: boolean; name?: string; bodyweight?: number | null };
+  const picture = (equipment: Equipment, loadType: LoadType, value: number | null, opts: DrawOpts = {}) => {
     const unit = opts.unit ?? "KG";
     const exercise = ex(equipment, loadType, opts.isUnilateral);
     const setup = dialSetup({ exercise, unit, step: opts.step ?? (unit === "KG" ? 2.5 : 5), current: value, machine: opts.machine ?? null });
     if (!setup.kind) throw new Error("no picture");
-    return render(<EquipmentPicture kind={setup.kind} loadType={loadType} isUnilateral={exercise.isUnilateral} setup={setup} value={value} hasProfile={opts.machine != null} />);
+    return <EquipmentPicture kind={setup.kind} loadType={loadType} isUnilateral={exercise.isUnilateral} name={opts.name} setup={setup} value={value} hasProfile={opts.machine != null} bodyweight={opts.bodyweight} />;
   };
+  const draw = (equipment: Equipment, loadType: LoadType, value: number | null, opts: DrawOpts = {}) => render(picture(equipment, loadType, value, opts));
+  const caption = (container: HTMLElement) => container.querySelector(".eq__caption");
 
   it("barbell: 102.5 kg is 25 + 15 + 1.25 per side", () => {
     const { container } = draw("BARBELL", "TOTAL", 102.5);
@@ -365,6 +380,15 @@ describe("EquipmentPicture", () => {
     expect(goblet.container.querySelector(".eq__caption")).toHaveTextContent("One 32 kg dumbbell");
   });
 
+  it("without a weight yet the caption prompts instead of describing a default weight", () => {
+    for (const [equipment, loadType] of [["DUMBBELL", "PER_IMPLEMENT"], ["KETTLEBELL", "TOTAL"], ["MACHINE_SELECTORIZED", "STACK"]] as const) {
+      const view = draw(equipment, loadType, null);
+      expect(view.container.querySelector(".eq__caption")).toHaveTextContent("Turn the dial to choose a weight");
+      expect(view.container.querySelector(".eq__caption")).not.toHaveTextContent(/total|kg/);
+      view.unmount();
+    }
+  });
+
   it("kettlebell: the bell takes the colour and stamped number of its size, in kg and lb", () => {
     const kg = draw("KETTLEBELL", "TOTAL", 24);
     expect(kg.container.querySelector<SVGPathElement>(".eq-kb__body")!.style.fill).toBe("rgb(47, 154, 79)");
@@ -385,10 +409,111 @@ describe("EquipmentPicture", () => {
     expect(noProfile.container.querySelector(".eq__caption")).toHaveTextContent("Pin 9 · 45 kg · 5 kg per plate");
   });
 
-  it("has no picture for bodyweight-plus, plates or medicine balls", () => {
-    for (const [equipment, loadType] of [["BODYWEIGHT", "BODYWEIGHT_PLUS"], ["PLATE", "TOTAL"], ["MEDICINE_BALL", "TOTAL"]] as const) {
-      expect(dialSetup({ exercise: ex(equipment, loadType), unit: "KG", step: 2.5, current: 10, machine: null }).kind).toBeNull();
-    }
+  it("weight stack: plates lift with a 22 ms stagger from the old pin, and the delays reset for the next turn", () => {
+    const { container, rerender } = draw("MACHINE_SELECTORIZED", "STACK", 45, { step: 5 });
+    rerender(picture("MACHINE_SELECTORIZED", "STACK", 60, { step: 5 }));
+    const plates = [...container.querySelectorAll<SVGRectElement>(".eq-sp")];
+    expect(container.querySelectorAll(".eq-sp.is-on")).toHaveLength(12);
+    expect(plates.slice(8, 13).map((p) => p.style.transitionDelay)).toEqual(["0ms", "0ms", "22ms", "44ms", "0ms"]);
+    rerender(picture("MACHINE_SELECTORIZED", "STACK", 50, { step: 5 }));
+    // dropping from 12 to 10: plate 12 first, then 11
+    expect(plates.slice(9, 12).map((p) => p.style.transitionDelay)).toEqual(["0ms", "22ms", "0ms"]);
+  });
+
+  it("has a picture for cables, bodyweight-plus, plates and medicine balls, none for bands or strongman kit", () => {
+    const kind = (equipment: Equipment, loadType: LoadType) => dialSetup({ exercise: ex(equipment, loadType), unit: "KG", step: 2.5, current: 10, machine: null }).kind;
+    expect(kind("CABLE", "STACK")).toBe("cable");
+    expect(kind("BODYWEIGHT", "BODYWEIGHT_PLUS")).toBe("belt");
+    expect(kind("PLATE", "TOTAL")).toBe("plate");
+    expect(kind("MEDICINE_BALL", "TOTAL")).toBe("medicine-ball");
+    expect(kind("MACHINE_SELECTORIZED", "STACK")).toBe("stack");
+    expect(kind("OTHER", "TOTAL")).toBeNull();
+    expect(kind("BAND", "TOTAL")).toBeNull();
+    // the cable dial keeps the stack's range and base load
+    expect(dialSetup({ exercise: ex("CABLE", "STACK"), unit: "KG", step: 2.5, current: null, machine: { pinStepKg: 2.5, baseLoadKg: 5 } })).toMatchObject({ bar: 5, max: 250, restValue: 5 });
+  });
+
+  it("cable: the column with the exercise's attachment, plates lifted for the pin, and the pin in the caption", () => {
+    const { container, rerender } = draw("CABLE", "STACK", 22.5, { name: "Triceps Pushdown - Rope Attachment", machine: { pinStepKg: 2.5, baseLoadKg: null } });
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "Cable column with a rope, the pin at plate 9, 22.5 kilograms");
+    expect(container.querySelector(".eq-cable-art .eq-att--rope")).not.toBeNull();
+    expect(container.querySelectorAll(".eq-tower ~ .eq-sp")).toHaveLength(10);
+    // one drawn plate per two pins
+    expect(container.querySelectorAll(".eq-sp.is-on")).toHaveLength(5);
+    // the tower draws ten plates, so no "of 20" even with a machine profile
+    expect(caption(container)).toHaveTextContent(/^Pin 9 · 22\.5 kg · 2\.5 kg per plate$/);
+    rerender(picture("CABLE", "STACK", 32.5, { name: "Triceps Pushdown - Rope Attachment", machine: { pinStepKg: 2.5, baseLoadKg: null } }));
+    expect(container.querySelectorAll(".eq-sp.is-on")).toHaveLength(7);
+    expect([...container.querySelectorAll<SVGRectElement>(".eq-sp")].slice(5, 7).map((p) => p.style.transitionDelay)).toEqual(["0ms", "22ms"]);
+  });
+
+  it("cable: a lat pulldown hangs the lat bar, an unnamed cable the D-handle, and no weight yet prompts", () => {
+    const lat = draw("CABLE", "STACK", 40, { name: "Wide-Grip Lat Pulldown" });
+    expect(screen.getByRole("img", { name: /^Cable column with a lat bar/ })).toBeInTheDocument();
+    lat.unmount();
+    const plain = draw("CABLE", "STACK", null);
+    expect(screen.getByRole("img", { name: /^Cable column with a D-handle/ })).toBeInTheDocument();
+    expect(plain.container.querySelector(".eq")).toHaveClass("eq--ghost");
+    expect(caption(plain.container)).toHaveTextContent("Turn the dial to choose a weight");
+  });
+
+  it("bodyweight-plus: the added plates hang from a dip belt, with the workout's bodyweight", () => {
+    const { container } = draw("BODYWEIGHT", "BODYWEIGHT_PLUS", 25, { name: "Weighted Pull Ups", bodyweight: 82.5 });
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "Dip belt with 25 kilograms hanging");
+    expect(container.querySelector(".eq-belt .eq-plate--face")).toHaveAttribute("data-tone", "red");
+    expect(caption(container)).toHaveTextContent(/^On the belt\s*25\s*Added to 82\.5 kg bodyweight$/);
+    const mixed = draw("BODYWEIGHT", "BODYWEIGHT_PLUS", 27.5, { name: "Weighted Pull Ups" });
+    expect(mixed.container.querySelectorAll(".eq-belt .eq-plate--face")).toHaveLength(2);
+    expect(caption(mixed.container)).toHaveTextContent(/^On the belt\s*25\s*\+\s*2\.5$/);
+  });
+
+  it("bodyweight-plus with nothing added draws the apparatus, not an empty belt", () => {
+    const zero = draw("BODYWEIGHT", "BODYWEIGHT_PLUS", 0, { name: "Dips - Triceps Version", bodyweight: 82.5 });
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "Dip bars, nothing added");
+    expect(zero.container.querySelector(".eq-belt")).toBeNull();
+    expect(caption(zero.container)).toHaveTextContent("Bodyweight only · 82.5 kg");
+    zero.unmount();
+    const ghost = draw("BODYWEIGHT", "BODYWEIGHT_PLUS", null, { name: "Pullups" });
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "Pull-up bar, nothing added");
+    expect(ghost.container.querySelector(".eq")).toHaveClass("eq--ghost");
+    expect(caption(ghost.container)).toHaveTextContent("Turn the dial to add weight");
+  });
+
+  it("plate: the plate for the weight, in its colour, and plates that make it up when no single plate does", () => {
+    const one = draw("PLATE", "TOTAL", 20, { name: "Front Plate Raise" });
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "A 20 kilogram plate");
+    expect(one.container.querySelector(".eq-plate-art .eq-plate--face")).toHaveAttribute("data-tone", "blue");
+    expect(caption(one.container)).toHaveTextContent(/^One 20 kg plate$/);
+    expect(caption(one.container)?.querySelector(".eq__dot")).toHaveAttribute("data-tone", "blue");
+    one.unmount();
+    const two = draw("PLATE", "TOTAL", 12.5);
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "Plates of 10, 2.5 kilograms");
+    expect(two.container.querySelector(".eq-plate--face")).toHaveAttribute("data-tone", "green");
+    expect(caption(two.container)).toHaveTextContent(/^Plates\s*10\s*\+\s*2\.5$/);
+    two.unmount();
+    const off = draw("PLATE", "TOTAL", 11);
+    expect(caption(off.container)).toHaveTextContent("11 kg can’t be loaded exactly · nearest 10 kg");
+    off.unmount();
+    const lb = draw("PLATE", "TOTAL", 45, { unit: "LB" });
+    expect(caption(lb.container)).toHaveTextContent("One 45 lb plate");
+    lb.unmount();
+    const ghost = draw("PLATE", "TOTAL", null);
+    expect(caption(ghost.container)).toHaveTextContent("Turn the dial to choose a weight");
+    // faded, at a typical plate rather than the dial's first value
+    expect(ghost.container.querySelector(".eq")).toHaveClass("eq--ghost");
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "A 20 kilogram plate");
+  });
+
+  it("medicine ball: the ball with its weight printed on it; no number before a weight is chosen", () => {
+    const ball = draw("MEDICINE_BALL", "TOTAL", 6, { name: "Overhead Slam", step: 1 });
+    expect(screen.getByRole("img")).toHaveAttribute("aria-label", "A medicine ball, 6 kilograms");
+    expect(ball.container.querySelector(".eq-ball__num")).toHaveTextContent("6");
+    expect(caption(ball.container)).toHaveTextContent(/^6 kg ball$/);
+    ball.unmount();
+    const ghost = draw("MEDICINE_BALL", "TOTAL", null);
+    expect(ghost.container.querySelector(".eq-medball")).not.toBeNull();
+    expect(ghost.container.querySelector(".eq-ball__num")).toBeNull();
+    expect(caption(ghost.container)).toHaveTextContent("Turn the dial to choose a weight");
   });
 });
 

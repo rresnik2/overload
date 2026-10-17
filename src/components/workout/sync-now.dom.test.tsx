@@ -13,6 +13,7 @@ vi.mock("@/client/sync", async () => {
   return { useSyncStatus: hooks.useSyncStatus, useOnSynced: hooks.useOnSynced, syncNow: (reason?: string) => syncNowMock(reason) };
 });
 
+import { SyncPip } from "@/components/ui/SyncPip";
 import { SyncNow, syncNowAnnouncement, syncNowLabel } from "./SyncNow";
 
 const result = (over: Partial<SyncResult> = {}): SyncResult => ({ ok: true, pushed: 0, pulled: 0, rejected: 0, newPrs: [], ...over });
@@ -46,6 +47,19 @@ describe("labels", () => {
 });
 
 describe("SyncNow", () => {
+  it("agrees with the header pip about what is waiting", async () => {
+    const template = await repo.templates.create({ name: "a", position: "a0" });
+    await repo.templates.update(template.id, { name: "b" });
+    render(
+      <>
+        <SyncPip />
+        <SyncNow />
+      </>,
+    );
+    expect(await screen.findByRole("button", { name: "Sync now: 1 unsynced" })).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector(".sync-pip")).toHaveTextContent("1 unsynced"));
+  });
+
   it("shows the number of rows with unsent changes, counting a row once however often it changed", async () => {
     const template = await repo.templates.create({ name: "a", position: "a0" });
     await repo.templates.update(template.id, { name: "b" });
