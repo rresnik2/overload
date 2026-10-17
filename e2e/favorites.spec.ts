@@ -78,8 +78,11 @@ test("star in the library, find it under Favorites in the picker, unstar offline
 
   // 4. Back online: the tombstone syncs, and the library's Favorites filter no longer lists it.
   await context.setOffline(false);
-  await expect.poll(() => dbFavorites(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toEqual([{ name: LEG_PRESS, deleted: true }]);
+  // A workout is active, so reconnecting does not sync by itself within five minutes: close the picker and tap "Sync now".
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /^Sync now/ }).click();
+  await expect(page.getByRole("button", { name: "Sync now: Synced" })).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => dbFavorites(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toEqual([{ name: LEG_PRESS, deleted: true }]);
   await page.goto("/exercises?fav=1");
   await expect(page.getByRole("heading", { name: "No favorites yet" })).toBeVisible();
   await expect(page.locator(".exercise-card")).toHaveCount(0);

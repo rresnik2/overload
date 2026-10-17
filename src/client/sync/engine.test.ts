@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatalogResponse } from "@/contracts/catalog";
 import type { SyncedInfo } from "@/contracts/sync";
 import { favoriteId } from "@/lib/ids";
-import { META_KEYS, getMeta } from "@/client/db/schema";
+import { META_KEYS, getMeta, setMeta } from "@/client/db/schema";
 import { newDevice, seedWorkout, workoutInput, exerciseInput, type TestDevice } from "@/client/repo/test-utils";
 import { createEngine, type Engine } from "./engine";
 import { FakeServer } from "./fake-server";
@@ -265,6 +265,23 @@ describe("failure modes", () => {
     expect(a.synced.at(-1)).toMatchObject({ rejected: 1 });
   });
 
+  it("rows the server sends again unchanged are neither written nor counted as pulled", async () => {
+    const server = new FakeServer();
+    const a = setup(server);
+    await a.repo.templates.create({ name: "a", position: "a0" });
+    await a.engine.syncNow();
+    expect(await a.db.template.count()).toBe(1);
+
+    await setMeta(a.db, META_KEYS.cursor, 0); // e.g. the v2 upgrade, or a reset: everything is pulled again
+    let writes = 0;
+    a.db.template.hook("updating", () => void writes++);
+    a.db.template.hook("creating", () => void writes++);
+    const result = await a.engine.syncNow();
+    expect(result).toMatchObject({ ok: true, pushed: 0, pulled: 0 });
+    expect(writes).toBe(0);
+    expect(await getMeta<number>(a.db, META_KEYS.cursor)).toBe(server.version);
+  });
+
   it("only one sync runs at a time (single flight)", async () => {
     const server = new FakeServer();
     const a = setup(server);
@@ -337,7 +354,7 @@ describe("catalog refresh", () => {
     expect(await a.repo.catalog.version()).toBe(7);
     expect(server.catalogRequests[0]?.ifNoneMatch).toBeNull();
     expect(await getMeta<string>(a.db, META_KEYS.catalogEtag)).toBe('W/"catalog-7"');
-    await a.engine.syncNow("manual");
+    await a.engine.syncNow("start");
     expect(server.catalogRequests[1]?.ifNoneMatch).toBe('W/"catalog-7"');
     expect(await a.repo.catalog.version()).toBe(7);
   });

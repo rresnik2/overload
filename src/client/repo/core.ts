@@ -15,6 +15,7 @@ import { newId, isUuid } from "@/lib/ids";
 import { deriveSetColumns } from "@/lib/sync/derive";
 import { maxHlc } from "@/lib/sync/hlc";
 import { valuesEqual } from "@/lib/sync/merge";
+import { refreshActivePointer, takeWorkoutWrite } from "@/client/db/active-workout";
 import { tickHlc } from "@/client/db/clock";
 import type { OverloadDb } from "@/client/db/schema";
 import { dx } from "@/client/db/zone";
@@ -28,7 +29,14 @@ export const nowIso = (): string => new Date().toISOString();
  * a narrow scope lets reads and writes on other stores run alongside it. Omitted: every table.
  */
 export function writeTx<T>(db: OverloadDb, fn: () => Promise<T>, tables?: readonly string[]): Promise<T> {
-  return db.transaction("rw", tables ? [...tables] : db.tables, fn);
+  // A scope that can write a workout row also needs `meta`, where the active-workout pointer lives (writeScope always includes it).
+  const scope = tables ? (tables.includes("workout") && !tables.includes("meta") ? [...tables, "meta"] : [...tables]) : db.tables;
+  return db.transaction("rw", scope, async (transaction) => {
+    const result = await fn();
+    // A workout row was written in this transaction: keep the active-workout pointer in step (see client/db/active-workout.ts).
+    if (takeWorkoutWrite(transaction)) await refreshActivePointer(db);
+    return result;
+  });
 }
 
 export function readTx<T>(db: OverloadDb, fn: () => Promise<T>, tables?: readonly string[]): Promise<T> {

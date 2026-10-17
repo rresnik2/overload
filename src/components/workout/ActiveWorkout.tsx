@@ -22,6 +22,7 @@ import { useWorkoutPrefs } from "./prefs";
 import { headlinePr } from "./prs";
 import { RestTimer } from "./RestTimer";
 import { addExerciseToWorkout, discardWorkout, supersetLabels } from "./session";
+import { SyncNow } from "./SyncNow";
 import { useActiveWorkoutView } from "./useWorkoutView";
 import { summarizeWorkout, type ExerciseView, type WorkoutSummary } from "./view";
 
@@ -130,6 +131,8 @@ export function ActiveWorkout({ workout, onFinish, onSaveTemplate, onDiscarded }
           Finish
         </Button>
       </div>
+
+      <SyncNow />
 
       {guide.open ? <LoggingGuide onClose={guide.close} /> : null}
 

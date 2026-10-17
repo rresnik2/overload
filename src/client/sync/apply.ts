@@ -5,7 +5,7 @@
 import { ENTITY_NAMES, ENTITY_WRITABLE_FIELDS, type EntityName, type WorkoutSetRow } from "@/contracts/entities";
 import type { MutationResult, SyncResponse } from "@/contracts/sync";
 import { maxHlc } from "@/lib/sync/hlc";
-import { mergeFields, rowHlc } from "@/lib/sync/merge";
+import { mergeFields, rowHlc, valuesEqual } from "@/lib/sync/merge";
 import { receiveHlc } from "@/client/db/clock";
 import { dx } from "@/client/db/zone";
 import { META_KEYS, setMeta, type OverloadDb } from "@/client/db/schema";
@@ -89,9 +89,13 @@ export function applyResponse(db: OverloadDb, batch: OutboxBatch, response: Sync
       const rows: AnyRow[] = [];
       incoming.forEach((server, i) => {
         const { row, localAhead } = mergeServerRow(entity, locals[i], server);
+        // A row the server sends again unchanged (a cursor that went back to 0, an overlapping page) costs nothing to keep:
+        // no write, no live-query wake-up, and it does not count as pulled (which would refresh the server-rendered pages).
+        if (locals[i] && valuesEqual(row, locals[i])) return;
         rows.push(row);
         if (entity === "workoutSet" && localAhead) touchedSets.push(row);
       });
+      if (rows.length === 0) continue;
       await table.bulkPut(rows);
       outcome.pulled += rows.length;
     }

@@ -19,6 +19,7 @@ import type {
   WorkoutSetRow,
 } from "@/contracts/entities";
 import type { Hlc } from "@/contracts/sync";
+import { noteWorkoutWrite } from "./active-workout";
 
 export interface OutboxEntry {
   /** Auto-increment: the order in which writes happened. */
@@ -45,6 +46,8 @@ export const META_KEYS = {
   catalogEtag: "catalogEtag",
   lastSyncedAt: "lastSyncedAt",
   rejectedCount: "rejectedCount",
+  /** Id of the active workout, "" when there is none (see ./active-workout.ts). */
+  activeWorkout: "activeWorkoutId",
 } as const;
 
 interface Migration {
@@ -79,6 +82,15 @@ const MIGRATIONS: Migration[] = [
     stores: { exerciseFavorite: "id, exerciseId, deletedAt" },
     upgrade: (tx) => tx.table("meta").put({ key: META_KEYS.cursor, value: 0 }),
   },
+  {
+    // No new stores: the active-workout pointer (meta `activeWorkoutId`) is computed once for databases that already hold workouts.
+    version: 3,
+    stores: {},
+    upgrade: async (tx) => {
+      const found = await tx.table<WorkoutRow, string>("workout").orderBy("startedAt").reverse().filter((w) => !w.deletedAt && w.endedAt == null).first();
+      await tx.table("meta").put({ key: META_KEYS.activeWorkout, value: found?.id ?? "" });
+    },
+  },
 ];
 
 export function dbNameFor(userId: string): string {
@@ -98,6 +110,8 @@ export class OverloadDb extends Dexie {
   exerciseFavorite!: Table<ExerciseFavoriteRow, string>;
   outbox!: Table<OutboxEntry, number>;
   meta!: Table<MetaEntry, string>;
+  /** Bumped by every write to `catalog` or `exercise`; the repo caches the merged exercise list against it. */
+  exercisesGeneration = 0;
 
   /** `options` is a test seam (an isolated fake-indexeddb factory per simulated device). */
   constructor(
@@ -109,6 +123,24 @@ export class OverloadDb extends Dexie {
       const version = this.version(m.version).stores(m.stores);
       if (m.upgrade) version.upgrade(m.upgrade);
     }
+    // A new database has no workouts, so nothing is active.
+    this.on("populate", (tx) => void tx.table("meta").put({ key: META_KEYS.activeWorkout, value: "" }));
+    // Any write to an exercise (the catalog or the user's own) invalidates the repo's in-memory exercise list and search index.
+    for (const table of [this.catalog, this.exercise]) {
+      table.hook("creating", () => void this.exercisesGeneration++);
+      table.hook("updating", () => void this.exercisesGeneration++);
+      table.hook("deleting", () => void this.exercisesGeneration++);
+    }
+    // Any write to a workout row marks its transaction; writeTx then refreshes the pointer (./active-workout.ts).
+    this.workout.hook("creating", function (_key, _row, transaction) {
+      noteWorkoutWrite(transaction);
+    });
+    this.workout.hook("updating", function (_mods, _key, _row, transaction) {
+      noteWorkoutWrite(transaction);
+    });
+    this.workout.hook("deleting", function (_key, _row, transaction) {
+      noteWorkoutWrite(transaction);
+    });
   }
 
   /** The table of a synced entity (exercise rows here are the user's CUSTOM exercises; catalog rows live in `catalog`). */

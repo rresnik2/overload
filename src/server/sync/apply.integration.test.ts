@@ -347,6 +347,29 @@ describe("concurrency and paging", () => {
   });
 });
 
+describe("a request without mutations", () => {
+  it("only pulls what other devices pushed: no version bump, no row lock, no change for a user without any state", async () => {
+    const pusher = new FakeDevice(ctxA, "devPullOnlyPush");
+    const { mutations } = tree(pusher);
+    const pushed = await pusher.push(mutations, 0);
+    const before = await prisma.syncState.findUniqueOrThrow({ where: { userId: userA } });
+
+    const pulled = await applySyncSlots(ctxA, { deviceId: "devPullOnlyRead", cursor: 0, clientHlc: pusher.clock.now() }, []);
+    expect(pulled.results).toEqual([]);
+    expect(pulled.newPrs).toEqual([]);
+    expect(pulled.reset).toBe(false);
+    expect(pulled.cursor).toBe(before.version);
+    expect(pulled.changes.workout.length).toBeGreaterThan(0);
+    expect(pushed.cursor).toBe(before.version);
+    expect((await prisma.syncState.findUniqueOrThrow({ where: { userId: userA } })).version).toBe(before.version);
+
+    // a user who never synced: an empty answer, and no SyncState row is created just to look
+    const nobody = await applySyncSlots(mintUserCtx(`${userA}-never`), { deviceId: "devNobody", cursor: 0, clientHlc: pusher.clock.now() }, []);
+    expect(nobody).toMatchObject({ results: [], reset: false, cursor: 0, hasMore: false });
+    expect(await prisma.syncState.count({ where: { userId: `${userA}-never` } })).toBe(0);
+  });
+});
+
 describe("garbage collection", () => {
   it("hard-deletes old tombstones children-first, raises the floor, and tells stale clients to reset", async () => {
     const dev = new FakeDevice(ctxA, "devAgc");

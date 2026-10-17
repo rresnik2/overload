@@ -612,3 +612,7 @@
   display: grid;
   gap: 0.75rem;
 }
+
+.chart-plot > .chart-frame__skeleton {
+  height: 100%;
+}

@@ -169,6 +169,38 @@ body:has(.wk-rest) .toast-region {
   min-width: 5ch;
 }
 
+/* Manual sync under the workout bar: shows how many rows are waiting; a tap syncs now (src/components/workout/SyncNow.tsx). */
+.wk-sync {
+  display: flex;
+  margin-top: calc(-1 * var(--space-4));
+}
+.wk-sync__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--tap-target);
+  padding: 0 0.75rem;
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
+  font: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.wk-sync__btn[data-pending],
+.wk-sync__btn[data-state="error"],
+.wk-sync__btn[data-state="offline"],
+.wk-sync__btn[data-state="signed-out"] {
+  color: var(--color-base-content);
+}
+.wk-sync__btn:active:not([aria-disabled]) {
+  background: var(--color-base-200);
+}
+.wk-sync__btn[aria-disabled] {
+  cursor: progress;
+}
+
 .wk-menu {
   position: relative;
 }

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useDeferredValue, useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { ExerciseList } from "@/components/exercises/ExerciseList";
 import { FavoriteButton } from "@/components/exercises/FavoriteButton";
@@ -33,7 +33,8 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
   const [text, setText] = useState("");
   const [limit, setLimit] = useState(PAGE);
   const [chosen, setChosen] = useState<ExerciseRow | null>(null);
-  const query = text.trim();
+  // The input follows the finger; the results (a search over ~870 exercises, then a list render) trail it and are interruptible.
+  const query = useDeferredValue(text).trim();
 
   const results = useLive(
     () => repo.exercises.search({ text: query || undefined, modality: query ? undefined : tab, limit: limit + 1 }),

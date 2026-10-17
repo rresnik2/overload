@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { useOnSynced } from "@/client/sync";
+import { Skel, SkeletonPage } from "@/components/shell/Skeleton";
 import { SaveTemplateModal } from "@/components/templates/SaveTemplateModal";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { useToast } from "@/components/ui/Toast";
@@ -103,7 +104,19 @@ export function WorkoutScreen() {
     </>
   );
 
-  if (!active) return <p className="wk-muted" role="status">Loading…</p>;
+  // Until Dexie answers (and in the server-rendered HTML) show the shape of the screen, not a word: the same blocks the app's route
+  // skeletons use, so the page has its height from the first paint.
+  if (!active) {
+    return (
+      <SkeletonPage label="workout">
+        <div className="skel-rows">
+          <Skel h="var(--tap-target)" />
+          <Skel h="12rem" />
+          <Skel h="6rem" />
+        </div>
+      </SkeletonPage>
+    );
+  }
 
   return (
     <>

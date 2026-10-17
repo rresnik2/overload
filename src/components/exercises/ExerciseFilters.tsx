@@ -1,4 +1,5 @@
 import clsx from "clsx";
+import Form from "next/form";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import { InfoHint } from "@/components/ui/InfoHint";
@@ -9,7 +10,7 @@ import type { EquipmentOption, ModalityTab } from "./types";
 
 /**
  * Modality tabs plus a search / equipment / muscle form. State lives in the URL: the tabs are links and the form is a
- * plain GET form, so it works without JavaScript and every view is shareable. Props only.
+ * Next `<Form>` (a plain GET form without JavaScript, a client-side navigation with it), so every view is shareable. Props only.
  */
 export interface ExerciseFiltersProps {
   /** Page the filters navigate to, e.g. "/exercises". */
@@ -48,7 +49,7 @@ export function ExerciseFilters({ basePath, filters, tabs, equipmentOptions, cla
         </Link>
         <InfoHint term="favorites" />
       </div>
-      <form method="get" action={basePath} className="exercise-filter-form" role="search">
+      <Form action={basePath} className="exercise-filter-form" role="search">
         {filters.modality ? <input type="hidden" name="modality" value={toSlug(filters.modality)} /> : null}
         {filters.fav ? <input type="hidden" name="fav" value="1" /> : null}
         <label className="exercise-filter-form__field exercise-filter-form__search">
@@ -87,7 +88,7 @@ export function ExerciseFilters({ basePath, filters, tabs, equipmentOptions, cla
             </Link>
           ) : null}
         </div>
-      </form>
+      </Form>
       {filters.modality ? <p className="exercise-filters__note">Showing {MODALITY_LABEL[filters.modality].toLowerCase()} exercises only.</p> : null}
     </div>
   );

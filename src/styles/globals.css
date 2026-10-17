@@ -1,5 +1,14 @@
 /* FROZEN after Phase 0: this file only imports. Each stream edits ONLY its own partial (ownership.json). */
 @import "tailwindcss";
+/* Tailwind scans every non-ignored file under the project root for class names. These folders hold seed JSON, design mockups, docs,
+   tests and scripts, no component markup: scanning them only added utilities nothing uses to the render-blocking stylesheet. */
+@source not "../../prisma";
+@source not "../../docs";
+@source not "../../e2e";
+@source not "../../scripts";
+@source not "../../tools";
+@source not "../../change-requests";
+@source not "../../public";
 @import "./theme.css";
 @import "./primitives.css";
 @import "./shell.css";

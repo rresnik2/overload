@@ -13,9 +13,14 @@ const nextConfig: NextConfig = {
     // Client router cache for dynamic pages: a tab revisited within 30 s is served from memory instead of re-rendering on the
     // server. Anything that changes server data must refresh the router afterwards (router.refresh() / revalidatePath()),
     // see src/client/router-refresh.ts and the Server Actions.
-    staleTimes: { dynamic: 30 },
+    // `static` also bounds router.prefetch() (the tab prefetch in components/shell/useTabPrefetch.ts), whose default is 5 minutes.
+    staleTimes: { dynamic: 30, static: 30 },
   },
   images: {
+    // Only the exercise photos use the optimizer (4:3, never wider than a phone column or a desktop card), so keep the candidate
+    // widths few and small: a 3x phone asks for 828 px at most instead of 1200+, and the optimizer never enlarges an original.
+    deviceSizes: [384, 640, 828],
+    imageSizes: [96, 192],
     remotePatterns: [
       // Catalog exercise images (free-exercise-db, Unlicense). See src/lib/catalog-images.ts.
       { protocol: "https", hostname: "raw.githubusercontent.com", pathname: "/yuhonas/free-exercise-db/**" },
