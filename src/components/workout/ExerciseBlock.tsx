@@ -151,6 +151,9 @@ const BoundActivePanel = memo(function BoundActivePanel({ actions, logging, adva
   return <ActiveSetPanel {...panel} onChange={onChange} onToggleComplete={onToggleComplete} onDelete={onDelete} onAdvance={advance} />;
 });
 
+/** An exercise created this recently is "just added": it is scrolled into view when it first shows. */
+const JUST_ADDED_MS = 5000;
+
 /**
  * One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove).
  * Memoized: its props (`item`, `prs`, `actions`, the callbacks) keep their identity while this exercise is unchanged.
@@ -194,7 +197,9 @@ export const ExerciseBlock = memo(function ExerciseBlock({ item, prefs, prs, act
     onAdvance?.(exerciseId, !sets.some((s) => s.completedAt == null));
   }, [onAdvance, exerciseId, sets]);
   const sectionRef = useRef<HTMLElement>(null);
-  useScrollIntoViewOnFocus(sectionRef, focused, Boolean(phone));
+  // An exercise added a moment ago (the picker, or a template just started) is brought into view; one that was already in a resumed workout is not.
+  const [justAdded] = useState(() => Date.now() - Date.parse(item.we.createdAt) < JUST_ADDED_MS);
+  useScrollIntoViewOnFocus(sectionRef, focused, Boolean(phone), justAdded);
   return (
     <section ref={sectionRef} className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id}>
       {supersetLabel ? (

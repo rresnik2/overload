@@ -709,7 +709,8 @@ body:has(.wk-rest) .toast-region {
   font-size: var(--type-readout-size);
 }
 
-/* Log set: sticky above the thumb (and above the rest bar while it shows) */
+/* Log set: sticky above the thumb (and above the rest bar while it shows). It has an opaque backing: when the panel is taller than the
+   screen the row rides over the dial, which must not show through the button or the "set a value" hint. */
 .wk-panel__logrow {
   position: sticky;
   bottom: calc(18px + var(--sab));
@@ -717,6 +718,8 @@ body:has(.wk-rest) .toast-region {
   display: grid;
   gap: var(--space-1);
   margin-top: var(--space-2);
+  padding-block-end: var(--space-2);
+  background: var(--color-base-100);
 }
 body:has(.wk-rest) .wk-panel__logrow {
   bottom: calc(var(--wk-rest-h) + 18px + var(--sab));
@@ -735,8 +738,11 @@ body:has(.wk-rest) .wk-panel__logrow {
 .wk-panel__log:active:not(:disabled) {
   transform: translateY(1px);
 }
+/* Disabled is a tint of the same colours, not opacity: an opaque button hides whatever the sticky row is riding over. */
 .wk-panel__log:disabled {
-  opacity: 0.5;
+  background: color-mix(in oklab, var(--color-primary) 40%, var(--color-base-100));
+  border-color: color-mix(in oklab, var(--color-primary) 40%, var(--color-base-100));
+  color: color-mix(in oklab, var(--color-primary-content) 60%, var(--color-base-100));
   cursor: not-allowed;
 }
 .wk-panel__log.is-logged {
