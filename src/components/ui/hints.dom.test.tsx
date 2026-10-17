@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setTipsEnabled } from "@/components/ui/tips";
+import { setTipsEnabled, TIP_SESSION_MS } from "@/components/ui/tips";
 import { GLOSSARY } from "@/lib/glossary";
 import { InfoHint } from "./InfoHint";
 import { PageIntro, PageIntroPlaceholder } from "./PageIntro";
@@ -175,6 +175,25 @@ describe("PageIntro", () => {
     expect(screen.queryByText("Start here.")).toBeNull();
     act(() => setTipsEnabled(true));
     expect(screen.getByText("Start here.")).toBeInTheDocument();
+  });
+
+  it("shows in its first session only: reloads keep it, and it is gone once that session is over", () => {
+    const { unmount } = render(<PageIntro id="progress-first">Charts.</PageIntro>);
+    expect(screen.getByText("Charts.")).toBeInTheDocument();
+    const first = Number(window.localStorage.getItem("overload:tip-seen:progress-first"));
+    expect(first).toBeGreaterThan(0);
+    unmount();
+    render(<PageIntro id="progress-first">Charts.</PageIntro>);
+    expect(screen.getByText("Charts.")).toBeInTheDocument();
+    // a later page load inside the first session (seen a minute ago) still shows it; one after it does not
+    window.localStorage.setItem("overload:tip-seen:exercises-soon", String(Date.now() - 60_000));
+    render(<PageIntro id="exercises-soon">Library soon.</PageIntro>);
+    expect(screen.getByText("Library soon.")).toBeInTheDocument();
+    window.localStorage.setItem("overload:tip-seen:exercises-later", String(Date.now() - TIP_SESSION_MS - 1));
+    render(<PageIntro id="exercises-later">Library later.</PageIntro>);
+    expect(screen.queryByText("Library later.")).toBeNull();
+    act(() => setTipsEnabled(true));
+    expect(screen.getByText("Library later.")).toBeInTheDocument();
   });
 
   it("hides every intro when tips are switched off, and still renders when storage throws", () => {

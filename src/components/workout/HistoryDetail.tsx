@@ -101,7 +101,7 @@ export function HistoryDetail({ id }: { id: string }) {
       )}
 
       <div className="wk-card__actions">
-        <Button variant="ink" onClick={() => setTemplating(true)}>
+        <Button variant="ghost" onClick={() => setTemplating(true)}>
           Save as template
         </Button>
         <Button variant="ghost" onClick={() => router.push("/history")}>

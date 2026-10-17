@@ -14,6 +14,7 @@ import { TodayStartCard } from "@/components/today/TodayStartCard";
 import { TodayTemplatesCard } from "@/components/today/TodayTemplatesCard";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { requireSessionInfo } from "@/server/auth/session";
+import { listExercisesWithLoads } from "@/server/catalog/last-loads";
 import { loadInsightsOverview } from "@/server/insights/current";
 import { latestReport } from "@/server/insights/reports";
 import { getProfileRow } from "@/server/profile/profile";
@@ -40,8 +41,11 @@ export default async function TodayPage() {
     loadProgressOverview(ctx, { today }),
     loadBodyView(ctx, { today }),
   ]);
-  // No written report yet: the rule-based findings /insights shows for the review week still have something to say.
-  const preview = report ? null : (await loadInsightsOverview(ctx)).preview;
+  // No written report yet: the rule-based findings /insights shows for the review week still have something to say. Beside it, each
+  // lift tile's exercise and last top set, drawn loaded on the tile.
+  const tileExerciseIds = lifts.tiles.flatMap((t) => (t.seriesKey ? [t.seriesKey.split(":")[0]!] : []));
+  const [overviewForPreview, tileLoads] = await Promise.all([report ? null : loadInsightsOverview(ctx), listExercisesWithLoads(ctx, tileExerciseIds)]);
+  const preview = overviewForPreview?.preview ?? null;
   const unit = profile?.unitPreference ?? "KG";
   return (
     <div className="today">
@@ -54,7 +58,7 @@ export default async function TodayPage() {
       <div className="today-grid">
         <div className="today-col today-col--a">
           <div className="today-cell today-cell--start">
-            <TodayStartCard unit={unit} />
+            <TodayStartCard unit={unit} expectSuggestion={lifts.tiles.some((t) => t.e1rmKg != null)} />
           </div>
           <div className="today-cell today-cell--templates">
             <TodayTemplatesCard unit={unit} />
@@ -68,7 +72,7 @@ export default async function TodayPage() {
             <h2 id="today-tiles-title" className="type-label today-label">
               Estimated 1RM · change over 4 weeks
             </h2>
-            <E1rmTiles tiles={lifts.tiles} unit={lifts.unit} />
+            <E1rmTiles tiles={lifts.tiles} unit={lifts.unit} loads={tileLoads} />
           </section>
           <div className="today-cell today-cell--chart">
             <E1rmChart chart={lifts.chart} unit={lifts.unit} />

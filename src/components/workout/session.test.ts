@@ -43,6 +43,34 @@ describe("startWorkout", () => {
     expect(await device.db.workout.count()).toBe(1);
   });
 
+  it("repeats a past workout: its title, exercises in order and completed set counts, prefilled from that session", async () => {
+    const { repo } = fresh();
+    const squat = await repo.exercises.create(exerciseInput({ slug: "squat", name: "Squat" }));
+    const curl = await repo.exercises.create(exerciseInput({ slug: "curl", name: "Leg curl" }));
+    const past = await repo.workouts.create({ title: "Lower A", startedAt: "2026-10-12T17:00:00.000Z", localDate: "2026-10-12", timezone: "UTC", endedAt: "2026-10-12T18:00:00.000Z" });
+    const weSquat = await repo.workoutExercises.create({ workoutId: past.id, exerciseId: squat.id, machineProfileId: null, position: "a0", restSec: 180 });
+    const weCurl = await repo.workoutExercises.create({ workoutId: past.id, exerciseId: curl.id, machineProfileId: null, position: "a1" });
+    const done = (we: string, position: string, setType: "WARMUP" | "WORKING", weightKg: number, reps: number, completed = true) =>
+      repo.sets.create({ workoutExerciseId: we, position, setType, weightKg, inputUnit: "KG", reps, completedAt: completed ? "2026-10-12T17:10:00.000Z" : null });
+    await done(weSquat.id, "a0", "WARMUP", 60, 8);
+    await done(weSquat.id, "a1", "WORKING", 110, 6);
+    await done(weSquat.id, "a2", "WORKING", 110, 5);
+    await done(weSquat.id, "a3", "WORKING", 110, 5, false);
+    await done(weCurl.id, "a0", "WORKING", 40, 15);
+
+    const w = await startWorkout(repo, { repeat: past, unit: "KG", now: at("2026-10-16T17:00:00.000Z"), timeZone: "UTC" });
+    expect(w).toMatchObject({ title: "Lower A", templateId: null, localDate: "2026-10-16" });
+    const wes = await repo.workoutExercises.forWorkout(w.id);
+    expect(wes.map((e) => e.exerciseId)).toEqual([squat.id, curl.id]);
+    expect(wes[0]).toMatchObject({ restSec: 180 });
+    const squatSets = await repo.sets.forWorkoutExercise((wes[0] as { id: string }).id);
+    expect(squatSets.map((s) => [s.setType, s.weightKg, s.reps, s.completedAt])).toEqual([
+      ["WARMUP", 60, 8, null],
+      ["WORKING", 110, 6, null],
+      ["WORKING", 110, 5, null],
+    ]);
+  });
+
   it("creates the workout from a template: exercises, machine, set counts, superset and rest, prefilled from last time", async () => {
     const { repo } = fresh();
     const bench = await repo.exercises.create(exerciseInput({ slug: "bench", name: "Bench" }));

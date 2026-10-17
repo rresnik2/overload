@@ -45,7 +45,9 @@ async function startEmptyWorkout(page: Page) {
   const start = page.getByRole("button", { name: "Start empty workout" });
   const name = page.getByRole("textbox", { name: "Workout name" });
   await expect(start.or(name)).toBeVisible({ timeout: 60_000 });
-  if (await start.isVisible()) await start.click();
+  // The worker's user can still have a workout from an earlier test: the first sync then swaps the start card for it mid-click,
+  // and a click that waits for the button would wait forever. Either way, a workout must be open afterwards.
+  if (await start.isVisible()) await start.click({ timeout: 15_000 }).catch(() => undefined);
   await expect(name).toBeVisible(COLD);
 }
 
@@ -278,6 +280,19 @@ test.describe("hints on the other pages", () => {
       }
     });
   }
+
+  test("a page tip shows in the first session only: a reload keeps it, a later visit does not", async ({ page }) => {
+    const tip = page.locator('.page-intro[data-tip="templates"]');
+    await page.goto("/templates");
+    await expect(tip).toBeVisible(COLD);
+    await page.reload();
+    await expect(tip).toBeVisible(COLD);
+    // a visit after the first session: the mark says it first appeared over half an hour ago
+    await page.evaluate(() => localStorage.setItem("overload:tip-seen:templates", String(Date.now() - 31 * 60_000)));
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible(COLD);
+    await expect(tip).toBeHidden();
+  });
 
   test("a dismissed page tip stays dismissed and Settings > Show tips brings it back", async ({ page }) => {
     await page.goto("/history");

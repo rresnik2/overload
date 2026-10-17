@@ -1,4 +1,5 @@
 "use client";
+import { Plus } from "lucide-react";
 import Link from "next/link";
 import { useDeferredValue, useState } from "react";
 import { repo, useLive } from "@/client/repo";
@@ -80,7 +81,7 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
             <section aria-label="Favorite exercises">
               <h3 className="wk-picker__heading">Favorites</h3>
               {favorites && favorites.length > 0 ? (
-                <PickList exercises={favorites} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
+                <PickList exercises={favorites} unit={unit} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
               ) : favorites ? (
                 <p className="wk-muted">Star an exercise to pin it here.</p>
               ) : null}
@@ -90,7 +91,7 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
           {!query && recent && recent.length > 0 ? (
             <section aria-label="Recent exercises">
               <h3 className="wk-picker__heading">Recent</h3>
-              <PickList exercises={recent} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
+              <PickList exercises={recent} unit={unit} onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))} />
             </section>
           ) : null}
 
@@ -99,6 +100,7 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
             {shown ? (
               <PickList
                 exercises={shown}
+                unit={unit}
                 onChoose={(e) => (needsMachine(e) ? setChosen(e) : void pick(e, null))}
                 empty={{ title: "No exercises match", description: "Try another search, or create your own exercise.", action: <Link href="/exercises/new" className="ui-btn ui-btn--ink">New exercise</Link> }}
               />
@@ -120,16 +122,16 @@ export function ExercisePicker({ open, onClose, unit, onPick, title = "Add exerc
   );
 }
 
-function PickList({ exercises, onChoose, empty }: { exercises: ExerciseRow[]; onChoose: (e: ExerciseRow) => void; empty?: { title: string; description?: string; action?: React.ReactNode } }) {
+function PickList({ exercises, unit, onChoose, empty }: { exercises: ExerciseRow[]; unit: WeightUnit; onChoose: (e: ExerciseRow) => void; empty?: { title: string; description?: string; action?: React.ReactNode } }) {
   return (
     <ExerciseList
       exercises={exercises}
-      showImages={false}
+      unit={unit}
       empty={empty}
       renderAction={(exercise) => <FavoriteButton exerciseId={exercise.id} name={exercise.name} />}
       actionsFor={(exercise) => (
-        <Button variant="primary" onClick={() => onChoose(exercise)} aria-label={`Add ${exercise.name}`}>
-          Add
+        <Button variant="primary" className="wk-picker__add" onClick={() => onChoose(exercise)} aria-label={`Add ${exercise.name}`}>
+          <Plus size={22} aria-hidden="true" strokeWidth={2.5} />
         </Button>
       )}
     />

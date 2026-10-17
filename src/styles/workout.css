@@ -763,10 +763,21 @@ body:has(.wk-rest) .wk-panel__logrow {
 }
 
 /* ---- equipment picture ---------------------------------------------------- */
-.eq {
+/* The live picture (.eq) and the static drawings elsewhere (.eq-art) share these. Iron objects keep an edge in
+   --color-line-strong so they hold 3:1 against the floor panel; neutral kit (mats, balls, boxes) is the text colour mixed
+   into the panel, so it reads in both themes. --eq-surface is what slots and holes are cut to: the panel behind. */
+.eq,
+.eq-art {
   --eq-iron: #2b2e33;
-  --eq-iron-edge: #4d535a;
-  --eq-plate-idle: #33373c;
+  --eq-iron-edge: var(--color-line-strong);
+  /* idle stack plates sit back from the lifted ones (the text colour) in both themes */
+  --eq-plate-idle: color-mix(in srgb, var(--color-base-content) 22%, var(--color-base-200));
+  --eq-body: color-mix(in srgb, var(--color-base-content) 16%, var(--color-base-200));
+  /* lines that are iron in the gym (ropes, rings, grips, handles) but need 3:1 on the floor panel */
+  --eq-strong: color-mix(in srgb, var(--color-base-content) 42%, var(--color-base-200));
+  --eq-surface: var(--color-base-200);
+}
+.eq {
   margin: 0;
   display: grid;
   gap: var(--space-1);
@@ -917,7 +928,7 @@ body:has(.wk-rest) .wk-panel__logrow {
 }
 .eq-kb__handle {
   fill: none;
-  stroke: var(--eq-iron);
+  stroke: var(--eq-strong);
   stroke-width: 12;
   stroke-linecap: round;
 }
@@ -974,6 +985,236 @@ body:has(.wk-rest) .wk-panel__logrow {
   font-size: 12px;
   font-weight: 600;
   fill: var(--color-base-content);
+}
+
+/* ---- static equipment drawings (library rows, Today, the PR moment) ---- */
+.eq-art {
+  display: block;
+  flex: none;
+  min-width: 0;
+}
+.eq-art svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.eq-art--thumb {
+  width: 104px;
+  height: 48px;
+}
+.eq-art--tile {
+  width: 100%;
+  height: 36px;
+}
+.eq-art--hero {
+  width: 100%;
+  height: 112px;
+}
+.eq-art--ghost svg {
+  opacity: 0.45;
+}
+/* Thumbnails do not replay the plate-in of the live picture on every render. */
+.eq-art .eq-plate {
+  animation: none;
+}
+.eq-plate--face .eq-plate__lip {
+  fill: none;
+  stroke: rgb(0 0 0 / 0.22);
+  stroke-width: 1.5;
+}
+.eq-art .eq-plate--face[data-tone="white"] .eq-plate__disc,
+.eq-art .eq-plate--face[data-tone="black"] .eq-plate__disc {
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+}
+.eq-slot {
+  fill: var(--eq-surface);
+}
+.eq-slot--edged {
+  stroke: var(--eq-iron-edge);
+  stroke-width: 1.5;
+}
+.eq-body {
+  fill: var(--eq-body);
+  stroke: var(--color-line-strong);
+  stroke-width: 1.5;
+}
+.eq-seam {
+  fill: none;
+  stroke: var(--color-line-strong);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.eq-seam--dash {
+  stroke-dasharray: 6 8;
+}
+.eq-fleck {
+  fill: var(--color-line-strong);
+}
+.eq-shaft {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.eq-hex {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+.eq-rail {
+  fill: var(--steel-dark);
+}
+.eq-tower {
+  fill: none;
+  stroke: var(--color-line-strong);
+  stroke-width: 2;
+}
+.eq-cable {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 2;
+}
+.eq-pulley {
+  fill: var(--eq-iron);
+  stroke: var(--steel);
+  stroke-width: 2;
+}
+.eq-ring {
+  fill: none;
+  stroke: var(--steel);
+  stroke-width: 2.5;
+}
+.eq-ring-big {
+  fill: none;
+  stroke: var(--eq-strong);
+  stroke-width: 7;
+}
+.eq-rope,
+.eq-handle-loop {
+  fill: none;
+  stroke: var(--eq-strong);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.eq-vbar,
+.eq-handle,
+.eq-post {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.eq-grip {
+  stroke: var(--eq-strong);
+  stroke-width: 9;
+  stroke-linecap: round;
+}
+.eq-strap {
+  fill: none;
+  stroke: var(--eq-strong);
+  stroke-width: 7;
+}
+.eq-strap-line {
+  fill: none;
+  stroke: var(--eq-strong);
+  stroke-width: 5;
+  stroke-linejoin: round;
+}
+.eq-belt__strap {
+  fill: none;
+  stroke: var(--eq-strong);
+  stroke-width: 14;
+  stroke-linecap: round;
+}
+.eq-chain {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 3;
+  stroke-dasharray: 5 3;
+}
+.eq-knurl {
+  stroke: var(--steel-dark);
+  stroke-width: 1;
+}
+.eq-band__loop {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 9;
+}
+.eq-runner {
+  fill: none;
+  stroke: var(--steel-dark);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+.eq-rib {
+  stroke: var(--steel-dark);
+  stroke-width: 3;
+}
+.eq-tread {
+  fill: none;
+  stroke: var(--eq-iron-edge);
+  stroke-width: 6;
+  stroke-dasharray: 5 6;
+}
+.eq-cord {
+  fill: none;
+  stroke: var(--color-line-strong);
+  stroke-width: 3;
+}
+.eq-shaft-wood {
+  stroke: var(--eq-body);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+.eq-ball__num {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  font-size: 26px;
+  fill: var(--plate-ink-light);
+}
+/* The PR moment: plates slide on from the sleeve end, heaviest first, then hang still. */
+.eq-art--slide .eq-plate {
+  animation: eq-slide-r 220ms var(--ease-out) both;
+  animation-delay: calc(160ms + var(--i, 0) * 120ms);
+}
+.eq-art--slide .eq-side--l .eq-plate {
+  animation-name: eq-slide-l;
+}
+.eq-art--slide .eq-plate--face {
+  animation-name: eq-drop;
+}
+@keyframes eq-slide-r {
+  from {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+}
+@keyframes eq-slide-l {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+}
+@keyframes eq-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-art .eq-plate {
+    animation: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1276,6 +1517,60 @@ body:has(.wk-rest) .wk-panel__logrow {
   color: var(--color-secondary);
 }
 
+/* The PR moment: the record set on its equipment, then the set in readout type. Plate red marks it (a PR is data). */
+.wk-pr {
+  --eq-surface: var(--color-base-100);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border-radius: var(--radius-box);
+  background: var(--color-base-100);
+  border-left: 6px solid var(--color-secondary);
+}
+.wk-pr__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+}
+.wk-pr__label svg {
+  color: var(--color-secondary);
+}
+.wk-pr__art {
+  margin-top: var(--space-2);
+}
+.wk-pr__set {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+}
+.wk-pr__set .type-readout {
+  font-size: 64px;
+}
+.wk-pr__u {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.wk-pr__x {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  font-size: 36px;
+  color: var(--color-muted);
+}
+.wk-pr__line {
+  margin: 0;
+  text-align: center;
+  font-size: var(--type-body-size-dense);
+}
+
 /* ---- templates and history ----------------------------------------------- */
 .wk-list {
   display: grid;
@@ -1497,4 +1792,11 @@ body:has(.wk-xtab--left) .wk-main {
 .wk-jump__row:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+/* The picker's add control: a square plus, named "Add <exercise>" for assistive technology. */
+.wk-picker__add {
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  padding: 0;
 }
