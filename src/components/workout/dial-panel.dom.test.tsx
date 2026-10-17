@@ -99,6 +99,36 @@ describe("ActiveSetPanel", () => {
     expect(screen.getByRole("button", { name: /^Set 1 weight 31/ })).toHaveFocus();
   });
 
+  it("a typed weight is saved when the page is hidden or unloaded before it is confirmed", async () => {
+    const onChange = vi.fn();
+    render(<Harness exercise={ex("DUMBBELL", "PER_IMPLEMENT")} initial={{ weightKg: 32 }} onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: /^Set 1 weight 32, tap to type/ }));
+    await userEvent.keyboard("31");
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    act(() => void document.dispatchEvent(new Event("visibilitychange")));
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenLastCalledWith({ weightKg: 31, inputUnit: "KG" });
+    expect(screen.getByRole("button", { name: /^Set 1 weight 31, tap to type/ })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /^Set 1 weight 31, tap to type/ }));
+    await userEvent.keyboard("{Control>}a{/Control}30");
+    act(() => void window.dispatchEvent(new Event("pagehide")));
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenLastCalledWith({ weightKg: 30, inputUnit: "KG" });
+  });
+
+  it("a typed weight is saved once on unmount, and not again by a later blur or page hide", async () => {
+    const onChange = vi.fn();
+    const { unmount } = render(<Harness onChange={onChange} />);
+    await userEvent.click(screen.getByRole("button", { name: /^Set 1 weight 100, tap to type/ }));
+    await userEvent.keyboard("{Control>}a{/Control}105");
+    unmount();
+    window.dispatchEvent(new Event("pagehide"));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith({ weightKg: 105, inputUnit: "KG" });
+  });
+
   it("Esc cancels typing and an empty or non-numeric entry reverts", async () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
