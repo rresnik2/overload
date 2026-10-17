@@ -177,6 +177,21 @@ describe("PageIntro", () => {
     expect(screen.getByText("Start here.")).toBeInTheDocument();
   });
 
+  it("shows on the first visit only: it stays for that visit and is gone on the next", () => {
+    const { unmount } = render(<PageIntro id="progress-first">Charts.</PageIntro>);
+    expect(screen.getByText("Charts.")).toBeInTheDocument();
+    unmount();
+    // the same page load (a client navigation away and back): still there
+    render(<PageIntro id="progress-first">Charts.</PageIntro>);
+    expect(screen.getByText("Charts.")).toBeInTheDocument();
+    // seen on an earlier visit (a later page load finds the mark)
+    window.localStorage.setItem("overload:tip-seen:exercises-earlier", "1");
+    render(<PageIntro id="exercises-earlier">Library.</PageIntro>);
+    expect(screen.queryByText("Library.")).toBeNull();
+    act(() => setTipsEnabled(true));
+    expect(screen.getByText("Library.")).toBeInTheDocument();
+  });
+
   it("hides every intro when tips are switched off, and still renders when storage throws", () => {
     act(() => setTipsEnabled(false));
     const { unmount } = render(<PageIntro id="history">Your log.</PageIntro>);

@@ -67,8 +67,9 @@
   font-weight: 850;
   font-stretch: 62%;
   text-transform: uppercase;
-  font-size: clamp(2.5rem, 1.7rem + 4vw, 4.75rem);
-  line-height: 1;
+  /* A page name is a heading, never the biggest type on the screen: the lifter's numbers are (32 px phone, 44 px desktop). */
+  font-size: clamp(2rem, 1.6rem + 1.5vw, 2.75rem);
+  line-height: 1.05;
   margin: 0;
 }
 .meta-line {
@@ -89,6 +90,15 @@
   margin: 0.5rem 0 0;
   max-width: 60ch;
   color: var(--color-muted);
+}
+/* On a phone the list starts sooner: the one-line description is a desktop luxury. */
+@media (max-width: 47.99rem) {
+  .page-header {
+    margin-bottom: 1rem;
+  }
+  .page-header__description {
+    display: none;
+  }
 }
 .page-header__actions {
   display: flex;

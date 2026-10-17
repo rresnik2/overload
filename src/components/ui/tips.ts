@@ -3,7 +3,10 @@
 import { useSyncExternalStore } from "react";
 
 const PREFIX = "overload:tip:";
+const SEEN = "overload:tip-seen:";
 const HIDE_ALL = "overload:tips-off";
+/** Tips first shown in this page load: they stay for the rest of it, then a later visit finds them seen and hides them. */
+const shownThisLoad = new Set<string>();
 const EVENT = "overload:tips-changed";
 
 function read(key: string): boolean {
@@ -32,13 +35,23 @@ function subscribe(cb: () => void) {
   };
 }
 
-/** Is the tip with this id hidden (dismissed, or all tips turned off)? Shows on the server and first render. */
+/**
+ * Is the tip with this id hidden: dismissed, all tips turned off, or already seen on an earlier visit (a tip shows on the first
+ * visit only)? Shows on the server and first render.
+ */
 export function useTipHidden(id: string): boolean {
   return useSyncExternalStore(
     subscribe,
-    () => read(HIDE_ALL) || read(PREFIX + id),
+    () => read(HIDE_ALL) || read(PREFIX + id) || (read(SEEN + id) && !shownThisLoad.has(id)),
     () => false,
   );
+}
+
+/** The tip was on screen: it stays for the rest of this page load and is not shown on later visits. */
+export function markTipSeen(id: string) {
+  if (shownThisLoad.has(id) || read(SEEN + id)) return;
+  shownThisLoad.add(id);
+  write(SEEN + id, true);
 }
 
 export function dismissTip(id: string) {
@@ -57,7 +70,7 @@ export function useTipsEnabled(): boolean {
 export function setTipsEnabled(enabled: boolean) {
   if (enabled) {
     try {
-      for (const key of Object.keys(window.localStorage)) if (key.startsWith(PREFIX)) window.localStorage.removeItem(key);
+      for (const key of Object.keys(window.localStorage)) if (key.startsWith(PREFIX) || key.startsWith(SEEN)) window.localStorage.removeItem(key);
     } catch {
       // ignore
     }

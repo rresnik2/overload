@@ -2,7 +2,7 @@
 import clsx from "clsx";
 import { ArrowDown, ArrowUp, Link2, Link2Off, MoreHorizontal, Plus, Repeat, Trash2 } from "lucide-react";
 import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
-import { barShapeFor } from "@/components/equipment/art";
+import { barShapeFor } from "@/components/workout/equipment/art";
 import { ModalityBadge } from "@/components/exercises/ModalityBadge";
 import type { WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { PrCandidate } from "@/contracts/prs";
@@ -303,7 +303,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({ item, prefs, prs, act
           return <BoundSetRow key={set.id} {...rowProps} active={active} preview={preview} />;
         })}
       </ol>
-      <Button variant="ink" block icon={<Plus size={18} />} onClick={actions.onAddSet} aria-label={`Add set to ${exercise.name}`}>
+      <Button variant="ghost" block icon={<Plus size={18} />} onClick={actions.onAddSet} aria-label={`Add set to ${exercise.name}`}>
         Add set
       </Button>
     </section>

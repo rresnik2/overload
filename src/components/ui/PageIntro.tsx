@@ -1,7 +1,7 @@
 "use client";
 import clsx from "clsx";
-import type { ReactNode } from "react";
-import { dismissTip, useTipHidden } from "@/components/ui/tips";
+import { useEffect, type ReactNode } from "react";
+import { dismissTip, markTipSeen, useTipHidden } from "@/components/ui/tips";
 
 export interface PageIntroProps {
   /** Stable per-page key for the "dismissed" memory, e.g. "today" or "workout-guide". */
@@ -27,9 +27,15 @@ export function PageIntroPlaceholder({ id, children, className }: PageIntroProps
   );
 }
 
-/** A short note under a page header. Dismiss it once and it stays away on this device; Settings → Show tips brings it back. */
+/**
+ * A short note under a page header, shown on the first visit only: it stays for that visit, and "Got it" removes it at once.
+ * Settings → Show tips brings every note back.
+ */
 export function PageIntro({ id, children, className }: PageIntroProps) {
   const hidden = useTipHidden(id);
+  useEffect(() => {
+    if (!hidden) markTipSeen(id);
+  }, [hidden, id]);
   if (hidden) return null;
   return (
     <div role="note" className={clsx("page-intro", className)} data-tip={id}>
