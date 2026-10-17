@@ -14,7 +14,19 @@ export const SWIPE = {
   flingMin: 24,
   /** Edge-back gesture: the finger must land within this many px of the left edge. */
   edge: 20,
+  /** iOS: movement (px) after which a mostly-horizontal touch is claimed from the page scroll (see `shouldClaimTouch`). */
+  claim: 6,
 } as const;
+
+/**
+ * iOS Safari starts a vertical page scroll on the slightest vertical drift (`touch-action: pan-y` does not lock the axis as Chrome
+ * does) and then cancels the pointer stream, so a swipe only registers when it is perfectly straight. Claiming the touch early,
+ * once it is clearly more sideways than up or down, keeps the page from scrolling for that one gesture. Vertical scrolls never claim.
+ */
+export function shouldClaimTouch(dx: number, dy: number): boolean {
+  const adx = Math.abs(dx);
+  return adx >= SWIPE.claim && adx > Math.abs(dy);
+}
 
 /** Classify the movement so far. Vertical is sticky for the caller: it cancels and the page scrolls normally. */
 export function classifyIntent(dx: number, dy: number): SwipeIntent {

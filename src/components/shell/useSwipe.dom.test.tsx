@@ -242,3 +242,67 @@ describe("useSwipe pointer types and start zones", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("useSwipe on iOS (touch claim)", () => {
+  /** A touchmove at (x, y) as Safari sends it: cancelable, one touch. Returns whether the page scroll was prevented. */
+  function touchMove(el: Element, x: number, y: number): boolean {
+    const ev = new Event("touchmove", { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, "touches", { value: [{ clientX: x, clientY: y }] });
+    el.dispatchEvent(ev);
+    return ev.defaultPrevented;
+  }
+  const down = (el: Element) => fireEvent.pointerDown(el, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 100, clientY: 200 });
+  const up = (el: Element) => fireEvent.pointerUp(el, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 100, clientY: 200 });
+
+  beforeEach(() => {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue("Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15");
+    Object.defineProperty(navigator, "maxTouchPoints", { value: 5, configurable: true });
+  });
+  afterEach(() => {
+    Object.defineProperty(navigator, "maxTouchPoints", { value: 0, configurable: true });
+  });
+
+  it("claims a sideways touch from the page scroll, for the rest of that gesture", () => {
+    render(<Zone onSwipe={vi.fn()} />);
+    const el = screen.getByTestId("plain");
+    down(el);
+    expect(touchMove(el, 103, 201)).toBe(false); // too small to tell yet
+    expect(touchMove(el, 92, 202)).toBe(true); // clearly sideways: claimed
+    expect(touchMove(el, 80, 215)).toBe(true); // a later drift does not hand it back mid-gesture
+    up(el);
+  });
+
+  it("never claims a touch that moved vertically first, so the page scrolls", () => {
+    render(<Zone onSwipe={vi.fn()} />);
+    const el = screen.getByTestId("plain");
+    down(el);
+    expect(touchMove(el, 101, 192)).toBe(false);
+    expect(touchMove(el, 70, 190)).toBe(false); // turning sideways later is still the page's scroll
+    up(el);
+  });
+
+  it("leaves no-swipe zones and other devices alone", () => {
+    render(
+      <Zone onSwipe={vi.fn()}>
+        <div data-no-swipe data-testid="dial" />
+      </Zone>,
+    );
+    const dial = screen.getByTestId("dial");
+    down(dial);
+    expect(touchMove(dial, 80, 200)).toBe(false);
+    up(dial);
+  });
+});
+
+describe("useSwipe off iOS", () => {
+  it("never prevents a touchmove (Android keeps the browser's own axis lock)", () => {
+    render(<Zone onSwipe={vi.fn()} />);
+    const el = screen.getByTestId("plain");
+    fireEvent.pointerDown(el, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 100, clientY: 200 });
+    const ev = new Event("touchmove", { bubbles: true, cancelable: true });
+    Object.defineProperty(ev, "touches", { value: [{ clientX: 70, clientY: 200 }] });
+    el.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(false);
+    fireEvent.pointerUp(el, { pointerId: 1, pointerType: "touch", isPrimary: true, clientX: 70, clientY: 200 });
+  });
+});

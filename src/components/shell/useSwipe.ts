@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import type { RefObject } from "react";
-import { classifyIntent, resolveSwipe } from "./swipe-logic";
+import { SWIPE, classifyIntent, resolveSwipe, shouldClaimTouch } from "./swipe-logic";
 import type { SwipeDirection } from "./swipe-logic";
 
 export interface UseSwipeOptions {
@@ -41,13 +41,24 @@ interface Track {
   active: boolean;
   dx: number;
   dy: number;
+  /** iOS: whether this touch was claimed from the page scroll ("yes": its touchmoves are prevented until it ends) or left to it. */
+  claim: "pending" | "yes" | "no";
+}
+
+/** iPhone and iPad (iPadOS reports a Mac user agent with touch points). Every browser there is WebKit. */
+export function isAppleTouch(): boolean {
+  if (typeof navigator === "undefined" || !(navigator.maxTouchPoints > 0)) return false;
+  return /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 }
 
 /**
- * Horizontal swipes by pointer events, touch and pen only (a mouse never swipes). It reports horizontal intent and nothing else: it
- * never calls preventDefault, so vertical scrolls, taps and text selection stay the browser's. Give the element
- * `touch-action: pan-y pinch-zoom` so the browser leaves horizontal drags to us. Starts inside `[data-no-swipe]`, form fields and
- * sideways-scrolling elements are ignored. The gesture itself does not animate, so reduced motion is the caller's concern.
+ * Horizontal swipes by pointer events, touch and pen only (a mouse never swipes). Give the element `touch-action: pan-y pinch-zoom`
+ * so the browser leaves horizontal drags to us. Starts inside `[data-no-swipe]`, form fields and sideways-scrolling elements are
+ * ignored. The gesture itself does not animate, so reduced motion is the caller's concern.
+ *
+ * Vertical scrolls, taps and text selection stay the browser's. The one exception is iOS, where Safari ignores the pan-y axis lock
+ * and starts a vertical scroll on any drift, cancelling the pointer stream: there a touch that is clearly sideways is claimed (its
+ * touchmoves are prevented) so the swipe survives. A touch that moves vertically first is never claimed.
  */
 export function useSwipe<T extends HTMLElement>(ref: RefObject<T | null>, options: UseSwipeOptions) {
   const opts = useRef(options);
@@ -122,15 +133,33 @@ export function useSwipe<T extends HTMLElement>(ref: RefObject<T | null>, option
       if (e.pointerType !== "touch" && e.pointerType !== "pen") return;
       if (!e.isPrimary || opts.current.startFilter?.(e) === false) return;
       if (startsInNoSwipeZone(e.target)) return;
-      track = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), active: false, dx: 0, dy: 0 };
+      track = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), active: false, dx: 0, dy: 0, claim: "pending" };
       window.addEventListener("pointermove", onMove, { passive: true });
       window.addEventListener("pointerup", onUp, { passive: true });
       window.addEventListener("pointercancel", onCancel, { passive: true });
     }
 
+    // iOS only (see the hook comment). Not passive, so it can stop Safari's scroll; it does nothing for a touch the pointer handler
+    // is not tracking (a no-swipe start, a mouse, a second finger) and never claims a touch that went vertical first.
+    function onTouchMove(e: TouchEvent) {
+      const touch = e.touches[0];
+      if (!track || !touch || e.touches.length > 1 || track.claim === "no") return;
+      if (track.claim === "pending") {
+        const dx = touch.clientX - track.x;
+        const dy = touch.clientY - track.y;
+        if (shouldClaimTouch(dx, dy)) track.claim = "yes";
+        else if (Math.abs(dy) >= SWIPE.claim) track.claim = "no"; // moved vertically first: the scroll is the page's
+        else return;
+      }
+      if (track.claim === "yes" && e.cancelable) e.preventDefault();
+    }
+    const claimTouches = isAppleTouch();
+
     el.addEventListener("pointerdown", onDown, { passive: true });
+    if (claimTouches) el.addEventListener("touchmove", onTouchMove, { passive: false });
     return () => {
       el.removeEventListener("pointerdown", onDown);
+      if (claimTouches) el.removeEventListener("touchmove", onTouchMove);
       clearSwallow?.();
       track = null;
       detach();

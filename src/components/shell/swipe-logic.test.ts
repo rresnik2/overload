@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyIntent, resolveSwipe } from "./swipe-logic";
+import { classifyIntent, resolveSwipe, shouldClaimTouch } from "./swipe-logic";
 
 describe("classifyIntent", () => {
   it("waits below the slop", () => {
@@ -41,5 +41,18 @@ describe("resolveSwipe", () => {
     expect(resolveSwipe(-90, 70, 200)).toBeNull();
     expect(resolveSwipe(-90, 60, 200)).toBeNull();
     expect(resolveSwipe(-90, 59, 200)).toBe("left");
+  });
+});
+
+describe("shouldClaimTouch (iOS)", () => {
+  it("claims a touch once it is clearly sideways, either way", () => {
+    expect(shouldClaimTouch(-6, 2)).toBe(true);
+    expect(shouldClaimTouch(8, -5)).toBe(true);
+  });
+
+  it("never claims a vertical or diagonal-vertical touch, or one that has barely moved", () => {
+    expect(shouldClaimTouch(5, 0)).toBe(false);
+    expect(shouldClaimTouch(2, 9)).toBe(false);
+    expect(shouldClaimTouch(7, 7)).toBe(false);
   });
 });
