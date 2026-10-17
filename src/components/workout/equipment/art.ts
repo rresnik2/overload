@@ -60,7 +60,8 @@ export interface ArtExercise {
 
 const has = (name: string, re: RegExp) => re.test(name);
 
-function cableAttachment(name: string): CableAttachment {
+/** The attachment a cable exercise uses, from its name (the live picture in the active-set panel draws it too). */
+export function cableAttachment(name: string): CableAttachment {
   if (has(name, /\brope\b|face pull|pull through|crunch/i)) return "rope";
   if (has(name, /v-bar|close-grip|close grip|seated cable rows?|elevated cable rows?|seated .*rows?$/i)) return "v-bar";
   if (has(name, /kickback|hip (ad|ab)duction|ankle/i)) return "ankle-strap";
@@ -71,7 +72,7 @@ function cableAttachment(name: string): CableAttachment {
 }
 
 /** The apparatus a bodyweight exercise is done on. Most are floor work and stretches: the mat. */
-function bodyweightApparatus(name: string): ArtSpec {
+export function bodyweightApparatus(name: string): ArtSpec {
   if (has(name, /stretch|\bfloor\b/i)) return { kind: "mat" };
   if (has(name, /\brings?\b/i)) return { kind: "rings" };
   if (has(name, /suspend|suspension|straps|\btrx\b/i)) return { kind: "straps" };

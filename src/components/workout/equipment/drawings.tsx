@@ -1,7 +1,8 @@
 // The equipment drawings: flat, side-on (or face-on where that reads better), no perspective and no shading, in the
 // Calibrated Dial palette. Plates are drawn in their real colours (they are data); everything else is iron, steel or a
 // neutral body colour from the theme. Static SVG with no hooks, so server components can render them. The live picture in the
-// active-set panel (workout/EquipmentPicture) builds on the same bar, horn, dumbbell, kettlebell and stack drawings.
+// active-set panel (workout/EquipmentPicture) builds on the same bar, horn, dumbbell, kettlebell, stack, cable, belt, plate
+// and medicine ball drawings.
 // Canvases: bars and horns 300 x 92 (plate heights in plates.ts are in these units), everything else 288 x 120, ground at 116.
 import clsx from "clsx";
 import type { ReactNode } from "react";
@@ -354,9 +355,15 @@ function Attachment({ kind }: { kind: CableAttachment }) {
   }
 }
 
+/** Plates drawn in a cable column's tower. */
+export const CABLE_PLATES = 10;
+
+/** Plates lifted in the cable drawing for a pin: one drawn plate per two pins, so a 20-pin load fills the tower. 0 for no load. */
+export const cableOn = (pin: number): number => (pin > 0 ? Math.min(CABLE_PLATES, Math.max(1, Math.round(pin / 2))) : 0);
+
 /** A cable column: the stack in its tower, the cable over two pulleys and the attachment the exercise uses. */
 export function CableArt({ attachment, on, label }: Labelled & { attachment: CableAttachment; on: number }) {
-  const count = 10;
+  const count = CABLE_PLATES;
   return (
     <Svg viewBox="0 0 288 120" label={label} className="eq-cable-art">
       <rect className="eq-tower" x={26} y={4} width={64} height={112} rx={3} />

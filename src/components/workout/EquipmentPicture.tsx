@@ -1,9 +1,10 @@
 "use client";
 import clsx from "clsx";
 import { useLayoutEffect, useRef } from "react";
-import type { ReactNode } from "react";
-import type { BarShape } from "@/components/workout/equipment/art";
-import { BarArt, DumbbellArt, HornArt, KettlebellArt, STACK_PITCH, StackPlates } from "@/components/workout/equipment/drawings";
+import type { ReactNode, RefObject } from "react";
+import { bodyweightApparatus, cableAttachment, type BarShape } from "@/components/workout/equipment/art";
+import { artDrawing } from "@/components/workout/equipment/EquipmentArt";
+import { BarArt, BeltArt, CableArt, cableOn, DumbbellArt, HornArt, KettlebellArt, MedicineBallArt, PlateArt, STACK_PITCH, StackPlates } from "@/components/workout/equipment/drawings";
 import type { LoadType, WeightUnit } from "@/contracts/enums";
 import { STACK_WINDOW, pinOf, stackFirstPlate, type DialSetup, type PictureKind } from "./dial-setup";
 import { PANEL_COPY } from "./labels";
@@ -16,12 +17,16 @@ export interface EquipmentPictureProps {
   loadType: LoadType;
   /** One implement (single-arm) rather than a pair. */
   isUnilateral: boolean;
+  /** The exercise name: it picks a cable's attachment, and the apparatus a bodyweight-plus exercise draws with nothing added. */
+  name?: string;
   /** What the dial worked out: unit, step, bar, plates and the value it rests at. */
   setup: Pick<DialSetup, "unit" | "step" | "bar" | "plates" | "restValue">;
   /** The weight in `setup.unit`, or null for a set with no weight yet (the picture shows the resting weight at 50%). */
   value: number | null;
   /** A machine profile exists, so the stack caption can say "of 20". */
   hasProfile?: boolean;
+  /** The workout's bodyweight in `setup.unit`, for the bodyweight-plus caption ("Added to 82.5 kg bodyweight"). */
+  bodyweight?: number | null;
   /** "preview" is the 96 px picture beside the active row on desktop: no caption. */
   size?: "full" | "preview";
   /** Replaces the caption for a moment ("Limited to 400 kg"). */
@@ -31,31 +36,39 @@ export interface EquipmentPictureProps {
   className?: string;
 }
 
+/** The plate a plate exercise draws, faded, before a weight is chosen. */
+const GHOST_PLATE: Record<WeightUnit, number> = { KG: 20, LB: 45 };
+
 const dot = (tone: Plate["tone"]) => <i className="eq__dot" style={{ background: `var(--plate-${tone})` }} data-tone={tone} aria-hidden="true" />;
 
-/** The live stack: plates lift and drop with a 22 ms stagger, nearest the old pin first. Delays are set on the DOM before the change paints. */
-function StackSvg({ pin, step, unit, hasProfile, label }: { pin: number; step: number; unit: WeightUnit; hasProfile: boolean; label: string }) {
-  const first = stackFirstPlate(pin);
-  const selected = Math.max(0, Math.min(STACK_WINDOW, pin - first + 1));
-  const ref = useRef<SVGSVGElement>(null);
-  const prev = useRef(selected);
-
+/**
+ * Stack plates lift and drop with a 22 ms stagger, nearest the old pin first. `lifted` is how many plates are up (null: not a
+ * stack). The delays are set on the DOM before the change paints.
+ */
+function useStackStagger(root: RefObject<HTMLElement | null>, lifted: number | null) {
+  const prev = useRef(lifted);
   useLayoutEffect(() => {
-    const svg = ref.current;
+    const el = root.current;
     const from = prev.current;
-    prev.current = selected;
-    if (!svg || from === selected) return;
-    const lo = Math.min(from, selected);
-    svg.querySelectorAll<SVGRectElement>(".eq-sp").forEach((plate, i) => {
-      const changed = i >= lo && i < Math.max(from, selected);
-      plate.style.transitionDelay = changed ? `${(selected > from ? i - from : from - 1 - i) * 22}ms` : "0ms";
+    prev.current = lifted;
+    if (!el || from === null || lifted === null || from === lifted) return;
+    const lo = Math.min(from, lifted);
+    el.querySelectorAll<SVGRectElement>(".eq-sp").forEach((plate, i) => {
+      const changed = i >= lo && i < Math.max(from, lifted);
+      plate.style.transitionDelay = changed ? `${(lifted > from ? i - from : from - 1 - i) * 22}ms` : "0ms";
     });
-  }, [selected]);
+  }, [root, lifted]);
+}
 
+/** Plates lifted in the 20-plate window of the live stack: the window scrolls so the pin stays in view. */
+const stackSelected = (pin: number): number => Math.max(0, Math.min(STACK_WINDOW, pin - stackFirstPlate(pin) + 1));
+
+/** The live stack between its guide rods, the pin at `selected` plates of the window. */
+function StackSvg({ pin, selected, step, unit, hasProfile, label }: { pin: number; selected: number; step: number; unit: WeightUnit; hasProfile: boolean; label: string }) {
   const unitText = unit === "KG" ? "kg" : "lb";
   const stepText = String(Math.round(step * 100) / 100);
   return (
-    <svg ref={ref} viewBox="0 0 288 120" role="img" aria-label={label} focusable="false">
+    <svg viewBox="0 0 288 120" role="img" aria-label={label} focusable="false">
       <line className="eq-rod" x1={76} x2={76} y1={2} y2={118} />
       <line className="eq-rod" x1={212} x2={212} y1={2} y2={118} />
       <StackPlates count={STACK_WINDOW} on={selected} x={82} y={14} width={124} />
@@ -81,10 +94,10 @@ function StackSvg({ pin, step, unit, hasProfile, label }: { pin: number; step: n
 
 // ───────────────────────────── the component ─────────────────────────────
 
-const perSideList = (perSide: readonly Plate[]) => (
+const plateList = (lead: string, plates: readonly Plate[]) => (
   <>
-    <span className="eq__lead">{PANEL_COPY.perSide}</span>
-    {perSide.map((p, i) => (
+    <span className="eq__lead">{lead}</span>
+    {plates.map((p, i) => (
       <span key={`${i}-${p.weight}`} className="eq__chip">
         {i > 0 ? <span aria-hidden="true">+ </span> : null}
         {dot(p.tone)}
@@ -95,15 +108,20 @@ const perSideList = (perSide: readonly Plate[]) => (
 );
 
 /**
- * The picture of what the number means (spec section 06): plates on a bar or loading horn, dumbbells, a kettlebell or a weight
- * stack with its pin, with a one-line caption. It follows `value`: SVG groups are updated in place so CSS transitions run.
- * Barbell and horn loading come from plates.ts, so a lighter set of plates (the lifter's inventory) draws what they own.
+ * The picture of what the number means (spec section 06): plates on a bar or loading horn, dumbbells, a kettlebell, a weight
+ * stack with its pin, a cable column with its attachment, a dip belt with the plates hanging (the apparatus alone while nothing
+ * is added), a held plate or a medicine ball, with a one-line caption. It follows `value`: SVG groups are updated in place so
+ * CSS transitions run. Plate loading comes from plates.ts, so a lighter set of plates (the lifter's inventory) draws what they own.
  */
-export function EquipmentPicture({ kind, shape = "straight", loadType, isUnilateral, setup, value, hasProfile = false, size = "full", note, captionExtra, className }: EquipmentPictureProps) {
+export function EquipmentPicture({ kind, shape = "straight", loadType, isUnilateral, name = "", setup, value, hasProfile = false, bodyweight = null, size = "full", note, captionExtra, className }: EquipmentPictureProps) {
   const { unit, plates, bar } = setup;
   const ghost = value === null;
   const w = value ?? setup.restValue;
   const pair = !isUnilateral && loadType === "PER_IMPLEMENT";
+  const pin = kind === "stack" || kind === "cable" ? pinOf(w, setup) : 0;
+  const lifted = kind === "stack" ? stackSelected(pin) : kind === "cable" ? cableOn(pin) : null;
+  const artRef = useRef<HTMLDivElement>(null);
+  useStackStagger(artRef, lifted);
 
   let art: ReactNode;
   let caption: ReactNode = null;
@@ -118,8 +136,8 @@ export function EquipmentPicture({ kind, shape = "straight", loadType, isUnilate
     else if (ghost || info?.kind === "empty") caption = PANEL_COPY.emptyBar(bar, unit);
     else if (info?.kind === "below-bar") caption = PANEL_COPY.lighterThanBar(bar, unit);
     else if (info?.kind === "inexact") caption = PANEL_COPY.inexact(info.requested, info.nearest, unit);
-    else caption = perSideList(loadout.perSide);
-    if (bar === null && !ghost && loadout.perSide.length > 0) caption = <>{PANEL_COPY.barUnknown} · {perSideList(loadout.perSide)}</>;
+    else caption = plateList(PANEL_COPY.perSide, loadout.perSide);
+    if (bar === null && !ghost && loadout.perSide.length > 0) caption = <>{PANEL_COPY.barUnknown} · {plateList(PANEL_COPY.perSide, loadout.perSide)}</>;
   } else if (kind === "horn") {
     const loadout = loadSide(ghost ? 0 : w, plates);
     art = <HornArt loadout={loadout} label={PANEL_COPY.pictureLabel.horn(loadout.perSide.map((p) => p.weight), unit)} />;
@@ -127,7 +145,7 @@ export function EquipmentPicture({ kind, shape = "straight", loadType, isUnilate
       const total = (bar ?? 0) + 2 * loadout.loaded;
       caption = (
         <>
-          {loadout.perSide.length > 0 ? perSideList(loadout.perSide) : <span className="eq__lead">{PANEL_COPY.perSide} —</span>}
+          {loadout.perSide.length > 0 ? plateList(PANEL_COPY.perSide, loadout.perSide) : <span className="eq__lead">{PANEL_COPY.perSide} —</span>}
           {bar !== null ? <span className="eq__chip"> {PANEL_COPY.baseTotal(bar, total, unit)}</span> : null}
         </>
       );
@@ -145,15 +163,59 @@ export function EquipmentPicture({ kind, shape = "straight", loadType, isUnilate
         {ghost ? PANEL_COPY.turnDial : pair ? PANEL_COPY.bellPair(w, unit) : PANEL_COPY.bell(w, unit)}
       </>
     );
+  } else if (kind === "cable") {
+    // The tower draws ten plates, so the caption gives the pin without "of 20".
+    const attachment = cableAttachment(name);
+    art = <CableArt attachment={attachment} on={lifted ?? 0} label={PANEL_COPY.pictureLabel.cable(attachment, pin, w, unit)} />;
+    caption = ghost ? PANEL_COPY.turnDial : PANEL_COPY.pin(pin, null, w, setup.step, unit);
+  } else if (kind === "belt") {
+    if (w > 0) {
+      const loadout = loadSide(w, plates);
+      art = <BeltArt plates={loadout.perSide} label={PANEL_COPY.pictureLabel.belt(loadout.perSide.map((p) => p.weight), unit)} />;
+      caption = ghost ? (
+        PANEL_COPY.turnDialToAdd
+      ) : (
+        <>
+          {loadout.exact ? plateList(PANEL_COPY.onBelt, loadout.perSide) : <span>{loadout.loaded > 0 ? PANEL_COPY.inexact(w, loadout.loaded, unit) : PANEL_COPY.noPlate(w, unit)}</span>}
+          {bodyweight !== null ? <span>{PANEL_COPY.addedToBodyweight(bodyweight, unit)}</span> : null}
+        </>
+      );
+    } else {
+      // Nothing added: the pull-up bar, the dip bars or the mat, as the exercise's drawing elsewhere shows it.
+      const apparatus = bodyweightApparatus(name);
+      art = artDrawing(apparatus, { exercise: { equipment: "BODYWEIGHT", loadType, name }, unit, load: null, label: PANEL_COPY.pictureLabel.apparatus(apparatus.kind) });
+      caption = ghost ? PANEL_COPY.turnDialToAdd : PANEL_COPY.bodyweightOnly(bodyweight, unit);
+    }
+  } else if (kind === "plate") {
+    // no weight yet: the faded plate is a typical one (the 20 kg / 45 lb), as the library rows draw it, not the dial's 2.5
+    const loadout = loadSide(ghost ? GHOST_PLATE[unit] : w, plates);
+    // the heaviest plate in the weight; below the lightest plate, the lightest
+    const held = loadout.perSide[0] ?? (plates[plates.length - 1] as Plate);
+    art = <PlateArt plate={held} label={PANEL_COPY.pictureLabel.plate(loadout.perSide.length > 0 ? loadout.perSide.map((p) => p.weight) : [held.weight], unit)} />;
+    if (ghost) caption = PANEL_COPY.turnDial;
+    else if (loadout.perSide.length === 0) caption = PANEL_COPY.noPlate(w, unit);
+    else if (!loadout.exact) caption = PANEL_COPY.inexact(w, loadout.loaded, unit);
+    else if (loadout.perSide.length === 1)
+      caption = (
+        <>
+          {dot(held.tone)}
+          {PANEL_COPY.onePlate(w, unit)}
+        </>
+      );
+    else caption = plateList(PANEL_COPY.plates, loadout.perSide);
+  } else if (kind === "medicine-ball") {
+    art = <MedicineBallArt weight={ghost ? null : w} label={PANEL_COPY.pictureLabel.medicineBall(w, unit)} />;
+    caption = ghost ? PANEL_COPY.turnDial : PANEL_COPY.ball(w, unit);
   } else {
-    const pin = pinOf(w, setup);
-    art = <StackSvg pin={pin} step={setup.step} unit={unit} hasProfile={hasProfile} label={PANEL_COPY.pictureLabel.stack(pin, w, unit)} />;
+    art = <StackSvg pin={pin} selected={lifted ?? 0} step={setup.step} unit={unit} hasProfile={hasProfile} label={PANEL_COPY.pictureLabel.stack(pin, w, unit)} />;
     caption = ghost ? PANEL_COPY.turnDial : PANEL_COPY.pin(pin, hasProfile && pin <= STACK_WINDOW ? STACK_WINDOW : null, w, setup.step, unit);
   }
 
   return (
     <figure className={clsx("eq", `eq--${kind}`, size === "preview" && "eq--preview", ghost && "eq--ghost", className)} data-kind={kind}>
-      <div className="eq__art">{art}</div>
+      <div className="eq__art" ref={artRef}>
+        {art}
+      </div>
       {size === "full" ? (
         <figcaption className="eq__caption" data-note={note ? "true" : undefined}>
           <span className="eq__text">{note ?? caption}</span>
