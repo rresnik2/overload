@@ -1,17 +1,10 @@
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setWorkoutActive } from "@/lib/pwa";
-import { mayPrefetchTabs, neighbourTabs, useTabPrefetch } from "./useTabPrefetch";
-
-function Probe({ enabled = true, pathname }: { enabled?: boolean; pathname: string }) {
-  useTabPrefetch(enabled, pathname, prefetch);
-  return null;
-}
-const prefetch = vi.fn();
+import { mayPrefetchTabs, neighbourTabs, useTabPrefetchReady } from "./useTabPrefetch";
 
 beforeEach(() => {
-  prefetch.mockReset();
-  // Run idle callbacks on a timer so the tests control when the page is "idle".
+  // Idle callbacks run on a timer, so the tests decide when the page is "idle".
   vi.useFakeTimers();
   vi.stubGlobal("requestIdleCallback", (cb: () => void) => window.setTimeout(cb, 100));
   vi.stubGlobal("cancelIdleCallback", (id: number) => window.clearTimeout(id));
@@ -45,33 +38,43 @@ describe("mayPrefetchTabs", () => {
   });
 });
 
-describe("useTabPrefetch", () => {
-  it("prefetches both neighbours once the page is idle, not before", () => {
-    render(<Probe pathname="/exercises" />);
-    expect(prefetch).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(150);
-    expect(prefetch.mock.calls.map(([h]) => h)).toEqual(["/progress", "/today"]);
+describe("useTabPrefetchReady", () => {
+  it("is false at first and turns true once the page is idle", () => {
+    const { result } = renderHook(() => useTabPrefetchReady(true, "/exercises"));
+    expect(result.current).toBe(false);
+    act(() => void vi.advanceTimersByTime(150));
+    expect(result.current).toBe(true);
   });
 
-  it("does nothing off phones, off the ring, with data saver on, or during a workout", () => {
-    render(<Probe enabled={false} pathname="/today" />);
-    render(<Probe pathname="/settings/profile" />);
+  it("starts over on a route change", () => {
+    const { result, rerender } = renderHook(({ path }) => useTabPrefetchReady(true, path), { initialProps: { path: "/today" } });
+    act(() => void vi.advanceTimersByTime(150));
+    expect(result.current).toBe(true);
+    rerender({ path: "/exercises" });
+    expect(result.current).toBe(false);
+    act(() => void vi.advanceTimersByTime(150));
+    expect(result.current).toBe(true);
+  });
+
+  it("stays false when disabled, off the ring, with data saver on, or during a workout", () => {
+    const off = renderHook(() => useTabPrefetchReady(false, "/today"));
+    const away = renderHook(() => useTabPrefetchReady(true, "/settings/profile"));
     Object.defineProperty(navigator, "connection", { configurable: true, value: { saveData: true } });
-    render(<Probe pathname="/today" />);
-    vi.advanceTimersByTime(500);
-    expect(prefetch).not.toHaveBeenCalled();
+    const saver = renderHook(() => useTabPrefetchReady(true, "/today"));
+    act(() => void vi.advanceTimersByTime(500));
+    expect([off.result.current, away.result.current, saver.result.current]).toEqual([false, false, false]);
 
     Reflect.deleteProperty(navigator, "connection");
     setWorkoutActive(true);
-    render(<Probe pathname="/today" />);
-    vi.advanceTimersByTime(500);
-    expect(prefetch).not.toHaveBeenCalled();
+    const logging = renderHook(() => useTabPrefetchReady(true, "/today"));
+    act(() => void vi.advanceTimersByTime(500));
+    expect(logging.result.current).toBe(false);
   });
 
-  it("is cancelled when the page changes before it was idle", () => {
-    const { unmount } = render(<Probe pathname="/today" />);
+  it("does not turn on after the page was left before it was idle", () => {
+    const { result, unmount } = renderHook(() => useTabPrefetchReady(true, "/today"));
     unmount();
-    vi.advanceTimersByTime(500);
-    expect(prefetch).not.toHaveBeenCalled();
+    act(() => void vi.advanceTimersByTime(500));
+    expect(result.current).toBe(false);
   });
 });
