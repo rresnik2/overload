@@ -857,9 +857,16 @@
 .sg-section {
   margin-top: 2.5rem;
 }
+/* One column that may shrink below its content (minmax(0, 1fr)). An implicit `auto` column grows to the widest child's content, and
+   the rep strip (twelve 46 px cells in a scroller) made the whole page 1413 px wide on a 412 px phone: sections overflowed sideways,
+   the dark showcase no longer sat behind its own content and "Open sheet" was covered. Children shrink instead (min-width: 0). */
 .sg-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.25rem;
+}
+.sg-grid > * {
+  min-width: 0;
 }
 @media (min-width: 768px) {
   .sg-grid {
@@ -871,6 +878,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
 }
 .sg-row {
   display: flex;
