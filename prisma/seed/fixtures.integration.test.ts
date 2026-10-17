@@ -51,5 +51,6 @@ describe("demo user seed (real Postgres)", () => {
     const facts = buildWeeklyFacts(input, { weekStart: "2026-10-05" });
     expect(insightFactsSchema.safeParse(facts).success).toBe(true);
     expect(facts.lifts.find((l) => l.seriesKey === planted.benchStall.seriesKey)?.stalled).toBe(true);
-  });
+    // two full seeds, each now rebuilding the PRs of every series over the network, take longer than the project's 30 s
+  }, 120_000);
 });
