@@ -16,14 +16,30 @@ export async function getCatalogVersion(): Promise<number> {
   return (await prisma.catalogMeta.findUnique({ where: { id: 1 } }))?.version ?? 0;
 }
 
-/** Every global catalog exercise with its muscles, as contract rows. */
-export async function loadCatalog(version: number): Promise<CatalogResponse> {
+// The global catalog only changes on a reseed, which bumps CatalogMeta.version, so the full response (876 exercises, about 1.1 MB
+// read from the database) is kept in memory per version: every new device used to cost a full read. Concurrent misses share one
+// read. Custom exercises are never part of it (userId null only).
+let fullCatalog: { version: number; response: Promise<CatalogResponse> } | null = null;
+
+async function readCatalog(version: number): Promise<CatalogResponse> {
   const rows = await prisma.exercise.findMany({
     where: { userId: null, deletedAt: null },
     include: { muscles: true },
     orderBy: [{ name: "asc" }, { id: "asc" }],
   });
   return { version, generatedAt: new Date().toISOString(), exercises: rows.map(exerciseToRow) };
+}
+
+/** Every global catalog exercise with its muscles, as contract rows. Cached per catalog version. */
+export function loadCatalog(version: number): Promise<CatalogResponse> {
+  if (fullCatalog?.version === version) return fullCatalog.response;
+  const response = readCatalog(version);
+  fullCatalog = { version, response };
+  // A failed read must not stay cached: the next request tries again.
+  response.catch(() => {
+    if (fullCatalog?.response === response) fullCatalog = null;
+  });
+  return response;
 }
 
 // ───────────────────────────── library ─────────────────────────────
@@ -74,6 +90,7 @@ async function globalSlimCatalog(): Promise<SlimExercise[]> {
 export function resetLibraryCache(): void {
   catalogVersionRead = null;
   slimCatalog = null;
+  fullCatalog = null;
 }
 
 export async function listLibrary(ctx: UserCtx, query: LibraryQuery = {}): Promise<LibraryResult> {

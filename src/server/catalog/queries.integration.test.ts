@@ -1,10 +1,10 @@
 // Needs a migrated, seeded database (your Neon branch in .env.local). Run: pnpm test:integration
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { catalogExerciseId, newId } from "@/lib/ids";
 import { mintUserCtx } from "@/server/auth/ctx";
 import { prisma } from "@/server/db";
 import { seedCatalog } from "../../../prisma/seed/catalog";
-import { getCatalogVersion, getExerciseDetail, listLibrary, loadCatalog } from "./queries";
+import { getCatalogVersion, getExerciseDetail, listLibrary, loadCatalog, resetLibraryCache } from "./queries";
 
 const suffix = newId().slice(-12);
 const userA = `cat-a-${suffix}`;
@@ -134,5 +134,25 @@ describe("loadCatalog", () => {
     expect(catalog.exercises).toHaveLength(876);
     expect(catalog.exercises.every((e) => !e.isCustom && e.version === 0 && e.hlc === "")).toBe(true);
     expect(catalog.exercises.some((e) => e.id === customA)).toBe(false);
+  });
+
+  it("reads the database once per catalog version (a new device costs no catalog read)", async () => {
+    resetLibraryCache();
+    const version = await getCatalogVersion();
+    const reads = vi.spyOn(prisma.exercise, "findMany");
+    const [first, second] = await Promise.all([loadCatalog(version), loadCatalog(version)]);
+    const third = await loadCatalog(version);
+    expect(first).toBe(second);
+    expect(third).toBe(first);
+    expect(reads).toHaveBeenCalledTimes(1);
+    // A reseed bumps the version: the next request reads again.
+    const bumped = await loadCatalog(version + 1);
+    expect(bumped.version).toBe(version + 1);
+    expect(reads).toHaveBeenCalledTimes(2);
+    resetLibraryCache();
+    await loadCatalog(version);
+    expect(reads).toHaveBeenCalledTimes(3);
+    reads.mockRestore();
+    resetLibraryCache();
   });
 });
