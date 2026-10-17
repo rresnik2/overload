@@ -65,6 +65,8 @@ export function ghostSet(last: LastTimeEntry | undefined, sets: WorkoutSetRow[],
 
 export interface StartWorkoutOptions {
   template?: TemplateRow | null;
+  /** Without a template: a past workout to do again (its exercises, set counts and order; numbers prefill from last time). */
+  repeat?: WorkoutRow | null;
   title?: string | null;
   unit: WeightUnit;
   now?: Date;
@@ -81,7 +83,7 @@ export async function startWorkout(repo: Repo, opts: StartWorkoutOptions): Promi
     const latest = await tx.bodyMetrics.latest();
     const workout = await tx.workouts.create({
       templateId: opts.template?.id ?? null,
-      title: opts.title ?? opts.template?.name ?? null,
+      title: opts.title ?? opts.template?.name ?? opts.repeat?.title ?? null,
       startedAt: now.toISOString(),
       localDate: toLocalDate(now, timeZone),
       timezone: timeZone,
@@ -93,6 +95,22 @@ export async function startWorkout(repo: Repo, opts: StartWorkoutOptions): Promi
         if (!exercise) continue;
         await addExerciseToWorkout(tx, { workoutId: workout.id, exercise, machineProfileId: te.machineProfileId, unit: opts.unit, from: te });
       }
+    } else if (opts.repeat) {
+      const sets = await tx.sets.forWorkout(opts.repeat.id);
+      for (const we of await tx.workoutExercises.forWorkout(opts.repeat.id)) {
+        const exercise = await tx.exercises.get(we.exerciseId);
+        if (!exercise) continue;
+        const done = sets.filter((s) => s.workoutExerciseId === we.id && s.completedAt !== null);
+        const warmupSets = done.filter((s) => s.setType === "WARMUP").length;
+        const workingSets = Math.max(1, done.length - warmupSets);
+        await addExerciseToWorkout(tx, {
+          workoutId: workout.id,
+          exercise,
+          machineProfileId: we.machineProfileId,
+          unit: opts.unit,
+          from: { position: we.position, supersetKey: we.supersetKey, restSec: we.restSec, warmupSets, workingSets },
+        });
+      }
     }
     return workout;
   });
@@ -103,8 +121,8 @@ export interface AddExerciseInput {
   exercise: ExerciseRow;
   machineProfileId: string | null;
   unit: WeightUnit;
-  /** A template line to copy (position, set counts, rest, superset). */
-  from?: TemplateExerciseRow;
+  /** A template line (or a past workout's exercise) to copy: position, set counts, rest, superset. */
+  from?: Pick<TemplateExerciseRow, "position" | "supersetKey" | "restSec" | "warmupSets" | "workingSets">;
 }
 
 /** Add an exercise (and its planned sets, prefilled from the last session of the same series) to a workout. */
