@@ -117,7 +117,7 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
     <span><b>Source:</b> <a href="https://claude.ai/artifact/KoP3mCJwC7sdV1VtBLME4q#dial">direction mockup, section A+B</a></span>
     <span><b>Stack:</b> Next 16, React 19, Tailwind 4 + daisyUI 5</span>
     <span><b>Status:</b> ready for build · 7 decisions recorded 15 Oct</span>
-    <span><b>Checked against:</b> <code>main</code> at <code>20dfb63</code> (after the UX merge)</span>
+    <span><b>Checked against:</b> <code>main</code> at <code>20dfb63</code> (after the UX merge) when written; sections 04, 06, 08, 09, 11 and 13 re-checked against <code>design/calibrated-dial</code> after the phone test and Wave D (swipe, gear, sync policy, haptics dropped)</span>
   </div>
 </header>
 
@@ -154,6 +154,9 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
       <tr><td>Bar profiles: reuse <code>MachineProfile</code> for bars (<code>baseLoadKg</code> = bar weight, <code>platesKg</code> = plates owned), editable from the exercise and from Settings → Machines (D1, D6)</td><td><code>src/components/workout/</code>, <code>settings/machines</code></td><td>E2</td><td>Edit</td></tr>
       <tr><td>Haptics helper behind <code>Dial.onDetent</code> (D7). Dropped after a device test: no haptics fired on iPhone or Android. The helper, its test and the toggle were deleted.</td><td>none (<code>haptics.ts</code> removed)</td><td>-</td><td>Dropped</td></tr>
       <tr><td>Gear profiles: the user’s own dumbbell step and kettlebells, as a <code>MachineProfile</code> with <code>equipment</code> set (section 06)</td><td><code>prisma/schema.prisma</code> (additive), <code>src/contracts/</code>, <code>src/client/repo/gear.ts</code>, <code>src/components/workout/</code>, <code>settings/machines</code></td><td>DIAL (GEAR)</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Phone-test fixes: Android edge-to-edge and keyboard (<code>--sab</code> / <code>--sat</code> tokens, <code>interactiveWidget: "resizes-content"</code>, sign-in that scrolls under the keyboard), the dial's <code>touch-action: none</code> limited to its face, a header that fits 360 px</td><td><code>src/app/layout.tsx</code>, <code>src/styles/</code>, <code>e2e/mobile-viewport.spec.ts</code></td><td>DIAL (FIX)</td><td>Edit</td></tr>
+      <tr><td>Swipe navigation between the dock tabs, the iOS-standalone edge back, and the exercise tab with its Left / Right setting (section 04)</td><td><code>src/components/shell/</code>, <code>src/components/workout/ExerciseTab.tsx</code>, <code>src/components/profile/ExerciseTabSetting.tsx</code>, <code>motion.css</code></td><td>DIAL (SWIPE)</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Workout sync policy and the “Sync now” control (sections 08 and 11): at most one background sync every 5 minutes during a workout</td><td><code>src/client/sync/engine.ts</code>, <code>src/components/workout/SyncNow.tsx</code></td><td>DIAL (PERF-3)</td><td><span class="tag new">New</span></td></tr>
       <tr><td>Today restyle plus new content: e1RM tiles for the four main lifts with 4-week change, and a bench e1RM chart (D4)</td><td><code>src/components/today/</code>; data from the analytics in <code>src/lib/analytics/</code></td><td>Integration (W3)</td><td>Edit + <span class="tag new">New</span></td></tr>
       <tr><td>New glossary terms: <code>weightDial</code> (“turn the plate, tap the number to type”), <code>barProfile</code> and <code>plateInventory</code></td><td><code>src/lib/glossary.ts</code></td><td>Integration (W3)</td><td>Edit</td></tr>
       <tr><td>Update the first step of “How logging works” for the dial on phones</td><td><code>src/components/workout/LoggingGuide.tsx</code></td><td>E2</td><td>Edit</td></tr>
@@ -293,7 +296,7 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
           <line class="d-dim" x1="204" x2="214" y1="451" y2="451"/><text x="218" y="447">Log set · 54</text><text x="218" y="461">sticky bottom</text>
           <text x="0" y="500">Gap between rows: --space-2 (6)</text>
           <text x="0" y="516">Side gutter: max(16px, safe-area)</text>
-          <text x="0" y="532">Bottom: 18 + safe-area-inset-bottom</text>
+          <text x="0" y="532">Bottom: 18 + --sab (safe area)</text>
         </g>
       </svg>
       <figcaption>Not to scale. Heights in px at 320 pt width.</figcaption>
@@ -301,7 +304,7 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
     <div class="prose">
       <ul>
         <li><b>Order and focus order:</b> top bar, name, meta, <b>set legend</b> (the existing <code>SetLegend</code> hint buttons, one line, about 24 px), picture, caption, readout, dial, reps, RIR/RPE, Log set. The legend stays visible on phones: <code>e2e/ux.spec.ts</code> checks for it.</li>
-        <li><b>Log set</b> is <code>position: sticky; bottom: calc(18px + env(safe-area-inset-bottom))</code>, so it stays reachable when the panel is taller than the screen.</li>
+        <li><b>Log set</b> is <code>position: sticky; bottom: calc(18px + var(--sab))</code>, so it stays reachable when the panel is taller than the screen. <code>--sab</code> (and <code>--sat</code> at the top) is <code>max(env(safe-area-inset-*), env(safe-area-max-inset-*))</code>: Chrome on Android animates the plain inset while its bars hide, which slid fixed and sticky bars under the gesture bar. The viewport is <code>viewportFit: "cover"</code> with <code>interactiveWidget: "resizes-content"</code>, so the keyboard shrinks the layout and the focused field scrolls into view.</li>
         <li><b>Short screens</b> (<code>max-height: 700px</code>, e.g. iPhone SE) use <code>--picture-h: 88px</code> and a 160 px dial. The panel scrolls and Log set stays pinned.</li>
         <li><b>Rest bar:</b> the existing <code>.wk-rest</code> bar sits above Log set while a rest is running, adding <code>--wk-rest-h</code> to the bottom offset.</li>
         <li><b>No equipment picture</b> (bodyweight-plus, plates, medicine ball, other): the picture and caption rows collapse, and the dial moves up.</li>
@@ -334,7 +337,7 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
   </ul>
 
   <h3>Swipe navigation (phones)</h3>
-  <p>Two horizontal gestures, all by touch or pen pointer events (<code>useSwipe</code>, <code>components/shell</code>). A mouse never swipes, and every gesture has a button or link that does the same thing.</p>
+  <p>Two horizontal gestures, all by touch or pen pointer events (<code>useSwipe</code>, <code>components/shell</code>). A mouse never swipes, and every gesture has a button or link that does the same thing. There is no swipe between exercises on <code>/workout</code> (the exercise tab, above, replaced it).</p>
   <div class="tbl"><table>
     <thead><tr><th>Gesture</th><th>Where</th><th>What it does</th></tr></thead>
     <tbody>
@@ -343,11 +346,12 @@ figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
     </tbody>
   </table></div>
   <ul>
-    <li><b>Intent:</b> horizontal only. The move must pass 10 px, then <code>|dx| &gt; 1.5 × |dy|</code>; it commits at 64 px or a fling (at least 24 px at 0.5 px/ms). Vertical intent cancels for good and the page scrolls as normal; the hook never calls <code>preventDefault</code>. Swipe areas use <code>touch-action: pan-y pinch-zoom</code>.</li>
+    <li><b>Intent:</b> horizontal only. The move must pass 10 px, then <code>|dx| &gt; 1.5 × |dy|</code>; it commits at 64 px or a fling (at least 24 px at 0.5 px/ms). Vertical intent cancels for good and the page scrolls as normal; the pointer handlers never call <code>preventDefault</code>. Swipe areas use <code>touch-action: pan-y pinch-zoom</code>.</li>
+    <li><b>iOS exception:</b> Safari ignores the <code>pan-y</code> axis lock and starts a vertical scroll on the slightest drift, which cancels the pointer stream, so a swipe only registered when it was perfectly straight. On iPhone and iPad a non-passive <code>touchmove</code> therefore claims a touch (prevents the page scroll for that one gesture) once it has moved 6 px and is more sideways than vertical. A touch that moves vertically first is never claimed, and Android is unchanged.</li>
     <li><b>Opt-outs:</b> a gesture that starts inside <code>[data-no-swipe]</code>, a form field, or an element that really scrolls sideways is ignored. <code>data-no-swipe</code> is on the Dial, NumberStrip, Tabs and ModalityTabs, <code>.exercise-tabs</code>, <code>.settings-nav</code>, chart frames (plots and table scrollers), the learn table, the PR tables, dialogs and sheets, and the exercise tab.</li>
     <li><b>Reduced motion:</b> the gestures still work; the slides and the snap-back have no animation.</li>
     <li><b>No sideways exercise swipe.</b> A swipe between exercises was tried on <code>/workout</code> and dropped after the phone test: the exercises are stacked vertically, so a sideways move made the page jump up or down. <code>/workout</code> has no swipe area at all.</li>
-    <li><b>Page slides</b> are about 200 ms in total (<code>--page-out</code> 80 ms, <code>--page-in</code> 120 ms), and <code>::view-transition</code> has <code>pointer-events: none</code> so a tap during a slide reaches the page.</li>
+    <li><b>Page slides</b> are about 200 ms in total (<code>--page-out</code> 80 ms, <code>--page-in</code> 120 ms), and <code>::view-transition</code> has <code>pointer-events: none</code> so a tap during a slide reaches the page. The header and the dock have their own <code>view-transition-name</code> (<code>shell-header</code>, <code>shell-dock</code>): they stay above the page and switch to their new state at once instead of fading with it. Browser back, forward and the edge swipe are tagged <code>nav-back</code> / <code>nav-forward</code> too.</li>
   </ul>
 </section>
 
@@ -573,6 +577,14 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td>Logged</td><td>Success fill and “Logged ✓” for 1300 ms. Then the next incomplete set becomes active, with its values taken from its ghost.</td></tr>
       <tr><td>Disabled</td><td>When neither weight nor reps is set: opacity 0.5, with a hint “Set a weight or reps first”.</td></tr>
       <tr><td>Compact SetRow</td><td>Tap</td><td>Becomes the active set, and the panel animates in place (section 09).</td></tr>
+      <tr><td rowspan="5">Sync now (the workout bar, <code>SyncNow</code>)</td><td>Synced</td><td>A 16 px check and “Synced”. The label is always text, never colour alone.</td></tr>
+      <tr><td>Changes waiting</td><td>“3 unsynced” (rows with unsent changes), with a refresh icon. During a workout the app sends them by itself at most every 5 minutes (section 11), so this is how the lifter pushes sooner.</td></tr>
+      <tr><td>Syncing</td><td>“Syncing…” with a spinner. A second tap while it runs does nothing; a manual sync that arrives while another sync is running waits for it instead of being dropped.</td></tr>
+      <tr><td>Offline / signed out / failed</td><td>“Offline, 3 unsynced”, “Signed out”, “Sync failed. Tap to retry”, each with its own icon. The sets stay on the phone (Dexie) in every case.</td></tr>
+      <tr><td>After a tap</td><td>A polite <code>aria-live</code> line says where the data is (“Synced. Everything is saved to your account.”, “Offline. Your sets are saved on this phone and will sync when you are back online.”). Background syncs stay quiet.</td></tr>
+      <tr><td rowspan="3">Toast</td><td>Mouse hover</td><td>A real mouse (<code>pointerType: "mouse"</code>) over a toast, or focus inside it (the keyboard), pauses its dismissal timer; leaving restarts it. Another toast arriving does not restart a visible one.</td></tr>
+      <tr><td>Touch</td><td>A tap never pauses it (the compatibility mouse events a tap fires are not pointer events of type mouse), so a toast cannot sit over “Add set” or Log set. A tap on the toast dismisses it; its action and close buttons work as usual.</td></tr>
+      <tr><td>Durations</td><td>5 s by default, 3.5 s for a personal record, 8 s for an error; <code>duration: 0</code> stays until dismissed.</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -597,6 +609,8 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td>Active set</td><td>Activate or advance</td><td>The new panel expands from its compact row (height plus opacity) and the old one collapses</td><td>240 ms</td></tr>
       <tr><td>Readout number</td><td>Any change</td><td>None. Tabular figures keep the width stable.</td><td>–</td></tr>
       <tr><td>Page</td><td>Tab, link, swipe or history navigation</td><td>Old page slides out 1.5 rem and fades; new page slides in from the other side (<code>nav-forward</code> / <code>nav-back</code>)</td><td>80 ms out, 120 ms in</td></tr>
+      <tr><td>Header and dock</td><td>Page slide</td><td>Do not move or fade: each has its own <code>view-transition-name</code>, sits above the page and shows its new state (active tab, sync label) at once</td><td>0 ms</td></tr>
+      <tr><td>Toast</td><td>Appears</td><td>Rises 0.75 rem and fades in above the dock (above the rest bar during a rest)</td><td>240 ms</td></tr>
       <tr><td>Exercise tab</td><td>/workout opens (phones)</td><td>The tab slides in from its screen edge; a focus change scrolls the exercise into view</td><td>200 ms; scroll smooth</td></tr>
       <tr><td>Edge back peek</td><td>Edge swipe in the installed iPhone app</td><td>The page follows the finger; a short pull eases back</td><td>0 while dragging, 180 ms to settle</td></tr>
     </tbody>
@@ -631,6 +645,9 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
       <tr><td>Short screen (&lt; 700 px tall)</td><td>Smaller picture and dial; the panel scrolls and Log set stays sticky.</td></tr>
       <tr><td>Another device edits this set while the dial is open (sync)</td><td>Incoming values update the dial unless a drag is in progress. The drag’s result then writes with a newer HLC and wins, as the merge rules already handle.</td></tr>
       <tr><td>Offline or slow network</td><td>Nothing changes: writes go to Dexie, and the sync pip shows the state. Fonts are self-hosted by <code>next/font</code>, so there is no web-font wait offline.</td></tr>
+      <tr><td>Sync policy while a workout is active (<code>isWorkoutActive()</code>)</td><td>Changes are safe in Dexie the moment they are written, so syncing is about other devices. <b>Outside a workout</b> the app syncs at app start, 1.5 s after a write, every 30 s while changes are pending (the retry), on <code>online</code>, when the tab becomes visible (at most once per 30 s) and on demand. <b>During a workout</b> it syncs at app start (so a reopened app pushes what was left), on the “Sync now” button, and at most once every 5 minutes while changes are pending; writes and tab visibility trigger nothing, and <code>online</code> is held to the same 5 minutes. <b>Finishing or discarding</b> syncs at once, so history and Progress are current. A request with nothing to push is answered without a write transaction. A 45-minute workout therefore makes about ten sync requests, not one per set.</td></tr>
+      <tr><td>Another device’s changes during a workout</td><td>They arrive on the next sync (within 5 minutes, or on “Sync now”), not live. The dial rule above applies when they do.</td></tr>
+      <tr><td>Storage may be cleared</td><td>The app asks the browser for persistent storage (after sign-in and at the first workout, twice at most per browser) so unsynced sets are not evicted. A phone that refuses keeps working; “Sync now” is the safeguard before closing the app for a long time.</td></tr>
       <tr><td>IndexedDB write fails</td><td>The existing error toast. Log set returns to its default state with no “Logged” flash.</td></tr>
       <tr><td>Exercise without a weight field</td><td>No dial or readout weight. Reps and effort only.</td></tr>
     </tbody>
@@ -686,6 +703,7 @@ export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
     <li><code>workout.dom.test.tsx</code> covers <code>ActiveSetPanel</code> writing through <code>weightPatch</code> in kg and lb, tap-to-type snapping, Log set advancing to the next set, and warm-up hiding effort.</li>
     <li><code>e2e/logging-offline.spec.ts</code> on an iPhone viewport: log a barbell set by dial (keyboard on the hidden range), go offline, log a dumbbell set, come back online, and the sets sync.</li>
     <li><code>e2e/ux.spec.ts</code> still passes on chromium and webkit-iphone: legend hint buttons are visible in the exercise block, and template workouts still count four <code>.wk-set</code> rows.</li>
+    <li>After the phone test: <code>swipe-logic.test.ts</code>, <code>useSwipe.dom.test.tsx</code>, <code>dock.dom.test.tsx</code>, <code>nav.test.ts</code> and <code>exercise-tab.dom.test.tsx</code> cover the swipe thresholds, the iOS claim, the dock directions and the exercise tab; <code>e2e/journeys/swipe.spec.ts</code> drives synthetic touch pointer events; <code>e2e/mobile-viewport.spec.ts</code> checks 360 × 640 and 412 × 915 scroll and the sign-in keyboard; <code>e2e/journeys/sync-policy.spec.ts</code> and <code>e2e/perf/sync-count.spec.ts</code> check the sync policy (no request per set during a workout); <code>ui.dom.test.tsx</code> covers the toast pause and tap-to-dismiss rules.</li>
     <li>axe shows no violations on <code>/workout</code> and <code>/styleguide</code>. Contrast checked in both themes, including the hint popovers in <code>hints.css</code>.</li>
     <li><code>pnpm check</code>, <code>pnpm build</code> and <code>pnpm ownership:check --stream=&lt;X&gt;</code> pass. Visual baselines are regenerated and reviewed.</li>
   </ul>
