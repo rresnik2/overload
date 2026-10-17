@@ -31,7 +31,7 @@ export function StartWorkoutCard({ activeWorkout, templates, onStartEmpty, onSta
     return (
       <HardCard as="section" className="wk-start" aria-label="Workout in progress">
         <p className="meta-line">In progress</p>
-        <h2 className="wk-start__title">{activeWorkout.title ?? "Workout"}</h2>
+        <h2 className="wk-start__title type-display-m">{activeWorkout.title ?? "Workout"}</h2>
         <ElapsedClock className="wk-muted num" startedAt={activeWorkout.startedAt} prefix="Started " suffix=" ago" now={now} />
         <Button block icon={<Play size={18} />} onClick={onResume}>
           Resume workout
@@ -41,7 +41,7 @@ export function StartWorkoutCard({ activeWorkout, templates, onStartEmpty, onSta
   }
   return (
     <HardCard as="section" className="wk-start" aria-label="Start a workout">
-      <h2 className="wk-start__title">Start a workout</h2>
+      <h2 className="wk-start__title type-display-m">Start a workout</h2>
       <Button block loading={busy} icon={<Dumbbell size={18} />} onClick={onStartEmpty}>
         Start empty workout
       </Button>

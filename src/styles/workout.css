@@ -95,9 +95,7 @@ body:has(.wk-rest) .toast-region {
   gap: 0.9rem;
 }
 .wk-start__title {
-  margin: 0;
-  font-size: 2rem;
-  line-height: 1.12;
+  margin: 0; /* the type-display-m utility sets the face, size and line height */
 }
 .wk-start__sub {
   margin: 0.4rem 0 0;
