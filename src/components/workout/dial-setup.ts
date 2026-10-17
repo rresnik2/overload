@@ -6,7 +6,7 @@ import type { Equipment, WeightUnit } from "@/contracts/enums";
 import { fromKg } from "@/lib/units";
 import { DEFAULT_BAR_WEIGHT, DIAL_MAX, KETTLEBELL_SIZES, dialValues, pinFor, plateSet, type Plate, type PlateTone } from "./plates";
 
-export type PictureKind = "bar" | "horn" | "dumbbell" | "kettlebell" | "stack";
+export type PictureKind = "bar" | "horn" | "dumbbell" | "kettlebell" | "stack" | "cable" | "belt" | "plate" | "medicine-ball";
 
 export type DialExercise = Pick<ExerciseRow, "equipment" | "loadType" | "isUnilateral">;
 
@@ -23,16 +23,26 @@ export const BAR_PROFILE_EQUIPMENT: readonly Equipment[] = ["BARBELL", "EZ_BAR",
 
 export const isBarProfileExercise = (exercise: Pick<ExerciseRow, "equipment" | "loadType">): boolean => BAR_PROFILE_EQUIPMENT.includes(exercise.equipment) && exercise.loadType === "TOTAL";
 
-/** The picture for an exercise (spec section 06), or null when there is none (bodyweight-plus, plates, medicine ball, ...). */
+/**
+ * The picture for an exercise (spec section 06): a cable column for cables, a dip belt for bodyweight-plus, a held plate, a
+ * medicine ball; null when there is none (bands, strongman kit, ...).
+ */
 export function pictureKind(exercise: Pick<ExerciseRow, "equipment" | "loadType">): PictureKind | null {
   const { equipment, loadType } = exercise;
   if (equipment === "KETTLEBELL") return "kettlebell";
   if (equipment === "DUMBBELL") return "dumbbell";
   if (BAR_EQUIPMENT.includes(equipment) && loadType === "TOTAL") return "bar";
   if (equipment === "MACHINE_PLATE_LOADED" || loadType === "PLATES_PER_SIDE") return "horn";
+  if (equipment === "CABLE") return "cable";
   if (loadType === "STACK") return "stack";
+  if (loadType === "BODYWEIGHT_PLUS") return "belt";
+  if (equipment === "PLATE") return "plate";
+  if (equipment === "MEDICINE_BALL") return "medicine-ball";
   return null;
 }
+
+/** Kinds drawn as a weight stack, where the dial's value sits on a pin. */
+export const isStackKind = (kind: PictureKind | null): kind is "stack" | "cable" => kind === "stack" || kind === "cable";
 
 /** Plates shown on a weight stack's drawing. The stack's real size is not stored, so the picture shows a window. */
 export const STACK_WINDOW = 20;
@@ -82,7 +92,7 @@ export function dialSetup({ exercise, unit, step: defaultStep, current, machine,
   const bells = kind === "kettlebell" && gear?.platesKg && gear.platesKg.length > 0 ? gear.platesKg.map((kg) => fromKg(kg, unit)) : null;
   const step = dumbbellStep ?? defaultStep;
   const base = machine?.baseLoadKg != null ? fromKg(machine.baseLoadKg, unit) : null;
-  const bar = kind === "bar" ? (base ?? DEFAULT_BAR_WEIGHT[exercise.equipment]?.[unit] ?? null) : kind === "stack" || kind === "horn" ? base : null;
+  const bar = kind === "bar" ? (base ?? DEFAULT_BAR_WEIGHT[exercise.equipment]?.[unit] ?? null) : isStackKind(kind) || kind === "horn" ? base : null;
   const plates = plateSet(unit, machine?.platesKg ?? null);
   let values = dialValues({ equipment: exercise.equipment, loadType: exercise.loadType, unit, step, current, bar, plates, bells, dumbbellStep });
   if (exercise.loadType === "BODYWEIGHT_PLUS" && !values.includes(0)) values = [0, ...values];
@@ -94,14 +104,18 @@ export function dialSetup({ exercise, unit, step: defaultStep, current, machine,
   return { kind, unit, step, bar, plates, values, restIndex, restValue: values[restIndex] as number, max };
 }
 
-const DIAL_MAX_FOR = {
+const DIAL_MAX_FOR: Record<PictureKind | "other", Record<WeightUnit, number>> = {
   bar: DIAL_MAX.bar,
   horn: DIAL_MAX.side,
   dumbbell: DIAL_MAX.dumbbell,
   kettlebell: DIAL_MAX.other,
   stack: DIAL_MAX.stack,
+  cable: DIAL_MAX.stack,
+  belt: DIAL_MAX.other,
+  plate: DIAL_MAX.other,
+  "medicine-ball": DIAL_MAX.other,
   other: DIAL_MAX.other,
-} as const;
+};
 
 /** The stack pin a value sits on (spec: round((value - base) / step) + 1 with a base load, else round(value / step)). */
 export const pinOf = (value: number, setup: Pick<DialSetup, "step" | "bar">): number => pinFor(value, setup.step, setup.bar);

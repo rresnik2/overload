@@ -62,7 +62,7 @@ export interface ExerciseBlockProps {
   onFocus?: (exerciseId: string) => void;
   /** Phones: "Logged ✓" is over and the next set is about to become active. `allDone`: no set of this exercise is left to do. */
   onAdvance?: (exerciseId: string, allDone: boolean) => void;
-  /** The workout's bodyweight in kg, for the "Added to 82.5 kg bodyweight" caption. */
+  /** The workout's bodyweight in kg, for the bodyweight-plus caption ("Added to 82.5 kg bodyweight"). */
   bodyweightKg?: number | null;
 }
 
@@ -112,7 +112,7 @@ function previewPicture({ item, set, unit, step, ghost }: { item: ExerciseView; 
   const value = shownWeight(set.weightKg, unit) ?? (ghost?.weightKg != null ? shownWeight(ghost.weightKg, unit) : null);
   const setup = dialSetup({ exercise, unit, step, current: value, machine: facts, gear: item.gear ?? null });
   if (!setup.kind) return null;
-  return <EquipmentPicture kind={setup.kind} shape={barShapeFor(exercise.equipment)} loadType={exercise.loadType} isUnilateral={exercise.isUnilateral} setup={setup} value={value} hasProfile={facts !== null} size="preview" />;
+  return <EquipmentPicture kind={setup.kind} shape={barShapeFor(exercise.equipment)} loadType={exercise.loadType} isUnilateral={exercise.isUnilateral} name={exercise.name} setup={setup} value={value} hasProfile={facts !== null} size="preview" />;
 }
 
 type BoundRowProps = Omit<SetRowProps, "onChange" | "onToggleComplete" | "onDelete" | "onActivate"> & {

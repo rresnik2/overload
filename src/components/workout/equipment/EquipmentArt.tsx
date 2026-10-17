@@ -15,6 +15,7 @@ import {
   BikeArt,
   BoxArt,
   CableArt,
+  cableOn,
   DipBarsArt,
   DumbbellArt,
   ExerciseBallArt,
@@ -80,7 +81,8 @@ function barWeightFor(spec: Extract<ArtSpec, { kind: "bar" }>, exercise: ArtExer
   return DEFAULT_BAR_WEIGHT[exercise.equipment]?.[unit] ?? 0;
 }
 
-function drawing(spec: ArtSpec, props: EquipmentArtProps): ReactElement {
+/** The bare drawing for `spec` (no wrapper or sizing): also the live picture's bodyweight apparatus when nothing is added. */
+export function artDrawing(spec: ArtSpec, props: EquipmentArtProps): ReactElement {
   const { exercise, unit, load, label, size = "thumb" } = props;
   switch (spec.kind) {
     case "bar": {
@@ -100,8 +102,7 @@ function drawing(spec: ArtSpec, props: EquipmentArtProps): ReactElement {
     }
     case "cable": {
       const step = props.step ?? (unit === "KG" ? 2.5 : 5);
-      // ten plates drawn: one drawn plate per two pins, so a 20-pin load fills the tower
-      const on = load !== null && load > 0 ? Math.min(10, Math.max(1, Math.round(pinFor(load, step, null) / 2))) : 0;
+      const on = load !== null && load > 0 ? cableOn(Math.max(1, pinFor(load, step, null))) : 0;
       return <CableArt attachment={spec.attachment} on={on} label={label} />;
     }
     case "belt":
@@ -171,7 +172,7 @@ export function EquipmentArt(props: EquipmentArtProps) {
   const ghost = load === null && LOADED_KINDS.has(spec.kind);
   return (
     <span className={clsx("eq-art", `eq-art--${size}`, `eq-art--${spec.kind}`, ghost && "eq-art--ghost", animate && "eq-art--slide", className)} data-kind={spec.kind}>
-      {drawing(spec, props)}
+      {artDrawing(spec, props)}
     </span>
   );
 }

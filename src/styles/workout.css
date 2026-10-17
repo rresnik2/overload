@@ -845,9 +845,6 @@ body:has(.wk-rest) .wk-panel__logrow {
   border-radius: 50%;
   box-shadow: 0 0 0 1px var(--color-line-strong);
 }
-.wk-panel__caption {
-  justify-content: center;
-}
 
 .eq-steel {
   fill: var(--steel);
@@ -1024,9 +1021,16 @@ body:has(.wk-rest) .wk-panel__logrow {
   stroke-width: 1.5;
 }
 .eq-art .eq-plate--face[data-tone="white"] .eq-plate__disc,
-.eq-art .eq-plate--face[data-tone="black"] .eq-plate__disc {
+.eq-art .eq-plate--face[data-tone="black"] .eq-plate__disc,
+.eq .eq-plate--face[data-tone="white"] .eq-plate__disc,
+.eq .eq-plate--face[data-tone="black"] .eq-plate__disc {
   stroke: var(--color-line-strong);
   stroke-width: 1;
+}
+/* The live picture: a plate seen face-on (on the belt, in the hand) drops in rather than sliding; only its disc is outlined. */
+.eq .eq-plate.eq-plate--face {
+  stroke: none;
+  animation-name: eq-drop;
 }
 .eq-slot {
   fill: var(--eq-surface);

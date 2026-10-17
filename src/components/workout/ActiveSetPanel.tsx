@@ -12,7 +12,7 @@ import { Term } from "@/components/ui/Term";
 import type { MachineProfileRow } from "@/contracts/entities";
 import type { SetType } from "@/contracts/enums";
 import { formatNumber, fromKg } from "@/lib/units";
-import { dialColors, dialSetup, pinOf, type DialGear } from "./dial-setup";
+import { dialColors, dialSetup, isStackKind, pinOf, type DialGear } from "./dial-setup";
 import { EquipmentPicture } from "./EquipmentPicture";
 import { effortOptions, PANEL_COPY, readoutUnit, effortText, SET_TYPE_LABEL, setFields, weightSpoken } from "./labels";
 import { heaviestTone, loadBar } from "./plates";
@@ -30,7 +30,7 @@ export interface ActiveSetPanelProps
   onDelete?: () => void;
   /** The set-field key (SetLegend) shown between the meta line and the picture. */
   legend?: ReactNode;
-  /** Bodyweight of the workout in kg, for the "Added to 82.5 kg bodyweight" caption. */
+  /** Bodyweight of the workout in kg, for the bodyweight-plus caption ("Added to 82.5 kg bodyweight"). */
   bodyweightKg?: number | null;
   /** Opens the bar and plates sheet (barbells only). */
   onEditBar?: () => void;
@@ -142,7 +142,7 @@ export const ActiveSetPanel = memo(function ActiveSetPanel({
     },
     [onChange, repsSettled],
   );
-  const spokenWeight = useCallback((v: number) => weightSpoken(v, unit, exercise.loadType, setup.kind === "stack" ? pinOf(v, setup) : null), [unit, exercise.loadType, setup]);
+  const spokenWeight = useCallback((v: number) => weightSpoken(v, unit, exercise.loadType, isStackKind(setup.kind) ? pinOf(v, setup) : null), [unit, exercise.loadType, setup]);
   const repOptions = useMemo(() => repValues(storedReps), [storedReps]);
   const repsSpoken = useCallback((v: number) => `${v} reps`, []);
 
@@ -183,11 +183,11 @@ export const ActiveSetPanel = memo(function ActiveSetPanel({
   const meta = PANEL_COPY.meta([
     EQUIPMENT_LABEL[exercise.equipment],
     setup.kind === "bar" && setup.bar !== null && `${formatNumber(setup.bar)} ${unitShort} bar`,
-    setup.kind === "stack" && `${formatNumber(setup.step)} ${unitShort} pin step`,
+    isStackKind(setup.kind) && `${formatNumber(setup.step)} ${unitShort} pin step`,
     `set ${ordinal} of ${setCount}`,
     lastLine,
   ]);
-  const caption = exercise.loadType === "BODYWEIGHT_PLUS" && bodyweightKg != null ? PANEL_COPY.addedToBodyweight(fromKg(bodyweightKg, unit), unit) : null;
+  const bodyweight = bodyweightKg != null ? fromKg(bodyweightKg, unit) : null;
 
   const logWeight = weight !== null ? `${formatNumber(weight)} ${unitShort}` : null;
   const logDetail = [logWeight, reps !== null ? (logWeight ? `× ${reps}` : `${reps} reps`) : null].filter(Boolean).join(" ");
@@ -249,9 +249,11 @@ export const ActiveSetPanel = memo(function ActiveSetPanel({
           shape={barShapeFor(exercise.equipment)}
           loadType={exercise.loadType}
           isUnilateral={exercise.isUnilateral}
+          name={exerciseName}
           setup={setup}
           value={weight}
           hasProfile={machine !== null}
+          bodyweight={bodyweight}
           note={note}
           captionExtra={
             setup.kind === "bar" && onEditBar ? (
@@ -265,8 +267,6 @@ export const ActiveSetPanel = memo(function ActiveSetPanel({
             ) : null
           }
         />
-      ) : caption ? (
-        <p className="eq__caption wk-panel__caption">{caption}</p>
       ) : null}
 
       <div className="wk-panel__read">
