@@ -3,7 +3,7 @@ import Link from "next/link";
 import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { weekRangeLabel } from "@/components/insights/labels";
 import { RegenerateButton } from "@/components/insights/RegenerateButton";
-import { ReportView } from "@/components/insights/ReportView";
+import { ReportView, reportSectionCount } from "@/components/insights/ReportView";
 import { PageHeader } from "@/components/primitives/PageHeader";
 import { SectionHeader } from "@/components/primitives/SectionHeader";
 import { PageIntro } from "@/components/ui/PageIntro";
@@ -43,7 +43,7 @@ export default async function InsightsPage() {
       ) : null}
 
       <section aria-labelledby="history-heading" className="insight-history">
-        <SectionHeader title="Earlier weeks" index={3} id="history-heading" />
+        <SectionHeader title="Earlier weeks" index={reportSectionCount(current) + 1} id="history-heading" />
         {history.length > 0 ? (
           <ul className="insight-history__list">
             {history.map((r) => (

@@ -141,6 +141,9 @@ test.describe("/insights", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Insights" })).toBeVisible();
     await expect(page.getByText("No written review yet for this week")).toBeVisible();
     await expect(page.getByTestId("regenerations-left")).toHaveText("3 of 3 regenerations left this week");
+    // Only the visible sections are numbered: no written review, so Findings is 01 and Earlier weeks 02.
+    await expect(page.locator("#findings-heading")).toHaveText(/^01/);
+    await expect(page.locator("#history-heading")).toHaveText(/^02/);
 
     const cards = page.locator("details.insight-card");
     expect(await cards.count()).toBeGreaterThan(0);
@@ -190,6 +193,8 @@ test.describe("/insights", () => {
     await page.goto("/insights");
     await expect(page.getByRole("heading", { level: 2, name: `Week of ${writer.weekStart} in review` })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Earlier weeks" })).toBeVisible();
+    await expect(page.locator("#findings-heading")).toHaveText(/^02/); // the written review is 01
+    await expect(page.locator("#history-heading")).toHaveText(/^03/);
     await page.getByRole("link", { name: /Week of .* in review/ }).click();
     await expect(page).toHaveURL(new RegExp(`/insights/${earlier}$`));
     await expect(page.getByRole("heading", { level: 2, name: `Week of ${earlier} in review` })).toBeVisible();

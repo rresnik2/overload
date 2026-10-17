@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { InsightCard as Card } from "@/contracts/analytics";
 import { demoFacts } from "@/server/insights/test-support";
 import { InsightCard } from "./InsightCard";
-import { ReportView } from "./ReportView";
+import { ReportView, reportSectionCount } from "./ReportView";
 
 const card: Card = {
   id: "insight:volume-band:QUADRICEPS",
@@ -34,5 +34,7 @@ describe("ReportView", () => {
     render(<ReportView facts={facts} report={null} />);
     expect(screen.getByRole("status").textContent).toMatch(/No written review yet/);
     expect(document.querySelectorAll("details.insight-card").length).toBe(facts.insights.length);
+    expect(document.querySelector("#findings-heading")!.textContent).toMatch(/^01/);
+    expect(reportSectionCount(null)).toBe(1);
   });
 });

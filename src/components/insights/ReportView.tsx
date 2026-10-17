@@ -12,6 +12,14 @@ export interface ReportViewProps {
   report: InsightReportRow | null;
 }
 
+/**
+ * How many numbered sections a ReportView shows (the written review counts as 01 when there is one, then Findings), so a page
+ * numbers its next section without a gap.
+ */
+export function reportSectionCount(report: InsightReportRow | null): number {
+  return report?.narrative ? 2 : 1;
+}
+
 /** A week's review: the narrative when there is one, then the rule cards, which are always shown. */
 export function ReportView({ facts, report }: ReportViewProps) {
   const narrative = report?.narrative ?? null;
@@ -32,7 +40,7 @@ export function ReportView({ facts, report }: ReportViewProps) {
         </p>
       )}
       <section aria-labelledby="findings-heading">
-        <SectionHeader title="Findings" index={narrative ? 2 : 1} id="findings-heading" actions={<InfoHint term="insightSeverity" />} />
+        <SectionHeader title="Findings" index={reportSectionCount(report)} id="findings-heading" actions={<InfoHint term="insightSeverity" />} />
         {cards.length > 0 ? (
           <ul className="report__cards">
             {cards.map((card) => (
