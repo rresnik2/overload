@@ -187,6 +187,11 @@ export interface SyncResult {
   pulled: number;
   rejected: number;
   newPrs: PersonalRecordRow[];
+  /**
+   * The server version (`SyncResponse.cursor` of the last round) this device has caught up to. A server-rendered page that was
+   * rendered at a version >= this one already shows everything the sync pushed or pulled, so it needs no refresh.
+   */
+  serverVersion?: number;
   /** Set when ok is false. */
   error?: string;
   /** true when another sync was already running (navigator.locks) and this call did nothing. */
@@ -194,7 +199,7 @@ export interface SyncResult {
 }
 
 /** Info passed to useOnSynced listeners after every completed sync that pulled or pushed something. */
-export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs">;
+export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs" | "serverVersion">;
 ```
 
 Server entry point and route:
@@ -347,6 +352,8 @@ export function useSyncStatus(): SyncStatus;
 /** Calls `callback` after every sync that pushed or pulled something (e.g. to show a PR toast). Stable identity not required. */
 export function useOnSynced(_callback: (info: SyncedInfo) => void): void;
 ```
+
+Server-rendered pages that show synced data (`/today`, `/progress/*`, `/exercises`, `/exercises/[id]`, `/insights/*`) render `<SyncVersionStamp version={await pageSyncVersion(ctx)} />` (`src/client/sync/SyncVersionStamp.tsx`, `src/server/sync/page-version.ts`). The version is `SyncState.version` read **before** the page's own synced-row queries, so the page contains every row up to it. After a sync that pushed or pulled something, `useRefreshServerDataOnSync` calls `router.refresh()` only if the open page's version is below `SyncResult.serverVersion` (the cursor the sync reached); a page with no stamp, or a sync with no version, refreshes (correctness over savings). Both numbers are the server's own counter, so no clock is compared.
 
 <!-- sig: src/contracts/sync-client.ts#SyncProviderProps -->
 ```ts

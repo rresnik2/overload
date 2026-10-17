@@ -1,5 +1,6 @@
 // Exercise library: tabs by modality, equipment / muscle filters and search, all driven by the URL (works without JS).
 import Link from "next/link";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { ExerciseFilters } from "@/components/exercises/ExerciseFilters";
 import { FavoriteButton } from "@/components/exercises/FavoriteButton";
 import { ExerciseList } from "@/components/exercises/ExerciseList";
@@ -10,6 +11,7 @@ import { PageHeader } from "@/components/primitives/PageHeader";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { requireUser } from "@/server/auth/session";
 import { listLibrary } from "@/server/catalog/queries";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Exercises" };
 
@@ -17,6 +19,7 @@ const BASE_PATH = "/exercises";
 
 export default async function ExercisesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const ctx = await requireUser();
+  const syncVersion = await pageSyncVersion(ctx); // before the first synced row is read (src/server/sync/page-version.ts)
   const filters = parseLibraryParams(await searchParams);
   const result = await listLibrary(ctx, {
     modality: filters.modality,
@@ -43,6 +46,7 @@ export default async function ExercisesPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
+      <SyncVersionStamp version={syncVersion} />
       <PageHeader
         title="Exercises"
         meta={["Library", filters.fav ? "Favorites" : filters.modality ? MODALITY_LABEL[filters.modality] : "All"]}

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { ExerciseDetail } from "@/components/exercises/ExerciseDetail";
 import { FavoriteButton } from "@/components/exercises/FavoriteButton";
 import { exerciseMetaParts } from "@/components/exercises/labels";
@@ -10,14 +11,16 @@ import { PageHeader } from "@/components/primitives/PageHeader";
 import { isUuid } from "@/lib/ids";
 import { requireUser } from "@/server/auth/session";
 import { getExerciseDetail, listFavoriteExerciseIds } from "@/server/catalog/queries";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 type Props = { params: Promise<{ id: string }> };
 
 // Shared by generateMetadata and the page so a request loads the exercise once.
 const loadDetail = cache(async (id: string) => {
   const ctx = await requireUser();
+  const syncVersion = await pageSyncVersion(ctx); // before the first synced row is read (src/server/sync/page-version.ts)
   const detail = await getExerciseDetail(ctx, id);
-  return detail ? { ...detail, isFavorite: (await listFavoriteExerciseIds(ctx)).has(id) } : null;
+  return detail ? { ...detail, isFavorite: (await listFavoriteExerciseIds(ctx)).has(id), syncVersion } : null;
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -32,10 +35,11 @@ export default async function ExerciseDetailPage({ params }: Props) {
   if (!isUuid(id)) notFound();
   const detail = await loadDetail(id);
   if (!detail) notFound();
-  const { exercise, series, isFavorite } = detail;
+  const { exercise, series, isFavorite, syncVersion } = detail;
 
   return (
     <>
+      <SyncVersionStamp version={syncVersion} />
       <PageHeader
         title={exercise.name}
         meta={exerciseMetaParts(exercise)}

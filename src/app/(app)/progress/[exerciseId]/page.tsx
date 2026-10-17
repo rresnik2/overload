@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { MODALITY_LABEL } from "@/components/exercises/labels";
 import { EmptyState } from "@/components/primitives/EmptyState";
 import { PageHeader } from "@/components/primitives/PageHeader";
@@ -12,11 +13,19 @@ import { ExerciseCharts } from "@/components/progress/ExerciseCharts";
 import { SeriesPicker } from "@/components/progress/SeriesPicker";
 import { isUuid } from "@/lib/ids";
 import { requireUser } from "@/server/auth/session";
-import { loadExerciseProgress } from "@/server/queries/progress";
+import { loadExerciseProgress, loadToday } from "@/server/queries/progress";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 type Props = { params: Promise<{ exerciseId: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const load = cache(async (exerciseId: string, seriesKey: string | null) => loadExerciseProgress(await requireUser(), exerciseId, { seriesKey }));
+// Shared by generateMetadata and the page so a request loads the exercise once. The sync version is read beside the profile, before
+// any synced row is (src/server/sync/page-version.ts).
+const load = cache(async (exerciseId: string, seriesKey: string | null) => {
+  const ctx = await requireUser();
+  const [today, syncVersion] = await Promise.all([loadToday(ctx), pageSyncVersion(ctx)]);
+  const data = await loadExerciseProgress(ctx, exerciseId, { seriesKey, today });
+  return data ? { ...data, syncVersion } : null;
+});
 
 const seriesParam = (v: string | string[] | undefined): string | null => (typeof v === "string" && v ? v : null);
 
@@ -36,6 +45,7 @@ export default async function ExerciseProgressPage({ params, searchParams }: Pro
 
   return (
     <>
+      <SyncVersionStamp version={data.syncVersion} />
       <PageHeader
         title={data.name}
         meta={["Progress", MODALITY_LABEL[data.modality]]}

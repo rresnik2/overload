@@ -136,6 +136,7 @@ export function createEngine(options: EngineOptions): Engine {
         result.pushed += outcome.pushed;
         result.pulled += outcome.pulled;
         result.rejected += outcome.rejected;
+        result.serverVersion = response.cursor;
         newPrs.push(...response.newPrs);
         if (outcome.rejected > 0) console.warn("[sync] rejected mutations", outcome.rejections);
         const remaining = await db.outbox.count();
@@ -151,7 +152,7 @@ export function createEngine(options: EngineOptions): Engine {
         rejectedCount: result.rejected,
       });
       if (result.pushed > 0 || result.pulled > 0 || result.rejected > 0) {
-        listeners.emit({ pushed: result.pushed, pulled: result.pulled, rejected: result.rejected, newPrs });
+        listeners.emit({ pushed: result.pushed, pulled: result.pulled, rejected: result.rejected, newPrs, serverVersion: result.serverVersion });
       }
       return result;
     } catch (error) {

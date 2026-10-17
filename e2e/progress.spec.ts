@@ -17,14 +17,8 @@ const LEG_PRESS = "cda4642e-23e8-5f6f-82b7-63f85195c232";
 const LEG_CURL = "047f5403-8ded-54bf-ad56-5704abcc7393";
 const COLD = { timeout: 30_000 };
 
-/** page.goto, once more when the previous page's delayed server refresh (router.refresh after a sync, which replaces history) lands mid-navigation. */
 async function open(page: Page, path: string) {
-  try {
-    await page.goto(path);
-  } catch (error) {
-    if (!/interrupted by another navigation/.test(String(error))) throw error;
-    await page.goto(path);
-  }
+  await page.goto(path);
 }
 
 async function signInDemo(page: Page) {

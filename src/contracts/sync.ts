@@ -182,6 +182,11 @@ export interface SyncResult {
   pulled: number;
   rejected: number;
   newPrs: PersonalRecordRow[];
+  /**
+   * The server version (`SyncResponse.cursor` of the last round) this device has caught up to. A server-rendered page that was
+   * rendered at a version >= this one already shows everything the sync pushed or pulled, so it needs no refresh.
+   */
+  serverVersion?: number;
   /** Set when ok is false. */
   error?: string;
   /** true when another sync was already running (navigator.locks) and this call did nothing. */
@@ -189,4 +194,4 @@ export interface SyncResult {
 }
 
 /** Info passed to useOnSynced listeners after every completed sync that pulled or pushed something. */
-export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs">;
+export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs" | "serverVersion">;
