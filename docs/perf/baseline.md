@@ -70,6 +70,39 @@ Lighthouse (mobile, simulated slow 4G / 4x CPU, `tools/lighthouse/run.ts`), one 
 - **Lighthouse is flat within the 10 to 15 percent run-to-run noise**: today +3, exercises +1, landing -3, progress series -4 (TBT 291 ms, its charts load client-side), workout and sign-in unchanged. Under simulated slow 4G a 4 s LCP is dominated by JS and font transfer, so a 200 to 400 ms server saving barely shows. Today's CLS fell from 0.144 to 0.001. The LCP rises on today (+613 ms) and progress series (+631 ms) are not explained by this change; treat them as noise unless a repeat run shows them again.
 - **Why some routes have no skeleton:** a `loading.tsx` above a page that can call `notFound()` makes Next stream a 200 before the page runs, and streamed content needs JavaScript to replace its fallback. So `/exercises`, `/exercises/[id]`, `/progress/[exerciseId]` and `/insights/[week]` have no loading boundary, and each section's index page sits in an `(index)` route group so its `loading.tsx` does not wrap the detail routes.
 
+### After C1 (PERF-2, workout responsiveness; measured 2026-10-16, port 3002, production build, `OVERLOAD_SERVER_TIMING=1`)
+
+The "Before" column is the code before C1 (`design/calibrated-dial` at `369b1eb` plus the harness counters), built and measured in the same session; "After" is this branch. Medians of 5 repetitions, same throttling as above. The harness gained IndexedDB transaction counts, DOM mutation batches (about one per React commit), style recalculations, layouts and script time for the 10-detent dial drag (`e2e/perf/dial.spec.ts`).
+
+| Metric (10-detent dial drag unless noted) | Before | After C1 |
+|---|---|---|
+| pointerdown to readout settled | 823 ms (p75 826) | 827 ms (p75 830) |
+| Readout lag after the last pointer move | 18 ms (p75 19) | 1 ms (p75 1) |
+| Long tasks over 50 ms | 0 | 0 |
+| IndexedDB read-write transactions (writes) | 10 | 2 (p75 3; one is the set write) |
+| IndexedDB read-only transactions (reads) | 90 | 12 (p75 21, max 29) |
+| DOM mutation batches under `.wk-active` (about one per commit) | 24 | 17 |
+| DOM mutation records under `.wk-active` | 227 | 179 |
+| Script time in the page | 117 ms | 57 ms |
+| Style recalculations / layouts | 54 / 53 | 60 / 51 (within noise) |
+| Picker: key to results updated | 34 ms (p75 35) | 34 ms (p75 37) |
+| Picker: key to next paint | 24 ms | 24 ms |
+| Picker: 11 keystrokes, summed update time | 197 ms | 194 ms |
+| Picker: long tasks over 50 ms | 0 | 0 |
+
+Render counts for the active workout screen (DOM test `src/components/workout/active-workout-renders.dom.test.tsx`, two exercises, real repo on fake-indexeddb; it fails on the code before C1 and passes now):
+
+| Event | Before | After C1 |
+|---|---|---|
+| Elapsed clock, 2.3 s | each exercise block re-rendered 2 times | 0 |
+| Rest countdown, 1.3 s | each exercise block re-rendered 8 times | 0 |
+| One reps change in exercise A | exercise B re-rendered; the history reads (`lastTime`, `forSeries`) ran again | B not re-rendered; no history read |
+
+- **What changed on the wire:** a 10-detent drag now writes once (on release) instead of ten times, and each write re-reads one query (the workout's sets) instead of the whole workout view plus the record history. That is the 90 to 12 drop in reads. The readout trails the finger by one frame less (18 to 1 ms) because it comes from local state, not from the database round trip.
+- **What did not change, and why:** "pointerdown to readout settled" is dominated by the scripted drag itself (24 touch moves 16 ms apart), so it cannot show a gain. The harness machine at 4x CPU throttle never had long tasks on the dial or the picker, so the user-visible win on a real phone is in the work saved per detent (script time halved), not in a long-task count. The picker was not touched.
+- **Remaining commits during a drag (17 batches for 10 detents):** one per detent for the live readout, the picture and the dial itself, plus the dial's own bump and tween state. They are small now (the panel re-renders; the exercise blocks, set rows, reps strip and effort buttons do not).
+- **Not measured:** a real phone. The Lighthouse score was not re-run (this part changes no route's bundle size or server work).
+
 ### Not measured, and why
 
 - **Server time for client-side (RSC) navigations.** The probe lives in the root layout, which React does not re-render on a dock tap, so only full document loads produce entries. The navigation spec prints `n/a` for these rows. The browser-side tap-to-heading time includes the server cost.
