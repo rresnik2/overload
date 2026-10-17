@@ -2,6 +2,7 @@
 import clsx from "clsx";
 import { useEffect, useRef, useState } from "react";
 import type { WeightUnit } from "@/contracts/enums";
+import { useFlushOnLeave } from "@/components/ui/commit";
 import { parseNumber, round } from "@/lib/units";
 import { PANEL_COPY } from "./labels";
 
@@ -26,6 +27,8 @@ export interface WeightReadoutProps {
 /**
  * The big weight number. It is a button (with a dotted underline as the cue); a tap swaps it for a decimal input with the text
  * selected. Enter commits and Esc cancels (both return focus to the number), blur commits. Empty or non-numeric text reverts.
+ * Typed text is also committed when the page is hidden (the app goes to the background), on `pagehide` and on unmount, as the
+ * Dial does, so a weight typed but not confirmed is never lost.
  */
 export function WeightReadout({ ordinal, unit, unitText, value, ghost = false, onCommit, limit = 9999, onLimited, disabled }: WeightReadoutProps) {
   const [draft, setDraft] = useState<string | null>(null);
@@ -34,6 +37,7 @@ export function WeightReadout({ ordinal, unit, unitText, value, ghost = false, o
   const input = useRef<HTMLInputElement>(null);
   const live = useRef(false);
   const refocus = useRef(false);
+  useFlushOnLeave(() => finish(true, false));
 
   useEffect(() => {
     if (editing) {

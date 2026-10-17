@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // Client router cache for dynamic pages: a tab revisited within 30 s is served from memory instead of re-rendering on the
     // server. Anything that changes server data must refresh the router afterwards (router.refresh() / revalidatePath()),
-    // see src/client/router-refresh.ts and the Server Actions.
+    // see src/client/sync/server-refresh.ts (after a sync) and the Server Actions.
     // `static` also bounds router.prefetch() (the tab prefetch in components/shell/useTabPrefetch.ts), whose default is 5 minutes.
     staleTimes: { dynamic: 30, static: 30 },
   },
