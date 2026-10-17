@@ -1,5 +1,5 @@
 // Every equipment drawing (src/components/equipment), loaded and as a ghost, at the hero and thumbnail sizes.
-import { EquipmentArt } from "@/components/equipment/EquipmentArt";
+import { EquipmentArt } from "@/components/workout/equipment/EquipmentArt";
 import type { Equipment, LoadType } from "@/contracts/enums";
 
 interface Sample {

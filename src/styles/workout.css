@@ -989,8 +989,7 @@ body:has(.wk-rest) .wk-panel__logrow {
 
 /* ---- static equipment drawings (library rows, Today, the PR moment) ---- */
 .eq-art {
-  display: grid;
-  place-items: center;
+  display: block;
   flex: none;
   min-width: 0;
 }
@@ -1518,6 +1517,60 @@ body:has(.wk-rest) .wk-panel__logrow {
   color: var(--color-secondary);
 }
 
+/* The PR moment: the record set on its equipment, then the set in readout type. Plate red marks it (a PR is data). */
+.wk-pr {
+  --eq-surface: var(--color-base-100);
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border-radius: var(--radius-box);
+  background: var(--color-base-100);
+  border-left: 6px solid var(--color-secondary);
+}
+.wk-pr__label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+}
+.wk-pr__label svg {
+  color: var(--color-secondary);
+}
+.wk-pr__art {
+  margin-top: var(--space-2);
+}
+.wk-pr__set {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+}
+.wk-pr__set .type-readout {
+  font-size: 64px;
+}
+.wk-pr__u {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+.wk-pr__x {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  font-size: 36px;
+  color: var(--color-muted);
+}
+.wk-pr__line {
+  margin: 0;
+  text-align: center;
+  font-size: var(--type-body-size-dense);
+}
+
 /* ---- templates and history ----------------------------------------------- */
 .wk-list {
   display: grid;
@@ -1739,4 +1792,11 @@ body:has(.wk-xtab--left) .wk-main {
 .wk-jump__row:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
+}
+
+/* The picker's add control: a square plus, named "Add <exercise>" for assistive technology. */
+.wk-picker__add {
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  padding: 0;
 }

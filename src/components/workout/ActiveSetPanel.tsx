@@ -3,7 +3,7 @@ import clsx from "clsx";
 import { Star, Trash2 } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { barShapeFor } from "@/components/equipment/art";
+import { barShapeFor } from "@/components/workout/equipment/art";
 import { EQUIPMENT_LABEL } from "@/components/exercises/labels";
 import { ECHO_MS, type CommitHandle } from "@/components/ui/commit";
 import { Dial } from "@/components/ui/Dial";

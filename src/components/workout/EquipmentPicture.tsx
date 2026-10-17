@@ -2,8 +2,8 @@
 import clsx from "clsx";
 import { useLayoutEffect, useRef } from "react";
 import type { ReactNode } from "react";
-import type { BarShape } from "@/components/equipment/art";
-import { BarArt, DumbbellArt, HornArt, KettlebellArt, STACK_PITCH, StackPlates } from "@/components/equipment/drawings";
+import type { BarShape } from "@/components/workout/equipment/art";
+import { BarArt, DumbbellArt, HornArt, KettlebellArt, STACK_PITCH, StackPlates } from "@/components/workout/equipment/drawings";
 import type { LoadType, WeightUnit } from "@/contracts/enums";
 import { STACK_WINDOW, pinOf, stackFirstPlate, type DialSetup, type PictureKind } from "./dial-setup";
 import { PANEL_COPY } from "./labels";

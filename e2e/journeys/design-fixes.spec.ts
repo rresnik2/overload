@@ -1,9 +1,9 @@
 // Design-review fixes on a phone (390x844): the first view of an exercise's dial panel, the sync wording, "Workout saved" -> Today,
 // the history page title and the estimate's rounding. Unit and DOM tests cover the rest (set-to-set weight, ghost caption, copy).
-//   PORT=3002 pnpm exec playwright test e2e/design-fixes.spec.ts --project=android-chrome
+//   PORT=3002 pnpm exec playwright test e2e/journeys/design-fixes.spec.ts --project=android-chrome
 import { expect, test } from "@playwright/test";
-import { logSetByTyping } from "./_support/logging";
-import { createUser } from "./_support/user";
+import { logSetByTyping } from "../_support/logging";
+import { createUser } from "../_support/user";
 
 const BENCH = "Barbell Bench Press - Medium Grip";
 const COLD = { timeout: 60_000 };
