@@ -76,6 +76,29 @@
   pointer-events: none;
 }
 
+/* The shell's bars stay put through a page slide. Without their own names they are part of the root snapshot, and the page content's
+   snapshot (drawn above the root, and often reaching under the fixed dock or the sticky header) faded them out and back in. Named, they
+   are captured on their own, kept above the page, and switch to the new state at once (the dock's active tab, the sync status). */
+.shell-header {
+  view-transition-name: shell-header;
+}
+.shell-dock {
+  view-transition-name: shell-dock;
+}
+::view-transition-group(shell-header),
+::view-transition-group(shell-dock) {
+  z-index: 1;
+  animation: none;
+}
+::view-transition-old(shell-header),
+::view-transition-old(shell-dock) {
+  display: none;
+}
+::view-transition-new(shell-header),
+::view-transition-new(shell-dock) {
+  animation: none;
+}
+
 /* ---- Swipe navigation (useSwipe, spec section 04) ------------------------ */
 /* The browser keeps vertical pans and pinch; horizontal drags reach the swipe handlers. Sideways scrollers inside are unaffected. */
 .shell-main[data-swipe-tabs],
