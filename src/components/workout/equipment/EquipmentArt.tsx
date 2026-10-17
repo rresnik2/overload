@@ -3,6 +3,7 @@
 // conditioning kit have no load and always draw in full.
 import clsx from "clsx";
 import type { ReactElement } from "react";
+import { SafeBoundary } from "@/components/ui/SafeBoundary";
 import type { WeightUnit } from "@/contracts/enums";
 import { DEFAULT_BAR_WEIGHT, loadBar, loadSide, PLATES, pinFor, type Plate } from "@/components/workout/plates";
 import { artFor, LOADED_KINDS, resolveBelt, type ArtExercise, type ArtSpec } from "./art";
@@ -166,13 +167,31 @@ export function artDrawing(spec: ArtSpec, props: EquipmentArtProps): ReactElemen
   }
 }
 
-export function EquipmentArt(props: EquipmentArtProps) {
+/** The drawing's maths (plates per side, pins) runs here, inside the boundary. */
+function Drawing({ spec, props }: { spec: ArtSpec; props: EquipmentArtProps }) {
+  return artDrawing(spec, props);
+}
+
+/**
+ * Drawings are an extra: a value this build does not expect (an unknown unit, a weight that is not a number, an exercise row
+ * from an older bundle) draws less, never takes the page down. Inputs are normalised and the drawing has its own boundary.
+ */
+export function EquipmentArt(raw: EquipmentArtProps) {
+  const props: EquipmentArtProps = {
+    ...raw,
+    unit: raw.unit === "LB" ? "LB" : "KG",
+    load: typeof raw.load === "number" && Number.isFinite(raw.load) ? raw.load : null,
+    bar: typeof raw.bar === "number" && Number.isFinite(raw.bar) ? raw.bar : null,
+    step: typeof raw.step === "number" && Number.isFinite(raw.step) && raw.step > 0 ? raw.step : null,
+  };
   const { exercise, load, size = "thumb", animate = false, className } = props;
   const spec = resolveBelt(artFor(exercise), exercise, load);
   const ghost = load === null && LOADED_KINDS.has(spec.kind);
   return (
     <span className={clsx("eq-art", `eq-art--${size}`, `eq-art--${spec.kind}`, ghost && "eq-art--ghost", animate && "eq-art--slide", className)} data-kind={spec.kind}>
-      {artDrawing(spec, props)}
+      <SafeBoundary label="equipment drawing">
+        <Drawing spec={spec} props={props} />
+      </SafeBoundary>
     </span>
   );
 }

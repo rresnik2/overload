@@ -6,5 +6,14 @@ import { useLive } from "@/client/repo";
 
 /** Rows waiting to upload, or undefined until the local database has answered. */
 export function useUnsyncedRows(): number | undefined {
-  return useLive(async () => (await requireActiveDb().outbox.orderBy("[entity+id]").uniqueKeys()).length);
+  // A count is a nicety: if the local database cannot answer, the pip falls back to the sync engine's own count (a thrown error
+  // here would surface in the header of every page).
+  return useLive(async () => {
+    try {
+      return (await requireActiveDb().outbox.orderBy("[entity+id]").uniqueKeys()).length;
+    } catch (error) {
+      console.error("[unsynced rows] count failed", error);
+      return undefined;
+    }
+  });
 }

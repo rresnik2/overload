@@ -58,7 +58,7 @@ export interface ArtExercise {
   name: string;
 }
 
-const has = (name: string, re: RegExp) => re.test(name);
+const has = (name: string | null | undefined, re: RegExp) => re.test(name ?? "");
 
 /** The attachment a cable exercise uses, from its name (the live picture in the active-set panel draws it too). */
 export function cableAttachment(name: string): CableAttachment {
@@ -150,6 +150,8 @@ export function artFor({ equipment, loadType, name }: ArtExercise): ArtSpec {
     case "OTHER":
       return otherEquipment(name);
   }
+  // a row from an older catalog or bundle with an equipment value this build does not know
+  return { kind: "generic" };
 }
 
 /**

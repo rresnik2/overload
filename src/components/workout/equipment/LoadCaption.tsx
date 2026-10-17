@@ -22,8 +22,9 @@ function Chips({ plates }: { plates: readonly Plate[] }) {
   );
 }
 
-export function LoadCaption({ exercise, unit, load, bar }: { exercise: ArtExercise & { isUnilateral?: boolean }; unit: WeightUnit; load: number | null; bar?: number | null }) {
-  if (load === null) return null;
+export function LoadCaption({ exercise, unit: rawUnit, load, bar }: { exercise: ArtExercise & { isUnilateral?: boolean }; unit: WeightUnit; load: number | null; bar?: number | null }) {
+  if (load === null || !Number.isFinite(load)) return null;
+  const unit: WeightUnit = rawUnit === "LB" ? "LB" : "KG";
   const spec = resolveBelt(artFor(exercise), exercise, load);
   let text: ReactNode = null;
   if (spec.kind === "bar") {

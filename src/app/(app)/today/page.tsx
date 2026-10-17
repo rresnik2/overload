@@ -10,7 +10,7 @@ import { E1rmTiles } from "@/components/today/E1rmTiles";
 import { TodayBodyCard } from "@/components/today/TodayBodyCard";
 import { TodayHardSetsCard } from "@/components/today/TodayHardSetsCard";
 import { TodayInsightCard } from "@/components/today/TodayInsightCard";
-import { TodayStartCard } from "@/components/today/TodayStartCard";
+import { SafeStartCard } from "@/components/today/SafeStartCard";
 import { TodayTemplatesCard } from "@/components/today/TodayTemplatesCard";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { requireSessionInfo } from "@/server/auth/session";
@@ -58,7 +58,7 @@ export default async function TodayPage() {
       <div className="today-grid">
         <div className="today-col today-col--a">
           <div className="today-cell today-cell--start">
-            <TodayStartCard unit={unit} expectSuggestion={lifts.tiles.some((t) => t.e1rmKg != null)} />
+            <SafeStartCard unit={unit} expectSuggestion={lifts.tiles.some((t) => t.e1rmKg != null)} />
           </div>
           <div className="today-cell today-cell--templates">
             <TodayTemplatesCard unit={unit} />

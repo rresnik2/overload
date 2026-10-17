@@ -56,3 +56,13 @@ describe("LoadCaption", () => {
     expect(render(<LoadCaption exercise={ex("Barbell Squat", "BARBELL", "TOTAL")} unit="KG" load={null} />).container).toBeEmptyDOMElement();
   });
 });
+
+describe("EquipmentArt with values it does not expect", () => {
+  it("draws instead of throwing for an unknown unit, a weight that is not a number and an unknown equipment value", () => {
+    const odd = { name: "Mystery lift", equipment: "LEGACY_THING" as never, loadType: "TOTAL" as const, isUnilateral: false };
+    expect(() => render(<EquipmentArt exercise={odd} unit={"kg" as never} load={Number.NaN} />)).not.toThrow();
+    const { container } = render(<EquipmentArt exercise={ex("Barbell Squat", "BARBELL", "TOTAL")} unit={"" as never} load={100} />);
+    // an unknown unit is treated as kg: 100 kg is 25 + 15 a side on a 20 kg bar
+    expect(plates(container.querySelector(".eq-art")!)).toEqual(["25", "15"]);
+  });
+});

@@ -68,7 +68,17 @@ export function usePickerLastLoads(exercises: readonly PickerExercise[]): { last
   const [known, setKnown] = useState<Known>(NOTHING);
   const missing = exercises.filter((e) => !known.looked.has(e.id));
   const key = [...new Set(missing.map((e) => e.id))].join(" ");
-  const found = useLive(() => (key ? pickerLastLoads(missing) : null), [key]);
+  // Last loads are a nicety: a lookup that fails leaves the rows as ghosts rather than surfacing in the picker.
+  const found = useLive(
+    () =>
+      key
+        ? pickerLastLoads(missing).catch((error: unknown): Lookup => {
+            console.error("[picker last loads] lookup failed", error);
+            return { looked: missing.map((e) => e.id), loads: new Map(), today: toLocalDate(new Date(), "UTC") };
+          })
+        : null,
+    [key],
+  );
   if (found && found !== known.from) {
     const loads = new Map(known.loads);
     for (const id of found.looked) loads.delete(id);
