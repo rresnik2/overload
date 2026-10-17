@@ -1,7 +1,7 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Button, buttonClass } from "./Button";
 import { Field } from "./Field";
 import { NumberStepper } from "./NumberStepper";
@@ -167,6 +167,139 @@ describe("Toast", () => {
     expect(screen.getAllByRole("status")[0]).toHaveTextContent("A pr happened");
     await userEvent.click(screen.getAllByRole("button", { name: "Dismiss notification" })[0]!);
     expect(screen.queryByText("A pr happened")).not.toBeInTheDocument();
+  });
+
+  describe("dismissal timer", () => {
+    function Timed({ title = "Timed toast", duration = 3500 }: { title?: string; duration?: number }) {
+      const { toast } = useToast();
+      return <button onClick={() => toast({ kind: "pr", title, duration })}>{`fire ${title}`}</button>;
+    }
+    function show(title?: string) {
+      fireEvent.click(screen.getByText(`fire ${title ?? "Timed toast"}`));
+    }
+    const toastText = (title = "Timed toast") => screen.queryByText(title);
+    const card = () => screen.getByText("Timed toast").closest(".toast") as HTMLElement;
+    const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
+
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("dismisses on its own after the duration", () => {
+      render(
+        <ToastProvider>
+          <Timed />
+        </ToastProvider>,
+      );
+      show();
+      advance(3400);
+      expect(toastText()).toBeInTheDocument();
+      advance(200);
+      expect(toastText()).not.toBeInTheDocument();
+    });
+
+    it("a real mouse hovering the card pauses the timer and leaving restarts it", () => {
+      render(
+        <ToastProvider>
+          <Timed />
+        </ToastProvider>,
+      );
+      show();
+      fireEvent.pointerEnter(card(), { pointerType: "mouse" });
+      advance(20_000);
+      expect(toastText()).toBeInTheDocument();
+      fireEvent.pointerLeave(card(), { pointerType: "mouse" });
+      advance(3400);
+      expect(toastText()).toBeInTheDocument();
+      advance(200);
+      expect(toastText()).not.toBeInTheDocument();
+    });
+
+    it("touch and pen contact, and the mouse events a tap fires afterwards, never pause it", () => {
+      render(
+        <ToastProvider>
+          <Timed />
+        </ToastProvider>,
+      );
+      show();
+      fireEvent.pointerEnter(card(), { pointerType: "touch" });
+      fireEvent.pointerEnter(card(), { pointerType: "pen" });
+      // a tap on a touch screen is followed by compatibility mouse events; they are not pointer events with type "mouse"
+      fireEvent.mouseEnter(card());
+      fireEvent.mouseOver(card());
+      advance(3600);
+      expect(toastText()).not.toBeInTheDocument();
+    });
+
+    it("focus inside the card (the keyboard) pauses it and leaving the card resumes it", () => {
+      render(
+        <ToastProvider>
+          <Timed />
+        </ToastProvider>,
+      );
+      show();
+      const close = screen.getByRole("button", { name: "Dismiss notification" });
+      act(() => close.focus());
+      expect(close).toHaveFocus();
+      advance(20_000);
+      expect(toastText()).toBeInTheDocument();
+      act(() => close.blur());
+      advance(3600);
+      expect(toastText()).not.toBeInTheDocument();
+    });
+
+    it("a tap on the card dismisses it; a mouse click on its text does not", () => {
+      render(
+        <ToastProvider>
+          <Timed title="One" duration={0} />
+          <Timed title="Two" duration={0} />
+        </ToastProvider>,
+      );
+      show("One");
+      show("Two");
+      const one = screen.getByText("One").closest(".toast") as HTMLElement;
+      const two = screen.getByText("Two").closest(".toast") as HTMLElement;
+      fireEvent.pointerDown(one, { pointerType: "mouse" });
+      fireEvent.click(one);
+      expect(toastText("One")).toBeInTheDocument();
+      fireEvent.pointerDown(two, { pointerType: "touch" });
+      fireEvent.click(two);
+      expect(toastText("Two")).not.toBeInTheDocument();
+      expect(toastText("One")).toBeInTheDocument();
+    });
+
+    it("a tap on the action button runs it once and dismisses once", () => {
+      const onClick = vi.fn();
+      function WithAction() {
+        const { toast } = useToast();
+        return <button onClick={() => toast({ title: "Undo me", duration: 0, action: { label: "Undo", onClick } })}>fire action</button>;
+      }
+      render(
+        <ToastProvider>
+          <WithAction />
+        </ToastProvider>,
+      );
+      fireEvent.click(screen.getByText("fire action"));
+      const undo = screen.getByRole("button", { name: "Undo" });
+      fireEvent.pointerDown(undo, { pointerType: "touch" });
+      fireEvent.click(undo);
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText("Undo me")).not.toBeInTheDocument();
+    });
+
+    it("another toast arriving does not restart a visible toast's timer", () => {
+      render(
+        <ToastProvider>
+          <Timed />
+          <Timed title="Second" duration={0} />
+        </ToastProvider>,
+      );
+      show();
+      advance(3000);
+      show("Second");
+      advance(600);
+      expect(toastText()).not.toBeInTheDocument();
+      expect(toastText("Second")).toBeInTheDocument();
+    });
   });
 });
 

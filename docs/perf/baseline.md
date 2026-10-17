@@ -1,4 +1,20 @@
-# Performance baseline (PERF-0)
+# Performance baseline (PERF-0) and final numbers (Wave D)
+
+## Summary: baseline to final, against the plan's targets
+
+Same setup throughout (production build, Pixel 7 profile, CPU 4x, about 1.6 Mbps and 150 ms RTT, the demo user, the shared Neon branch over the internet). Final column measured 2026-10-16 in one locked run (`OVERLOAD_SERVER_TIMING=1` at build and runtime, port 3002, harness then Lighthouse), after the D2 fixes. Run-to-run noise is about 10 to 15 percent.
+
+| Target (plan) | Baseline | Final | Met? |
+|---|---|---|---|
+| Dock tap shows content in under 1 s locally | 733 to 966 ms median (865 ms over all 15 taps, p75 951) | **117 ms** median over all 15 taps (p75 125, max 173) | **Yes**, with a large margin. Mostly the router cache and the dock's tab prefetch (C2): a tap on a prefetched tab renders at once. The slowest of the 15 taps was 173 ms. |
+| Dock tap shows a skeleton in under 100 ms | no skeleton existed | **No skeleton showed at all**: 0 of 15 taps needed one, because the heading was already there at a median 117 ms (p75 125) | **Not as written, and not needed in this run.** The content arrives about as fast as a skeleton would, so the "first feedback" figure is 117 ms against the 100 ms in the plan (B2 measured 102 ms; the difference is within noise and the harness's polling). A tap on a page that is not prefetched (a real cold tap) still shows the route's skeleton, which B2 measured at 89 ms; that case was not exercised in this run. |
+| No dial long task over 50 ms | 0 | **0** (longest task 0 ms, blocking time 0 ms) | **Yes** (it was already met at baseline; C1 cut the work behind it: script time 117 to 34 ms, IndexedDB writes per 10-detent drag 10 to 1, reads 90 to 3) |
+| INP p75 under 200 ms | 48 / 48 / 8 ms (dial / picker / navigation) | **48 / 48 / 8 ms** | **Yes** (n=1 INP reading per spec; the harness has no real-device input) |
+| Sync requests during a workout | 11 `POST /api/sync` while logging 10 sets (measured on the code before C2) | **0** over 33 s and **2** over 362 s (C2 measured 1 in the long run; the second request is not attributed), and 1 immediately after Discard | **Yes**: about one per 5 minutes at most, instead of one per set |
+
+Other headline numbers, baseline to final: `/today` server total 842 to 624 ms and Prisma queries 18 to 10 (D1 added one stamp read per page); `/progress` 884 to 517 ms and 11 to 6 queries; `/exercises` 750 to 391 ms and 8 to 5 queries; `/today` browser TTFB 1707 to 76 ms (partly a warm connection, see "Reading the numbers"); first dock tap after load 548 ms (router prefetch) to about 149 ms; the progress detail page defers 506 KB of chart code until after load. Lighthouse (one simulated slow-4G run): today 81 to 86 and CLS 0.144 to 0.001, workout 85 to 84, exercises 87 to 83 (the first image resize pays on a cold load), progress series 80 to 80, landing 95 to 94, sign-in 91 to 91; every page is inside its budget.
+
+**What is not met or not shown.** The 100 ms skeleton target (above). Lighthouse performance did not improve overall: its LCP is the transfer time of the first flush (about 560 to 890 KB of JavaScript, CSS and fonts at 1.6 Mbps), and the JavaScript grew about 26 KB per route since C2 (`/today` 861 to 887 KB, `/workout` 1027 to 1063 KB, progress series 1278 to 1304 KB; swipe, the D1 refresh stamp and the sync policy). Everything here was measured on a laptop against Neon over the internet, not on a phone: the phone itself and Vercel-to-Neon latency are not measured.
 
 Measured before any performance change, so later parts can show before and after. Fill the **After** column as each part lands and re-run with the same setup.
 
@@ -14,43 +30,43 @@ Measured before any performance change, so later parts can show before and after
 
 ## Baseline
 
-| Metric | Median | p75 | After B2 | After C2 |
-|---|---|---|---|---|
-| Dock tap to heading, Today to Exercises | 733 ms | 798 ms | 103 ms (p75 117, first uncached tap 713) | 134 ms (p75 135, first tap after load 229) |
-| Dock tap to heading, Exercises to Progress | 755 ms | 865 ms | 101 ms (p75 101, first uncached tap 654) | 116 ms (p75 118, first 134) |
-| Dock tap to heading, Progress to Today | 966 ms | 982 ms | 102 ms (p75 103, first uncached tap 706) | 102 ms (p75 103, first 104) |
-| Dock tap to heading, all 15 taps | 865 ms | 951 ms | 102 ms (p75 110, max 713) | 104 ms (p75 126, max 229) |
-| Dock tap to network idle, Exercises / Progress / Today | 733 / 755 / 966 ms | 798 / 865 / 982 ms | 103 / 101 / 102 ms (max 1037 / 1123 / 706) | 134 / 116 / 102 ms (max 1160 / 134 / 104) |
-| Dial, 10-detent drag: pointerdown to readout settled | 799 ms | 801 ms | 795 ms (p75 807) | 819 ms (p75 831) |
-| Dial: readout lag after the last pointer move | 17 ms | 17 ms | 13 ms (p75 14) | 18 ms (p75 18) |
-| Dial: long tasks over 50 ms during the drag | 0 | 0 | 0 | 0 |
-| Picker, 'bench press': key to results updated (30 of 55 keys change the DOM) | 33 ms | 36 ms | 32 ms (p75 33) | 31 ms (p75 38) |
-| Picker: key to next paint (Event Timing) | 24 ms | 25 ms | 17 ms (p75 24) | 18 ms (p75 24) |
-| Picker: 11 keystrokes, summed update time | 197 ms | 199 ms | 183 ms (p75 188) | 193 ms (p75 193) |
-| Picker: long tasks over 50 ms | 0 | 0 | 0 | 0 |
-| INP after the interactions (dial / picker / navigation) | 48 / 48 / 8 ms | n/a | 48 / 48 / 8 ms | 40 / 64 / 8 ms |
-| `/today` browser TTFB (unthrottled) | 1707 ms | 1764 ms | 132 ms (p75 189) | 74 ms (p75 122) |
-| `/today` server total (proxy to end of response) | 842 ms | 911 ms | 564 ms (p75 705) | 601 ms (p75 630) |
-| `/today` Prisma queries, summed query time, DB wall time | 18, 2045 ms, 825 ms | 18, 2405 ms, 891 ms | 9, 1164 ms, 547 ms (p75 9, 1558, 685) | 9, 1373 ms, 583 ms |
-| `/progress` browser TTFB | 889 ms | 1048 ms | 71 ms (p75 74) | 62 ms (p75 66) |
-| `/progress` server total | 884 ms | 1043 ms | 481 ms (p75 538) | 451 ms (p75 506) |
-| `/progress` Prisma queries, summed query time, DB wall time | 11, 1472 ms, 862 ms | 11, 1481 ms, 1022 ms | 5, 656 ms, 452 ms (p75 5, 724, 513) | 5, 571 ms, 430 ms |
-| `/exercises` browser TTFB | 753 ms | 776 ms | 322 ms (p75 493) | 339 ms (p75 344) |
-| `/exercises` server total | 750 ms | 766 ms | 320 ms (p75 486) | 339 ms (p75 344) |
-| `/exercises` Prisma queries, summed query time, DB wall time | 8, 1042 ms, 727 ms | 8, 1128 ms, 752 ms | 4, 409 ms, 302 ms (p75 4, 558, 455) | 4, 444 ms, 314 ms |
-| Dock tap to skeleton visible (new metric; only taps that showed one) | n/a | n/a | 89 ms (p75 93); 2 of 15 taps | none (0 of 15 taps showed one: every tap was already prefetched) |
-| Dock tap to first feedback, skeleton else heading (new metric) | n/a | n/a | 101 ms (p75 102, max 713) | 104 ms (p75 126, max 229) |
+| Metric | Median | p75 | After B2 | After C2 | Final (Wave D) |
+|---|---|---|---|---|---|
+| Dock tap to heading, Today to Exercises | 733 ms | 798 ms | 103 ms (p75 117, first uncached tap 713) | 134 ms (p75 135, first tap after load 229) | 131 ms (p75 133, max 173) |
+| Dock tap to heading, Exercises to Progress | 755 ms | 865 ms | 101 ms (p75 101, first uncached tap 654) | 116 ms (p75 118, first 134) | 117 ms (p75 117, max 134) |
+| Dock tap to heading, Progress to Today | 966 ms | 982 ms | 102 ms (p75 103, first uncached tap 706) | 102 ms (p75 103, first 104) | 103 ms (p75 104, max 105) |
+| Dock tap to heading, all 15 taps | 865 ms | 951 ms | 102 ms (p75 110, max 713) | 104 ms (p75 126, max 229) | 117 ms (p75 125, max 173) |
+| Dock tap to network idle, Exercises / Progress / Today | 733 / 755 / 966 ms | 798 / 865 / 982 ms | 103 / 101 / 102 ms (max 1037 / 1123 / 706) | 134 / 116 / 102 ms (max 1160 / 134 / 104) | 131 / 117 / 103 ms (max 954 / 134 / 105) |
+| Dial, 10-detent drag: pointerdown to readout settled | 799 ms | 801 ms | 795 ms (p75 807) | 819 ms (p75 831) | 767 ms (p75 783) |
+| Dial: readout lag after the last pointer move | 17 ms | 17 ms | 13 ms (p75 14) | 18 ms (p75 18) | 1 ms (p75 2) |
+| Dial: long tasks over 50 ms during the drag | 0 | 0 | 0 | 0 | 0 (longest task 0 ms) |
+| Picker, 'bench press': key to results updated (30 of 55 keys change the DOM) | 33 ms | 36 ms | 32 ms (p75 33) | 31 ms (p75 38) | 34 ms (p75 38) |
+| Picker: key to next paint (Event Timing) | 24 ms | 25 ms | 17 ms (p75 24) | 18 ms (p75 24) | 24 ms (p75 25) |
+| Picker: 11 keystrokes, summed update time | 197 ms | 199 ms | 183 ms (p75 188) | 193 ms (p75 193) | 213 ms (p75 223) |
+| Picker: long tasks over 50 ms | 0 | 0 | 0 | 0 | 0 |
+| INP after the interactions (dial / picker / navigation) | 48 / 48 / 8 ms | n/a | 48 / 48 / 8 ms | 40 / 64 / 8 ms | 48 / 48 / 8 ms |
+| `/today` browser TTFB (unthrottled) | 1707 ms | 1764 ms | 132 ms (p75 189) | 74 ms (p75 122) | 76 ms (p75 76) |
+| `/today` server total (proxy to end of response) | 842 ms | 911 ms | 564 ms (p75 705) | 601 ms (p75 630) | 624 ms (p75 678) |
+| `/today` Prisma queries, summed query time, DB wall time | 18, 2045 ms, 825 ms | 18, 2405 ms, 891 ms | 9, 1164 ms, 547 ms (p75 9, 1558, 685) | 9, 1373 ms, 583 ms | 10, 1462 ms, 606 ms (p75 10, 1704, 659) |
+| `/progress` browser TTFB | 889 ms | 1048 ms | 71 ms (p75 74) | 62 ms (p75 66) | 66 ms (p75 72) |
+| `/progress` server total | 884 ms | 1043 ms | 481 ms (p75 538) | 451 ms (p75 506) | 517 ms (p75 611) |
+| `/progress` Prisma queries, summed query time, DB wall time | 11, 1472 ms, 862 ms | 11, 1481 ms, 1022 ms | 5, 656 ms, 452 ms (p75 5, 724, 513) | 5, 571 ms, 430 ms | 6, 676 ms, 493 ms (p75 6, 832, 597) |
+| `/exercises` browser TTFB | 753 ms | 776 ms | 322 ms (p75 493) | 339 ms (p75 344) | 392 ms (p75 454) |
+| `/exercises` server total | 750 ms | 766 ms | 320 ms (p75 486) | 339 ms (p75 344) | 391 ms (p75 451) |
+| `/exercises` Prisma queries, summed query time, DB wall time | 8, 1042 ms, 727 ms | 8, 1128 ms, 752 ms | 4, 409 ms, 302 ms (p75 4, 558, 455) | 4, 444 ms, 314 ms | 5, 473 ms, 372 ms (p75 5, 573, 433) |
+| Dock tap to skeleton visible (new metric; only taps that showed one) | n/a | n/a | 89 ms (p75 93); 2 of 15 taps | none (0 of 15 taps showed one: every tap was already prefetched) | none (0 of 15 taps showed one: every tap was already prefetched) |
+| Dock tap to first feedback, skeleton else heading (new metric) | n/a | n/a | 101 ms (p75 102, max 713) | 104 ms (p75 126, max 229) | 117 ms (p75 125, max 173) |
 
 Lighthouse (mobile, simulated slow 4G / 4x CPU, `tools/lighthouse/run.ts`), one run, performance score:
 
-| Page | Perf | LCP | TBT | CLS | A11y | Best practices | After B2 | After C2 |
-|---|---|---|---|---|---|---|---|---|
-| landing | 95 | 3005 ms | 36 ms | 0 | 100 | 100 | 92, LCP 3378 ms, TBT 30 ms, CLS 0 | 94, LCP 3155 ms, TBT 32 ms, CLS 0 |
-| sign-in | 91 | 3457 ms | 20 ms | 0 | 100 | 100 | 91, LCP 3456 ms, TBT 22 ms, CLS 0 | 91, LCP 3455 ms, TBT 21 ms, CLS 0 |
-| today | 81 | 3909 ms | 97 ms | 0.144 | 100 | 100 | 84, LCP 4522 ms, TBT 81 ms, CLS 0.001 | 84, LCP 4526 ms, TBT 63 ms, CLS 0.001 |
-| progress series | 80 | 4210 ms | 277 ms | 0 | 100 | 100 | 76, LCP 4841 ms, TBT 291 ms, CLS 0 | 74, LCP 5421 ms, TBT 261 ms, CLS 0 |
-| workout | 85 | 4371 ms | 62 ms | 0 | 100 | 100 | 85, LCP 4380 ms, TBT 69 ms, CLS 0 | 84, LCP 4526 ms, TBT 58 ms, CLS 0 |
-| exercises | 87 | 4060 ms | 62 ms | 0 | 100 | 100 | 88, LCP 3836 ms, TBT 39 ms, CLS 0 | 83, LCP 4671 ms, TBT 33 ms, CLS 0 |
+| Page | Perf | LCP | TBT | CLS | A11y | Best practices | After B2 | After C2 | Final (Wave D) |
+|---|---|---|---|---|---|---|---|---|---|
+| landing | 95 | 3005 ms | 36 ms | 0 | 100 | 100 | 92, LCP 3378 ms, TBT 30 ms, CLS 0 | 94, LCP 3155 ms, TBT 32 ms, CLS 0 | 94, LCP 3155 ms, TBT 40 ms, CLS 0 |
+| sign-in | 91 | 3457 ms | 20 ms | 0 | 100 | 100 | 91, LCP 3456 ms, TBT 22 ms, CLS 0 | 91, LCP 3455 ms, TBT 21 ms, CLS 0 | 91, LCP 3455 ms, TBT 31 ms, CLS 0 |
+| today | 81 | 3909 ms | 97 ms | 0.144 | 100 | 100 | 84, LCP 4522 ms, TBT 81 ms, CLS 0.001 | 84, LCP 4526 ms, TBT 63 ms, CLS 0.001 | 86, LCP 4210 ms, TBT 82 ms, CLS 0.001 |
+| progress series | 80 | 4210 ms | 277 ms | 0 | 100 | 100 | 76, LCP 4841 ms, TBT 291 ms, CLS 0 | 74, LCP 5421 ms, TBT 261 ms, CLS 0 | 80, LCP 4207 ms, TBT 287 ms, CLS 0 |
+| workout | 85 | 4371 ms | 62 ms | 0 | 100 | 100 | 85, LCP 4380 ms, TBT 69 ms, CLS 0 | 84, LCP 4526 ms, TBT 58 ms, CLS 0 | 84, LCP 4513 ms, TBT 69 ms, CLS 0 |
+| exercises | 87 | 4060 ms | 62 ms | 0 | 100 | 100 | 88, LCP 3836 ms, TBT 39 ms, CLS 0 | 83, LCP 4671 ms, TBT 33 ms, CLS 0 | 83, LCP 4666 ms, TBT 34 ms, CLS 0 |
 
 ### Reading the numbers
 
@@ -163,6 +179,28 @@ The first attempt, `router.prefetch()`, did nothing for the tap: in Next 16.4 it
 - **Why `/today` was later and erratic.** The intro note is server-rendered text, but it sits in the streamed page, after the database reads, so the observed LCP came 0.7 to 1.9 s in. Everything that finished before that moment joined the graph: the start-of-app `/api/sync` pull of a fresh profile (979 KB) and the tab prefetches (`?_rsc=` fetches). A gather run that happened to include the sync simulated **9.9 s**; the runs that did not were 4.7 to 4.8 s. That is the "LCP rose about 600 ms after B2" and the spread between runs: a timing race inside the metric, not slower pages (B2 made the server render faster).
 - **Fix (cheap, no cost to B2 or C2):** `today/loading.tsx` renders the same note as real text (`PageIntroPlaceholder`: same words and box, inert, `aria-hidden`, hidden for a dismissed tip), and the page swaps in the identical note. The largest text now paints in the first flush, `/api/sync` and the prefetches end after it and leave the graph, and the three runs agree to 3 ms. Lighthouse perf 82 to 86, LCP -616 ms; TBT and CLS unchanged.
 - **Progress detail: no cheap fix, and C2's rise was not reproduced.** The page has no loading boundary on purpose (a `notFound()` must be a real 404), so its first flush is the whole page, observed at TTFB (0.42 to 0.46 s) plus 65 ms, and the graph is the bytes of the head. Three runs on the C2 code gave 4064 to 4069 ms, not 5421. The lazy chart chunks (483 KB) start after hydration, so they enter the graph only when the observed LCP is late enough for them to have finished first (a loaded machine or a slow server), which fits C2's single high run. The only levers left are bytes before first paint: the two Archivo files (188 KB, preloaded, so they finish before the first paint) and about 260 KB of framework and app chunks. Dropping the font preload would take 188 KB out of the graph but lets the italic display face arrive after the headings are painted (see PERF-3, "Skipped"); not done.
+
+### Final (Wave D, DIAL part D2; measured 2026-10-16, production build on port 3002, `OVERLOAD_SERVER_TIMING=1` at build and runtime, one locked run)
+
+The whole `perf` project (5 repetitions per measurement), the 36 s variant of `sync-count`, and Lighthouse (one run per page) ran in one locked command. The "Final (Wave D)" columns above hold the numbers; this section adds what the tables do not.
+
+| Route | JS total | before load | after load | CSS | Fonts |
+|---|---|---|---|---|---|
+| `/sign-in` | 561 KB | 561 KB | 0 | 221 KB | 187 KB |
+| `/today` | 887 KB | 814 KB | 72 KB | 221 KB | 187 KB |
+| `/exercises` | 887 KB | 811 KB | 76 KB | 221 KB | 187 KB |
+| `/progress` | 887 KB | 866 KB | 21 KB | 221 KB | 187 KB |
+| `/progress/<exercise>` | 1304 KB | 798 KB | 506 KB | 221 KB | 187 KB |
+| `/history` | 887 KB | 813 KB | 74 KB | 221 KB | 187 KB |
+| `/workout` | 1063 KB | 931 KB | 132 KB | 221 KB | 187 KB |
+| `/settings/profile` | 875 KB | 853 KB | 23 KB | 221 KB | 187 KB |
+
+- **Navigation.** The first dock tap after loading `/today` is 149 ms (p75 181) at 0.3 s and 148 ms (p75 150) at 5 s, against 134 and 132 ms after C2: the same within noise. The prefetch still issues 2 RSC requests while the page sits idle. No tap showed a skeleton; every tap was prefetched.
+- **Server.** Query counts are one higher than after C2 on every synced-data page (`/today` 9 to 10, `/progress` 5 to 6, `/exercises` 4 to 5): D1's `SyncVersionStamp` reads `SyncState.version` once per page, in exchange for no whole-page `router.refresh()` after a sync that brought nothing the page lacks. Server totals moved within the run-to-run noise (`/today` 601 to 624 ms, `/progress` 451 to 517 ms, `/exercises` 339 to 391 ms).
+- **Dial and picker** are unchanged within noise (0 long tasks). The dial's 10-detent drag now does 1 IndexedDB write and 3 reads, and 34 ms of script (C1: 2 writes, 12 reads, 57 ms).
+- **Sync during a workout.** `POST /api/sync` while logging 10 sets: 0 in 33 s, 2 in 362 s; one in the 6 s after Discard; no catalog or RSC fetches while logging.
+- **Lighthouse** is inside every budget (exit 0). Its scores move within the 10 to 15 percent noise of earlier columns; the changes of D1 (today LCP 4526 to 4210 ms) held.
+- **Not changed by D2:** nothing in D2 targets performance. Its code changes (a toast pointer rule, a NumberStrip `scrollend` guard, a display-type class on the workout start card, the demo seed rebuilding PRs) do not add requests.
 
 ### Not measured, and why
 

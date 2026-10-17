@@ -30,6 +30,14 @@ describe("demo user seed (real Postgres)", () => {
     const state = await prisma.syncState.findUnique({ where: { userId: first.userId } });
     expect(state!.version).toBeGreaterThanOrEqual(Math.max(...versions.map((v) => v.version)));
 
+    // personal records are rebuilt for every series the history touches, and a re-run does not duplicate them
+    const seriesWithSets = await prisma.workoutSet.findMany({ where: { userId: first.userId }, select: { seriesKey: true }, distinct: ["seriesKey"] });
+    const prSeries = await prisma.personalRecord.findMany({ where: { userId: first.userId }, select: { seriesKey: true }, distinct: ["seriesKey"] });
+    expect(seriesWithSets.length).toBeGreaterThan(0);
+    expect(new Set(prSeries.map((p) => p.seriesKey))).toEqual(new Set(seriesWithSets.map((s) => s.seriesKey)));
+    const prKeys = await prisma.personalRecord.findMany({ where: { userId: first.userId }, select: { seriesKey: true, type: true, reps: true } });
+    expect(new Set(prKeys.map((p) => `${p.seriesKey}:${p.type}:${p.reps}`)).size).toBe(prKeys.length);
+
     const input = await loadAnalyticsInput(mintUserCtx(first.userId), { today: FIXTURE_TODAY });
     expect(input.sets).toHaveLength(first.sets);
     expect(input.profile).toMatchObject({ sex: "MALE", goal: "HYPERTROPHY", experience: "INTERMEDIATE", heightCm: 180 });
@@ -43,5 +51,6 @@ describe("demo user seed (real Postgres)", () => {
     const facts = buildWeeklyFacts(input, { weekStart: "2026-10-05" });
     expect(insightFactsSchema.safeParse(facts).success).toBe(true);
     expect(facts.lifts.find((l) => l.seriesKey === planted.benchStall.seriesKey)?.stalled).toBe(true);
-  });
+    // two full seeds, each now rebuilding the PRs of every series over the network, take longer than the project's 30 s
+  }, 120_000);
 });

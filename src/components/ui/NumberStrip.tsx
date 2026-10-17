@@ -231,7 +231,17 @@ export const NumberStrip = memo(function NumberStrip({ label, labelHint, values,
     };
     // The scroll is over (finger lifted and the snap finished): commit what it landed on.
     const onScrollEnd = () => {
-      if (heading.current) settleHeading();
+      const h = heading.current;
+      if (h) {
+        // A browser delivers `scrollend` a moment AFTER an animation stops. When a key press has already started the next scroll, that
+        // late event is not the end of the scroll we are heading for: settling now would let the next scroll event, still on the
+        // previous item, be read as the lifter scrolling back, and the press would be undone. Keep heading; the target's own
+        // scroll event, the `SETTLE_MS` backstop or the next `scrollend` settles it.
+        const { itemSize, count } = latest.current;
+        const near = Math.max(0, Math.min(count - 1, Math.round(sc.scrollLeft / itemSize)));
+        if (near !== h.to) return;
+        settleHeading();
+      }
       if (pending.current !== null) commit();
     };
     sc.addEventListener("wheel", onWheel, { passive: false });

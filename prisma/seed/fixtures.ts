@@ -3,7 +3,9 @@
 // Creates demo@overload.test through Better Auth's server API (so sign-in works), a complete Profile and the generated
 // 16-week history as real rows (catalog exercises by catalogExerciseId, a MachineProfile per machine, workouts, workout
 // exercises, sets with derived columns computed via effectiveLoadKg/estimate1RM, sync metadata via bumpSyncVersion +
-// syncMixin). Personal records are left for stream E1's rebuild. Idempotent: a re-run replaces this user's rows.
+// syncMixin). Personal records are rebuilt for every series at the end with the app's own rebuildSeriesPrs (the same
+// function a sync runs), so the demo user's PR tables and "new PR" history match what the app would have computed.
+// Idempotent: a re-run replaces this user's rows.
 //
 // The password is a TEST-ONLY constant for a throwaway demo account on a development/preview database: NEVER seed it into
 // production (the script refuses when VERCEL_ENV=production). Set DEMO_PASSWORD to use another one.
@@ -48,12 +50,13 @@ function stubServerOnly() {
 
 async function loadServerModules() {
   stubServerOnly();
-  const [{ auth }, syncMeta, { mintUserCtx }] = await Promise.all([
+  const [{ auth }, syncMeta, { mintUserCtx }, { rebuildSeriesPrs }] = await Promise.all([
     import("@/server/auth/auth"),
     import("@/server/sync-meta"),
     import("@/server/auth/ctx"),
+    import("@/server/prs/rebuild"),
   ]);
-  return { auth, ...syncMeta, mintUserCtx };
+  return { auth, ...syncMeta, mintUserCtx, rebuildSeriesPrs };
 }
 
 async function ensureUser(prisma: PrismaClient, auth: Awaited<ReturnType<typeof loadServerModules>>["auth"]): Promise<string> {
@@ -77,7 +80,7 @@ export async function seedDemoUser(prisma: PrismaClient, options: LifterOptions 
   if (process.env.VERCEL_ENV === "production") throw new Error("Refusing to seed the demo user into production.");
   const today = options.today ?? toLocalDate(new Date(), FIXTURE_TIMEZONE);
   const history = generateLifterRows({ ...options, today });
-  const { auth, bumpSyncVersion, syncMixin, mintUserCtx } = await loadServerModules();
+  const { auth, bumpSyncVersion, syncMixin, mintUserCtx, rebuildSeriesPrs } = await loadServerModules();
   const userId = await ensureUser(prisma, auth);
   const ctx = mintUserCtx(userId);
 
@@ -98,7 +101,7 @@ export async function seedDemoUser(prisma: PrismaClient, options: LifterOptions 
 
   await prisma.$transaction(
     async (tx) => {
-      // Replace this user's previous demo data (children first; PRs are rebuilt by stream E1).
+      // Replace this user's previous demo data (children first; the PRs are rebuilt at the end of this transaction).
       await tx.personalRecord.deleteMany({ where: { userId } });
       await tx.workoutSet.deleteMany({ where: { userId } });
       await tx.workoutExercise.deleteMany({ where: { userId } });
@@ -176,6 +179,9 @@ export async function seedDemoUser(prisma: PrismaClient, options: LifterOptions 
         return { id: m.id, userId, ...data, ...mix(Object.keys(data)) };
       });
       await tx.bodyMetric.createMany({ data: bodyData });
+
+      // The sync path rebuilds PRs per touched series; the seed writes rows directly, so do it for every series here.
+      await rebuildSeriesPrs(tx, ctx, new Set(setData.map((s) => s.seriesKey)));
     },
     { timeout: 120_000, maxWait: 20_000 },
   );

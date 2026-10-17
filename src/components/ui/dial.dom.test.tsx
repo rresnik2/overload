@@ -354,6 +354,32 @@ describe("NumberStrip", () => {
     vi.restoreAllMocks();
   });
 
+  it("a late scrollend from the scroll that a key press replaced does not undo that press", () => {
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      cb(0);
+      return 1;
+    });
+    try {
+      render(<StripHarness initial={3} itemSize={40} />);
+      const sc = strip();
+      sc.scrollTo = vi.fn(); // a browser animates the scroll; here nothing moves until the test moves it
+      sc.focus();
+      fireEvent.keyDown(sc, { key: "ArrowRight" }); // 4, scrolling toward index 3
+      fireEvent.keyDown(sc, { key: "ArrowRight" }); // 5, scrolling toward index 4 (replaces the first scroll)
+      expect(screen.getByTestId("out")).toHaveTextContent("5");
+      // The first animation finished a moment ago, and its scrollend is delivered while the second one is only starting. Scroll events
+      // on the way (still at index 3) must not be taken for a lifter's scroll, and the press must still count.
+      sc.scrollLeft = 3 * 40;
+      fireEvent(sc, new Event("scrollend"));
+      fireEvent.scroll(sc);
+      expect(screen.getByTestId("out")).toHaveTextContent("5");
+      fireEvent.keyDown(sc, { key: "ArrowRight" });
+      expect(screen.getByTestId("out")).toHaveTextContent("6");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
   it("drags with the mouse, snaps to the nearest item on release and ignores the click that follows", () => {
     render(<StripHarness initial={5} itemSize={40} />);
     const sc = strip();
