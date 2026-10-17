@@ -9,7 +9,7 @@ import type { PrCandidate } from "@/contracts/prs";
 import type { ExerciseBlockActions } from "./ExerciseBlock";
 import type { WorkoutPrefs } from "./prefs";
 import { describePr, headlinePr, seriesHistory, workoutPrs } from "./prs";
-import { addSet, completionPatch, movedPosition, supersetPatches } from "./session";
+import { addSet, carryForwardPatch, completionPatch, movedPosition, supersetPatches } from "./session";
 import type { ExerciseView } from "./view";
 
 /** PRs already announced on this page (live toast or sync result), so each shows once. */
@@ -94,6 +94,11 @@ export function useWorkoutActions(options: WorkoutActionOptions) {
             return;
           }
           const updated = await repo.sets.update(set.id, result.patch);
+          if (latest.current.options.onSetCompleted) {
+            // The next set opens at the weight just logged when the lifter changed it, not at the template's or last time's.
+            const carry = carryForwardPatch(item.sets.map((s) => (s.id === updated.id ? updated : s)), updated, item.last);
+            if (carry) await repo.sets.update(carry.id, carry.patch);
+          }
           latest.current.options.onSetCompleted?.(updated, item);
           await announcePrs(updated, item);
         }),

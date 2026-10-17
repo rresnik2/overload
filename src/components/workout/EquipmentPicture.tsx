@@ -263,7 +263,7 @@ export function EquipmentPicture({ kind, loadType, isUnilateral, setup, value, h
     }
   } else if (kind === "dumbbell") {
     art = <DumbbellSvg weight={w} unit={unit} pair={pair} label={PANEL_COPY.pictureLabel.dumbbell(w, unit, pair)} />;
-    caption = pair ? PANEL_COPY.pair(w, unit) : PANEL_COPY.one(w, unit);
+    caption = ghost ? PANEL_COPY.turnDial : pair ? PANEL_COPY.pair(w, unit) : PANEL_COPY.one(w, unit);
   } else if (kind === "kettlebell") {
     art = <KettlebellSvg weight={w} unit={unit} pair={pair} label={PANEL_COPY.pictureLabel.kettlebell(w, unit, pair)} />;
     // the dot takes the bell's own colour, not a plate's
@@ -271,13 +271,13 @@ export function EquipmentPicture({ kind, loadType, isUnilateral, setup, value, h
     caption = (
       <>
         <i className="eq__dot" style={{ background: fill }} aria-hidden="true" />
-        {pair ? PANEL_COPY.bellPair(w, unit) : PANEL_COPY.bell(w, unit)}
+        {ghost ? PANEL_COPY.turnDial : pair ? PANEL_COPY.bellPair(w, unit) : PANEL_COPY.bell(w, unit)}
       </>
     );
   } else {
     const pin = pinOf(w, setup);
     art = <StackSvg pin={pin} step={setup.step} unit={unit} hasProfile={hasProfile} label={PANEL_COPY.pictureLabel.stack(pin, w, unit)} />;
-    caption = PANEL_COPY.pin(pin, hasProfile && pin <= STACK_WINDOW ? STACK_WINDOW : null, w, setup.step, unit);
+    caption = ghost ? PANEL_COPY.turnDial : PANEL_COPY.pin(pin, hasProfile && pin <= STACK_WINDOW ? STACK_WINDOW : null, w, setup.step, unit);
   }
 
   return (

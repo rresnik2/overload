@@ -14,6 +14,7 @@ import { TodayStartCard } from "@/components/today/TodayStartCard";
 import { TodayTemplatesCard } from "@/components/today/TodayTemplatesCard";
 import { PageIntro } from "@/components/ui/PageIntro";
 import { requireSessionInfo } from "@/server/auth/session";
+import { loadInsightsOverview } from "@/server/insights/current";
 import { latestReport } from "@/server/insights/reports";
 import { getProfileRow } from "@/server/profile/profile";
 import { loadBodyView } from "@/server/queries/body";
@@ -39,6 +40,8 @@ export default async function TodayPage() {
     loadProgressOverview(ctx, { today }),
     loadBodyView(ctx, { today }),
   ]);
+  // No written report yet: the rule-based findings /insights shows for the review week still have something to say.
+  const preview = report ? null : (await loadInsightsOverview(ctx)).preview;
   const unit = profile?.unitPreference ?? "KG";
   return (
     <div className="today">
@@ -76,7 +79,7 @@ export default async function TodayPage() {
             <TodayHardSetsCard muscles={overview.weeks[0]?.muscles ?? []} />
           </div>
           <div className="today-cell today-cell--insight">
-            <TodayInsightCard report={report} />
+            <TodayInsightCard report={report} preview={preview} />
           </div>
         </div>
       </div>

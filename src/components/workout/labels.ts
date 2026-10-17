@@ -126,6 +126,7 @@ export const PANEL_COPY = {
   inexact: (requested: number, nearest: number, unit: WeightUnit) => `${fmt(requested)} ${short(unit)} can’t be loaded exactly · nearest ${fmt(nearest)} ${short(unit)}`,
   barUnknown: "Bar weight not set",
   baseTotal: (base: number, total: number, unit: WeightUnit) => `+ ${fmt(base)} ${short(unit)} base = ${fmt(total)} ${short(unit)} total`,
+  turnDial: "Turn the dial to choose a weight",
   pair: (each: number, unit: WeightUnit) => `Pair of ${fmt(each)} ${short(unit)} · ${fmt(each * 2)} ${short(unit)} total`,
   one: (weight: number, unit: WeightUnit) => `One ${fmt(weight)} ${short(unit)} dumbbell`,
   bell: (weight: number, unit: WeightUnit) => `${fmt(weight)} ${short(unit)} bell`,

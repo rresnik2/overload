@@ -5,6 +5,7 @@ import { useState } from "react";
 import { repo, useLive } from "@/client/repo";
 import { SaveTemplateModal } from "@/components/templates/SaveTemplateModal";
 import { EmptyState } from "@/components/primitives/EmptyState";
+import { PageHeader } from "@/components/primitives/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Modal } from "@/components/ui/Sheet";
@@ -18,6 +19,12 @@ import { useWorkoutPrefs } from "./prefs";
 import { headlinePr, describePr } from "./prs";
 import { saveWorkoutAsTemplate, supersetLabels } from "./session";
 import { loadWorkoutView, summarizeWorkout, workoutDateLabel } from "./view";
+
+/** The page title of a past workout: its own name, "Workout" while it loads or when it has none. */
+export function HistoryDetailHeader({ id }: { id: string }) {
+  const title = useLive(async () => (await repo.workouts.get(id))?.title ?? null, [id]);
+  return <PageHeader title={title?.trim() || "Workout"} meta={["History"]} />;
+}
 
 /** A past workout: edit or delete sets and exercises, rename, save as a template, delete the workout. All writes through `repo`. */
 export function HistoryDetail({ id }: { id: string }) {
