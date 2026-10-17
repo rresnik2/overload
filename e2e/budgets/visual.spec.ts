@@ -19,13 +19,16 @@ async function shoot(page: Page, name: string) {
   await expect(page.locator("main").first()).toBeVisible(COLD);
   await page.waitForLoadState("networkidle").catch(() => undefined);
   await page.evaluate(() => document.fonts.ready);
+  // Remote exercise photos are not part of the layout under test. They are hidden rather than masked: a mask box is painted over
+  // everything, the fixed dock included, while a hidden photo leaves its own box, which the dock covers as it does on a phone.
+  await page.addStyleTag({ content: ".exercise-card__photo img { visibility: hidden; }" });
   await expect(page).toHaveScreenshot(`${name}.png`, {
     fullPage: wide,
     animations: "disabled",
     caret: "hide",
     maxDiffPixelRatio: 0.01,
-    // remote exercise photos and the live clock are not part of the layout under test
-    mask: [page.locator(".exercise-card__photo"), page.locator(".sync-pip")],
+    // the live clock is not part of the layout under test (the exercise photos are hidden above)
+    mask: [page.locator(".sync-pip")],
   });
 }
 
