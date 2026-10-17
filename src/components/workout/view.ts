@@ -1,6 +1,5 @@
 // The read model of one workout for the logging and history screens: exercises with their sets, machine, "last time" and PRs.
 import type { ExerciseRow, LocalDateString, MachineProfileRow, WorkoutExerciseRow, WorkoutRow, WorkoutSetRow } from "@/contracts/entities";
-import type { WeightUnit } from "@/contracts/enums";
 import type { LastTimeEntry, Repo } from "@/contracts/repo";
 import type { PrCandidate } from "@/contracts/prs";
 import { isGearEquipment, type GearEquipment } from "@/client/repo/gear";
@@ -178,16 +177,7 @@ export interface WorkoutSummary {
   /** sum of effective load x reps over completed non-warm-up sets (kg). */
   volumeKg: number;
   prSets: number;
-  /** One per PR set, in workout order, with what the PR moment draws: the exercise, the weight and its unit, and the reps. */
-  prs: {
-    setId: string;
-    exerciseName: string;
-    headline: PrCandidate;
-    exercise: Pick<ExerciseRow, "name" | "equipment" | "loadType" | "isUnilateral">;
-    weightKg: number | null;
-    inputUnit: WeightUnit | null;
-    reps: number | null;
-  }[];
+  prs: { setId: string; exerciseName: string; headline: PrCandidate }[];
 }
 
 export function summarizeWorkout(view: WorkoutView, endedAtMs: number, headline: (c: PrCandidate[]) => PrCandidate | undefined): WorkoutSummary {
@@ -212,7 +202,7 @@ export function summarizeWorkout(view: WorkoutView, endedAtMs: number, headline:
       sets += 1;
       if (set.effectiveLoadKg != null && set.reps != null) volume += set.effectiveLoadKg * set.reps;
       const pr = headline(view.prs.get(set.id) ?? []);
-      if (pr) prs.push({ setId: set.id, exerciseName: item.exercise.name, headline: pr, exercise: item.exercise, weightKg: set.weightKg, inputUnit: set.inputUnit, reps: set.reps });
+      if (pr) prs.push({ setId: set.id, exerciseName: item.exercise.name, headline: pr });
     }
     if (done > 0) withSets += 1;
   }

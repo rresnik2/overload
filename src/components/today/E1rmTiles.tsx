@@ -1,12 +1,6 @@
 import type { CSSProperties } from "react";
-import { EquipmentArt } from "@/components/workout/equipment/EquipmentArt";
-import type { ExerciseRow } from "@/contracts/entities";
 import { TILE_LIFT_PLATE, type LiftTile } from "@/lib/analytics/lifts";
-import { lastLoadSet, lastLoadUnit, lastLoadWeight, type LastLoad } from "@/lib/analytics/last-load";
 import { formatNumber, fromKg, round, type WeightUnit } from "@/lib/units";
-
-/** A tile's exercise (what to draw) and its last top set, keyed by exercise id. */
-export type TileLoads = ReadonlyMap<string, { exercise: Pick<ExerciseRow, "name" | "equipment" | "loadType" | "isUnilateral">; load: LastLoad | null }>;
 
 const unitText = (unit: WeightUnit) => (unit === "LB" ? "lb" : "kg");
 
@@ -20,20 +14,16 @@ export function changeText(changeKg: number | null, unit: WeightUnit): { text: s
 }
 
 /**
- * The four main lifts as tiles: the current estimated 1RM, its change over 4 weeks and a left edge in the lift's plate colour,
- * then the last top set drawn on its bar. A lift with no history says how to get an estimate. Server-renderable; values arrive
- * in kg and are shown in `unit`.
+ * The four main lifts as tiles: the current estimated 1RM, its change over 4 weeks and a left edge in the lift's plate colour.
+ * A lift with no history says how to get an estimate. Server-renderable; values arrive in kg and are shown in `unit`.
  */
-export function E1rmTiles({ tiles, unit, loads }: { tiles: LiftTile[]; unit: WeightUnit; loads?: TileLoads }) {
+export function E1rmTiles({ tiles, unit }: { tiles: LiftTile[]; unit: WeightUnit }) {
   return (
     <ul className="today-tiles" data-testid="e1rm-tiles">
       {tiles.map((t) => {
         const e1rmKg = t.e1rmKg;
         const empty = e1rmKg == null;
         const change = changeText(t.changeKg, unit);
-        const art = t.seriesKey ? loads?.get(t.seriesKey.split(":")[0]!) : undefined;
-        const drawUnit = art?.load ? lastLoadUnit(art.load, unit) : unit;
-        const lastSet = art?.load ? lastLoadSet(art.load, art.exercise.loadType, drawUnit) : null;
         return (
           <li
             key={t.lift}
@@ -60,17 +50,6 @@ export function E1rmTiles({ tiles, unit, loads }: { tiles: LiftTile[]; unit: Wei
                   {change.text}
                   {change.tone !== "none" ? <span className="sr-only"> over 4 weeks</span> : null}
                 </span>
-                {art?.load ? (
-                  <span className="today-tile__last">
-                    <EquipmentArt exercise={art.exercise} unit={drawUnit} load={lastLoadWeight(art.load, drawUnit)} size="tile" />
-                    {lastSet ? (
-                      <span className="today-tile__last-text num">
-                        <span className="sr-only">Last top set </span>
-                        {lastSet}
-                      </span>
-                    ) : null}
-                  </span>
-                ) : null}
               </>
             )}
           </li>

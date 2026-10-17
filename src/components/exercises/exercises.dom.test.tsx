@@ -89,32 +89,6 @@ describe("MuscleChips", () => {
 });
 
 describe("ExerciseCard / ExerciseList", () => {
-  it("draws the equipment instead of a photo, and names the muscles under the name", () => {
-    const { container } = render(<ExerciseCard exercise={base} href="/exercises/abc" />);
-    expect(container.querySelector("img")).toBeNull();
-    expect(container.querySelector(".eq-art")).toHaveAttribute("data-kind", "bar");
-    expect(container.querySelector(".eq-art")).toHaveClass("eq-art--ghost");
-    expect(screen.getByText("Quadriceps · Glutes")).toBeInTheDocument();
-  });
-
-  it("with a last load, loads the drawing and says the set and the day instead of the muscles", () => {
-    const lastLoad = { exerciseId: base.id, localDate: "2026-10-12" as never, weightKg: 110, reps: 6, pinStepKg: null, inputUnit: null };
-    const { container } = render(<ExerciseCard exercise={base} href="/exercises/abc" lastLoad={lastLoad} unit="KG" today={"2026-10-16" as never} />);
-    expect(screen.getByText("110 kg × 6 · Mon 12 Oct")).toBeInTheDocument();
-    expect(screen.queryByText("Quadriceps · Glutes")).toBeNull();
-    const art = container.querySelector(".eq-art")!;
-    expect(art).not.toHaveClass("eq-art--ghost");
-    // 110 kg on a 20 kg bar: 25 + 20 a side, drawn on both sleeves
-    expect([...art.querySelectorAll(".eq-side--r .eq-plate")].map((p) => p.getAttribute("data-weight"))).toEqual(["25", "20"]);
-    expect(art.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-  });
-
-  it("passes each exercise its last load from the list's map", () => {
-    const loads = new Map([[base.id, { exerciseId: base.id, localDate: "2026-10-12" as never, weightKg: 100, reps: 5, pinStepKg: null, inputUnit: null }]]);
-    render(<ExerciseList exercises={[base]} lastLoads={loads} unit="KG" label="Yours" />);
-    expect(screen.getByRole("list", { name: "Yours" })).toHaveTextContent("100 kg × 5");
-  });
-
   it("links the card to its detail page and shows name, tag and muscles", () => {
     render(<ExerciseCard exercise={base} href="/exercises/abc" />);
     const link = screen.getByRole("link");

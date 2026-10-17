@@ -3,9 +3,9 @@ import clsx from "clsx";
 import { Check, CloudOff, LoaderCircle, RefreshCw, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { requireActiveDb } from "@/client/db/active";
+import { useLive } from "@/client/repo";
 import { syncNow, useSyncStatus } from "@/client/sync";
 import { statusStore } from "@/client/sync/status";
-import { useUnsyncedRows } from "@/client/sync/unsynced";
 import type { SyncStatus } from "@/contracts/sync";
 
 /** What the button says. Pure, so the wording is tested without a database. `pending` is the number of rows with unsent changes. */
@@ -47,7 +47,7 @@ export function syncNowAnnouncement(status: Pick<SyncStatus, "state">, pending: 
  */
 export function SyncNow({ className }: { className?: string }) {
   const status = useSyncStatus();
-  const pending = useUnsyncedRows() ?? 0;
+  const pending = useLive(async () => (await requireActiveDb().outbox.orderBy("[entity+id]").uniqueKeys()).length) ?? 0;
   const [announcement, setAnnouncement] = useState("");
   const [tapped, setTapped] = useState(false);
 

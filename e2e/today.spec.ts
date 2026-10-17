@@ -145,8 +145,9 @@ test("the router cache never hides a finished workout: Today shows it without a 
   await expect(page.getByRole("heading", { name: "Workout saved" })).toBeVisible();
   await page.getByRole("button", { name: "Done" }).click();
 
-  // Done goes back to Today by an in-app navigation, seconds after Today was cached. The sync push lands a moment later; either way Today must update itself.
-  await expect(page).toHaveURL(/\/today$/, COLD);
+  // Back by an in-app link, seconds after Today was cached. The sync push lands a moment later; either way Today must update itself.
+  await page.locator(".wk-topbar__back").click();
+  await expect(page).toHaveURL(/\/today$/);
   await expect(page.getByTestId("today-hard-sets").getByRole("listitem").filter({ hasText: "Chest" })).toBeVisible({ timeout: 60_000 });
 });
 

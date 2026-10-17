@@ -65,8 +65,6 @@ export function ghostSet(last: LastTimeEntry | undefined, sets: WorkoutSetRow[],
 
 export interface StartWorkoutOptions {
   template?: TemplateRow | null;
-  /** Without a template: a past workout to do again (its exercises, set counts and order; numbers prefill from last time). */
-  repeat?: WorkoutRow | null;
   title?: string | null;
   unit: WeightUnit;
   now?: Date;
@@ -83,7 +81,7 @@ export async function startWorkout(repo: Repo, opts: StartWorkoutOptions): Promi
     const latest = await tx.bodyMetrics.latest();
     const workout = await tx.workouts.create({
       templateId: opts.template?.id ?? null,
-      title: opts.title ?? opts.template?.name ?? opts.repeat?.title ?? null,
+      title: opts.title ?? opts.template?.name ?? null,
       startedAt: now.toISOString(),
       localDate: toLocalDate(now, timeZone),
       timezone: timeZone,
@@ -95,22 +93,6 @@ export async function startWorkout(repo: Repo, opts: StartWorkoutOptions): Promi
         if (!exercise) continue;
         await addExerciseToWorkout(tx, { workoutId: workout.id, exercise, machineProfileId: te.machineProfileId, unit: opts.unit, from: te });
       }
-    } else if (opts.repeat) {
-      const sets = await tx.sets.forWorkout(opts.repeat.id);
-      for (const we of await tx.workoutExercises.forWorkout(opts.repeat.id)) {
-        const exercise = await tx.exercises.get(we.exerciseId);
-        if (!exercise) continue;
-        const done = sets.filter((s) => s.workoutExerciseId === we.id && s.completedAt !== null);
-        const warmupSets = done.filter((s) => s.setType === "WARMUP").length;
-        const workingSets = Math.max(1, done.length - warmupSets);
-        await addExerciseToWorkout(tx, {
-          workoutId: workout.id,
-          exercise,
-          machineProfileId: we.machineProfileId,
-          unit: opts.unit,
-          from: { position: we.position, supersetKey: we.supersetKey, restSec: we.restSec, warmupSets, workingSets },
-        });
-      }
     }
     return workout;
   });
@@ -121,8 +103,8 @@ export interface AddExerciseInput {
   exercise: ExerciseRow;
   machineProfileId: string | null;
   unit: WeightUnit;
-  /** A template line (or a past workout's exercise) to copy: position, set counts, rest, superset. */
-  from?: Pick<TemplateExerciseRow, "position" | "supersetKey" | "restSec" | "warmupSets" | "workingSets">;
+  /** A template line to copy (position, set counts, rest, superset). */
+  from?: TemplateExerciseRow;
 }
 
 /** Add an exercise (and its planned sets, prefilled from the last session of the same series) to a workout. */
@@ -216,22 +198,6 @@ export function completionPatch(set: WorkoutSetRow, exercise: Pick<ExerciseRow, 
     } else if (exercise.loadType === "BODYWEIGHT_PLUS") patch.weightKg = 0;
   }
   return { ok: true, patch };
-}
-
-/**
- * The weight the NEXT set of an exercise should open at once `logged` is done: the weight the lifter dialled, when it is not what
- * the plan (last time's matching set) had for it. Only the next unlogged set of the same kind (working sets, not warm-ups) that the
- * lifter has not touched moves, and logging that one carries the weight on in turn. Returns null when nothing should change.
- */
-export function carryForwardPatch(sets: WorkoutSetRow[], logged: WorkoutSetRow, last: LastTimeEntry | undefined): { id: string; patch: Pick<WorkoutSetPatch, "weightKg" | "inputUnit"> } | null {
-  if (logged.setType === "WARMUP" || logged.weightKg === null || logged.weightKg <= 0) return null;
-  const planned = ghostSet(last, sets, logged)?.weightKg ?? null;
-  if (logged.weightKg === planned) return null;
-  const at = sets.findIndex((s) => s.id === logged.id);
-  const next = sets.slice(at + 1).find((s) => s.setType !== "WARMUP");
-  if (at < 0 || !next || next.completedAt != null || next.weightKg === logged.weightKg) return null;
-  const untouched = next.weightKg === null || next.weightKg === planned || next.weightKg === (ghostSet(last, sets, next)?.weightKg ?? null);
-  return untouched ? { id: next.id, patch: { weightKg: logged.weightKg, inputUnit: logged.inputUnit } } : null;
 }
 
 // ───────────────────────────── finishing ─────────────────────────────

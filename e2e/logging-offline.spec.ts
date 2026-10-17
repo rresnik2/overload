@@ -152,10 +152,7 @@ test("a heavier second session shows the PR toast, and the rest timer survives a
   await page.getByRole("button", { name: "Finish workout" }).click();
   await expect(page.getByRole("heading", { name: "Workout saved" })).toBeVisible();
   await page.getByRole("button", { name: "Done", exact: true }).click();
-  await expect(page).toHaveURL(/\/today$/, { timeout: 60_000 }); // Done leaves the empty start screen for Today
-  await expect(page.getByRole("heading", { name: "Today", level: 1 })).toBeVisible({ timeout: 60_000 }); // landed, before the next navigation
-  await page.goto("/workout");
-  await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible();
 
   // Second session (same day, so no "last time" ghost: that only looks at earlier dates): beat the first set.
   await page.getByRole("button", { name: "Start empty workout" }).click();

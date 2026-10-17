@@ -1,5 +1,4 @@
 // What a logged number means, per LoadType / TrackingType / SetType. PURE (no react): used by SetRow, the picker and tests.
-import type { ArtKind, CableAttachment } from "@/components/workout/equipment/art";
 import type { ExerciseRow } from "@/contracts/entities";
 import type { EffortScale, SetType, TrackingType, WeightUnit } from "@/contracts/enums";
 
@@ -97,27 +96,6 @@ const spokenUnit = (unit: WeightUnit, count: number): string => (unit === "KG" ?
 const short = (unit: WeightUnit): string => (unit === "KG" ? "kg" : "lb");
 const fmt = (value: number): string => String(Math.round(value * 100) / 100);
 
-/** The cable attachment, as the picture's label names it: "Cable column with a rope". */
-const ATTACHMENT_NAME: Record<CableAttachment, string> = {
-  rope: "a rope",
-  "d-handle": "a D-handle",
-  "straight-bar": "a straight bar",
-  "v-bar": "a V-bar",
-  "lat-bar": "a lat bar",
-  "ankle-strap": "an ankle strap",
-};
-
-/** The apparatus a bodyweight-plus exercise draws with nothing added (art.ts bodyweightApparatus). */
-const APPARATUS_NAME: Partial<Record<ArtKind, string>> = {
-  "pullup-bar": "Pull-up bar",
-  "dip-bars": "Dip bars",
-  rings: "Rings",
-  straps: "Suspension straps",
-  bench: "Bench",
-  box: "Box",
-  mat: "Mat",
-};
-
 /** Screen-reader text for a dial value: "102.5 kilograms total", "32 kilograms per hand", "Pin 9, 45 kilograms". */
 export function weightSpoken(value: number, unit: WeightUnit, loadType: ExerciseRow["loadType"], pin?: number | null): string {
   const base = `${fmt(value)} ${spokenUnit(unit, value)}`;
@@ -148,21 +126,12 @@ export const PANEL_COPY = {
   inexact: (requested: number, nearest: number, unit: WeightUnit) => `${fmt(requested)} ${short(unit)} can’t be loaded exactly · nearest ${fmt(nearest)} ${short(unit)}`,
   barUnknown: "Bar weight not set",
   baseTotal: (base: number, total: number, unit: WeightUnit) => `+ ${fmt(base)} ${short(unit)} base = ${fmt(total)} ${short(unit)} total`,
-  turnDial: "Turn the dial to choose a weight",
   pair: (each: number, unit: WeightUnit) => `Pair of ${fmt(each)} ${short(unit)} · ${fmt(each * 2)} ${short(unit)} total`,
   one: (weight: number, unit: WeightUnit) => `One ${fmt(weight)} ${short(unit)} dumbbell`,
   bell: (weight: number, unit: WeightUnit) => `${fmt(weight)} ${short(unit)} bell`,
   bellPair: (each: number, unit: WeightUnit) => `Pair of ${fmt(each)} ${short(unit)} bells · ${fmt(each * 2)} ${short(unit)} total`,
   pin: (pin: number, of: number | null, weight: number, step: number, unit: WeightUnit) => `Pin ${pin}${of ? ` of ${of}` : ""} · ${fmt(weight)} ${short(unit)} · ${fmt(step)} ${short(unit)} per plate`,
   addedToBodyweight: (bodyweight: number, unit: WeightUnit) => `Added to ${fmt(bodyweight)} ${short(unit)} bodyweight`,
-  /** Bodyweight-plus with the dial at 0: the apparatus, no belt. */
-  bodyweightOnly: (bodyweight: number | null, unit: WeightUnit) => (bodyweight !== null ? `Bodyweight only · ${fmt(bodyweight)} ${short(unit)}` : "Bodyweight only"),
-  turnDialToAdd: "Turn the dial to add weight",
-  onBelt: "On the belt",
-  onePlate: (weight: number, unit: WeightUnit) => `One ${fmt(weight)} ${short(unit)} plate`,
-  plates: "Plates",
-  noPlate: (weight: number, unit: WeightUnit) => `No plate weighs ${fmt(weight)} ${short(unit)}`,
-  ball: (weight: number, unit: WeightUnit) => `${fmt(weight)} ${short(unit)} ball`,
   limited: (max: number, unit: WeightUnit) => `Limited to ${fmt(max)} ${short(unit)}`,
   /** The meta line under the name: "Barbell · 20 kg bar · set 3 of 4 · last 100 × 5 @ RIR 2". */
   meta: (parts: (string | null | undefined | false)[]) => parts.filter(Boolean).join(" · "),
@@ -172,11 +141,6 @@ export const PANEL_COPY = {
     dumbbell: (weight: number, unit: WeightUnit, pair: boolean) => `${pair ? "Pair of dumbbells" : "A dumbbell"}, ${fmt(weight)} ${spokenUnit(unit, weight)} each`,
     kettlebell: (weight: number, unit: WeightUnit, pair: boolean) => `${pair ? "Pair of kettlebells" : "A kettlebell"}, ${fmt(weight)} ${spokenUnit(unit, weight)}${pair ? " each" : ""}`,
     stack: (pin: number, weight: number, unit: WeightUnit) => `Weight stack with the pin at plate ${pin}, ${fmt(weight)} ${spokenUnit(unit, weight)}`,
-    cable: (attachment: CableAttachment, pin: number, weight: number, unit: WeightUnit) => `Cable column with ${ATTACHMENT_NAME[attachment]}, the pin at plate ${pin}, ${fmt(weight)} ${spokenUnit(unit, weight)}`,
-    belt: (plates: number[], unit: WeightUnit) => `Dip belt with ${plates.map(fmt).join(", ")} ${spokenUnit(unit, 2)} hanging`,
-    apparatus: (kind: ArtKind) => `${APPARATUS_NAME[kind] ?? "Bodyweight"}, nothing added`,
-    plate: (plates: number[], unit: WeightUnit) => (plates.length === 1 ? `A ${fmt(plates[0] as number)} ${spokenUnit(unit, 1)} plate` : `Plates of ${plates.map(fmt).join(", ")} ${spokenUnit(unit, 2)}`),
-    medicineBall: (weight: number, unit: WeightUnit) => `A medicine ball, ${fmt(weight)} ${spokenUnit(unit, weight)}`,
   },
 } as const;
 

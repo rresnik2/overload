@@ -13,7 +13,6 @@ import { SyncPipView } from "@/components/ui/SyncPip";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SYNC_STATES } from "@/contracts/sync";
 import { DialDemo, OverlayDemo, StepperDemo, TabsDemo } from "./Demos";
-import { EquipmentGallery } from "./EquipmentGallery";
 import { PaletteSample } from "./PaletteSample";
 import { CHART, COLORS, contrast, TEXT_PAIRS, THEME_NAME, type ThemeKey } from "./tokens";
 
@@ -203,11 +202,6 @@ function Showcase({ theme }: { theme: ThemeKey }) {
           ))}
         </ul>
         <PaletteSample />
-      </section>
-
-      <section className="sg-section">
-        <SectionHeader id={id("equipment")} index={12} title="Equipment drawings" />
-        <EquipmentGallery />
       </section>
     </div>
   );

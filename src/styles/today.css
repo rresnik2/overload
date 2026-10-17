@@ -14,8 +14,8 @@
 }
 .today-title {
   margin: 0;
-  font-size: 36px;
-  line-height: 1.05;
+  font-size: 52px;
+  line-height: 1;
 }
 .today-label {
   margin: 0;
@@ -69,7 +69,7 @@
 
 @media (min-width: 768px) {
   .today-title {
-    font-size: 44px;
+    font-size: var(--type-display-xl-size);
   }
   .today-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -165,69 +165,6 @@
 .today-next__go {
   min-height: 48px;
 }
-/* The suggestion arrives from the local database after the first paint. A lifter with history gets a suggestion, so its
-   height is held while loading: otherwise the card grew by about 300 px and pushed the page down. */
-.today-next--expect {
-  min-height: 27rem;
-}
-.today-next__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-.today-next__lead {
-  display: grid;
-  gap: var(--space-1);
-}
-.today-next__art {
-  margin-block: var(--space-2) var(--space-1);
-}
-.today-next__lift {
-  margin: var(--space-2) 0 0;
-  overflow-wrap: anywhere;
-}
-.today-next__set {
-  margin: 0;
-  font-size: var(--type-body-size-dense);
-  color: var(--color-muted);
-}
-.today-next__set b {
-  color: var(--color-base-content);
-  font-weight: 700;
-}
-.today-next__then {
-  display: flex;
-  flex-direction: column;
-  margin: var(--space-2) 0 0;
-  padding: 0;
-  list-style: none;
-}
-.today-next__then li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  min-height: 56px;
-  padding: var(--space-2) 0;
-  border-top: 1px solid var(--color-base-300);
-}
-.today-next__then .eq-art {
-  width: 72px;
-  height: 34px;
-}
-.today-next__then-text {
-  display: grid;
-  min-width: 0;
-  font-size: var(--type-body-size-dense);
-}
-.today-next__then-name {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.today-next__more {
-  min-height: 0;
-  font-size: var(--type-body-size-dense);
-}
 
 /* "Your templates" card */
 /* The card renders before the local database answers. Without a reserved height it grew by 71 px when the answer arrived and pushed
@@ -321,22 +258,6 @@
 .today-tile__delta--none {
   color: var(--color-muted);
   font-weight: 400;
-}
-/* The last top set, drawn on its bar under the estimate. */
-.today-tile__last {
-  display: grid;
-  gap: 2px;
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-base-300);
-}
-.today-tile__last .eq-art {
-  height: 30px;
-}
-.today-tile__last-text {
-  font-size: 11.5px;
-  color: var(--color-muted);
-  text-align: center;
 }
 @media (min-width: 1024px) {
   .today-tile__value {

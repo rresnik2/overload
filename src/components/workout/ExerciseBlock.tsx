@@ -2,7 +2,6 @@
 import clsx from "clsx";
 import { ArrowDown, ArrowUp, Link2, Link2Off, MoreHorizontal, Plus, Repeat, Trash2 } from "lucide-react";
 import { memo, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
-import { barShapeFor } from "@/components/workout/equipment/art";
 import { ModalityBadge } from "@/components/exercises/ModalityBadge";
 import type { WorkoutSetPatch, WorkoutSetRow } from "@/contracts/entities";
 import type { PrCandidate } from "@/contracts/prs";
@@ -62,7 +61,7 @@ export interface ExerciseBlockProps {
   onFocus?: (exerciseId: string) => void;
   /** Phones: "Logged ✓" is over and the next set is about to become active. `allDone`: no set of this exercise is left to do. */
   onAdvance?: (exerciseId: string, allDone: boolean) => void;
-  /** The workout's bodyweight in kg, for the bodyweight-plus caption ("Added to 82.5 kg bodyweight"). */
+  /** The workout's bodyweight in kg, for the "Added to 82.5 kg bodyweight" caption. */
   bodyweightKg?: number | null;
 }
 
@@ -112,7 +111,7 @@ function previewPicture({ item, set, unit, step, ghost }: { item: ExerciseView; 
   const value = shownWeight(set.weightKg, unit) ?? (ghost?.weightKg != null ? shownWeight(ghost.weightKg, unit) : null);
   const setup = dialSetup({ exercise, unit, step, current: value, machine: facts, gear: item.gear ?? null });
   if (!setup.kind) return null;
-  return <EquipmentPicture kind={setup.kind} shape={barShapeFor(exercise.equipment)} loadType={exercise.loadType} isUnilateral={exercise.isUnilateral} name={exercise.name} setup={setup} value={value} hasProfile={facts !== null} size="preview" />;
+  return <EquipmentPicture kind={setup.kind} loadType={exercise.loadType} isUnilateral={exercise.isUnilateral} setup={setup} value={value} hasProfile={facts !== null} size="preview" />;
 }
 
 type BoundRowProps = Omit<SetRowProps, "onChange" | "onToggleComplete" | "onDelete" | "onActivate"> & {
@@ -151,9 +150,6 @@ const BoundActivePanel = memo(function BoundActivePanel({ actions, logging, adva
   }, [actions, logging, set, ghost]);
   return <ActiveSetPanel {...panel} onChange={onChange} onToggleComplete={onToggleComplete} onDelete={onDelete} onAdvance={advance} />;
 });
-
-/** An exercise created this recently is "just added": it is scrolled into view when it first shows. */
-const JUST_ADDED_MS = 5000;
 
 /**
  * One exercise of a workout: header (name, modality, machine), its sets, add set, and a small menu (reorder, superset, remove).
@@ -198,9 +194,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({ item, prefs, prs, act
     onAdvance?.(exerciseId, !sets.some((s) => s.completedAt == null));
   }, [onAdvance, exerciseId, sets]);
   const sectionRef = useRef<HTMLElement>(null);
-  // An exercise added a moment ago (the picker, or a template just started) is brought into view; one that was already in a resumed workout is not.
-  const [justAdded] = useState(() => Date.now() - Date.parse(item.we.createdAt) < JUST_ADDED_MS);
-  useScrollIntoViewOnFocus(sectionRef, focused, Boolean(phone), justAdded);
+  useScrollIntoViewOnFocus(sectionRef, focused, Boolean(phone));
   return (
     <section ref={sectionRef} className={clsx("wk-exercise", supersetLabel && "wk-exercise--superset")} aria-label={exercise.name} data-exercise-id={exercise.id}>
       {supersetLabel ? (
@@ -303,7 +297,7 @@ export const ExerciseBlock = memo(function ExerciseBlock({ item, prefs, prs, act
           return <BoundSetRow key={set.id} {...rowProps} active={active} preview={preview} />;
         })}
       </ol>
-      <Button variant="ghost" block icon={<Plus size={18} />} onClick={actions.onAddSet} aria-label={`Add set to ${exercise.name}`}>
+      <Button variant="ink" block icon={<Plus size={18} />} onClick={actions.onAddSet} aria-label={`Add set to ${exercise.name}`}>
         Add set
       </Button>
     </section>
