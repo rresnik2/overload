@@ -309,6 +309,9 @@ describe("SyncPipView", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Synced");
     rerender(<SyncPipView state="offline" pendingCount={3} />);
     expect(screen.getByRole("status")).toHaveTextContent("Offline, 3 waiting");
+    rerender(<SyncPipView state="idle" pendingCount={1} />);
+    expect(screen.getByRole("status")).toHaveTextContent("1 unsynced");
+    expect(screen.getByRole("status")).toHaveAttribute("data-state", "idle");
     rerender(<SyncPipView state="error" />);
     expect(screen.getByRole("status")).toHaveTextContent("Sync error");
     rerender(<SyncPipView state="signed-out" compact />);
