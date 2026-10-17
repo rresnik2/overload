@@ -200,6 +200,22 @@ export function completionPatch(set: WorkoutSetRow, exercise: Pick<ExerciseRow, 
   return { ok: true, patch };
 }
 
+/**
+ * The weight the NEXT set of an exercise should open at once `logged` is done: the weight the lifter dialled, when it is not what
+ * the plan (last time's matching set) had for it. Only the next unlogged set of the same kind (working sets, not warm-ups) that the
+ * lifter has not touched moves, and logging that one carries the weight on in turn. Returns null when nothing should change.
+ */
+export function carryForwardPatch(sets: WorkoutSetRow[], logged: WorkoutSetRow, last: LastTimeEntry | undefined): { id: string; patch: Pick<WorkoutSetPatch, "weightKg" | "inputUnit"> } | null {
+  if (logged.setType === "WARMUP" || logged.weightKg === null || logged.weightKg <= 0) return null;
+  const planned = ghostSet(last, sets, logged)?.weightKg ?? null;
+  if (logged.weightKg === planned) return null;
+  const at = sets.findIndex((s) => s.id === logged.id);
+  const next = sets.slice(at + 1).find((s) => s.setType !== "WARMUP");
+  if (at < 0 || !next || next.completedAt != null || next.weightKg === logged.weightKg) return null;
+  const untouched = next.weightKg === null || next.weightKg === planned || next.weightKg === (ghostSet(last, sets, next)?.weightKg ?? null);
+  return untouched ? { id: next.id, patch: { weightKg: logged.weightKg, inputUnit: logged.inputUnit } } : null;
+}
+
 // ───────────────────────────── finishing ─────────────────────────────
 
 /** End the workout: planned (never completed) sets and exercises with nothing done are dropped, then `endedAt` is stamped. */
