@@ -266,6 +266,10 @@ test.describe("hints on the other pages", () => {
     ["/settings/machines", null],
   ] as const) {
     test(`${path} has a page tip, and its first hint opens`, async ({ page }) => {
+      // Tips show on a page's first visit only, and sign-up already landed on /today: forget the marks to see each first visit.
+      await page.addInitScript(() => {
+        for (const key of Object.keys(localStorage)) if (key.startsWith("overload:tip-seen:")) localStorage.removeItem(key);
+      });
       await page.goto(path);
       if (heading) await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible(COLD);
       await expect(page.locator(".page-intro").first()).toBeVisible(COLD);
@@ -278,6 +282,14 @@ test.describe("hints on the other pages", () => {
       }
     });
   }
+
+  test("a page tip shows on the first visit only: it is gone on the next", async ({ page }) => {
+    await page.goto("/templates");
+    await expect(page.locator('.page-intro[data-tip="templates"]')).toBeVisible(COLD);
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible(COLD);
+    await expect(page.locator('.page-intro[data-tip="templates"]')).toBeHidden();
+  });
 
   test("a dismissed page tip stays dismissed and Settings > Show tips brings it back", async ({ page }) => {
     await page.goto("/history");
