@@ -1,6 +1,6 @@
-/* In-app hints (stream UX): InfoHint, Term, PageIntro, the "How logging works" panel and the goal cards.
-   Hint popovers: ink with paper text in the paper theme, the inverse in the ink theme (daisyUI "neutral" does both).
-   Vermilion is for the icon and borders only, never body text. */
+/* In-app hints: InfoHint, Term, PageIntro, the "How logging works" panel and the goal cards.
+   Hint popovers: floor-dark with light text in the daylight theme, the inverse on the floor (daisyUI "neutral" does both).
+   The "i" icon is muted; plate blue marks a selected goal card only. */
 
 .info-hint,
 .term {
@@ -25,7 +25,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: var(--color-vermilion);
+  color: var(--color-muted);
   cursor: help;
   flex: none;
 }
@@ -34,7 +34,7 @@
 }
 .info-hint__btn:hover .info-hint__icon,
 .info-hint__btn[aria-expanded="true"] .info-hint__icon {
-  fill: color-mix(in srgb, var(--color-vermilion) 16%, transparent);
+  fill: color-mix(in srgb, var(--color-muted) 20%, transparent);
 }
 
 .term__btn {
@@ -47,7 +47,7 @@
   text-align: inherit;
   cursor: help;
   text-decoration: underline dotted;
-  text-decoration-color: var(--color-vermilion);
+  text-decoration-color: var(--color-muted);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
@@ -62,7 +62,8 @@
   inset: auto;
   margin: 0;
   padding: 0.75rem 0.875rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-box);
   max-inline-size: min(280px, calc(100vw - 16px));
   inline-size: max-content;
   display: block;
@@ -76,7 +77,6 @@
   text-align: start;
   text-transform: none;
   letter-spacing: normal;
-  box-shadow: 3px 3px 0 var(--color-vermilion);
   overflow: visible;
   pointer-events: auto;
 }
@@ -123,8 +123,8 @@
   gap: 0.5rem 1rem;
   margin-block: 0 1.25rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--color-vermilion);
-  border-inline-start-width: 4px;
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
   background: var(--color-base-200);
   color: var(--color-base-content);
 }
@@ -147,6 +147,12 @@
   text-underline-offset: 3px;
   cursor: pointer;
 }
+/* The skeleton's copy (PageIntroPlaceholder) is a span with the button's box, not a control. */
+.page-intro__dismiss--static {
+  display: inline-flex;
+  align-items: center;
+  cursor: default;
+}
 
 /* Label + hint pairs (section titles, column headers). */
 .label-hint {
@@ -159,7 +165,8 @@
 .log-guide {
   margin-block: 0 1rem;
   padding: 1rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
   background: var(--color-base-200);
 }
 .log-guide__head {
@@ -171,9 +178,12 @@
 .log-guide__title {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 400;
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.5rem;
-  line-height: 1.1;
+  line-height: 1.12;
 }
 .log-guide__steps {
   margin: 0.75rem 0 0;
@@ -184,8 +194,8 @@
   line-height: 1.45;
 }
 .log-guide__steps li::marker {
-  color: var(--color-vermilion);
-  font-weight: 600;
+  color: var(--color-muted);
+  font-weight: 700;
 }
 .log-guide__foot {
   display: flex;
@@ -215,17 +225,18 @@
   gap: 0.25rem;
   min-block-size: var(--tap-target);
   padding: 0.75rem 0.875rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-box);
   background: var(--color-base-100);
   cursor: pointer;
 }
 .goal-card:has(input:checked) {
-  border-color: var(--color-vermilion);
-  box-shadow: 3px 3px 0 var(--color-vermilion);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
   background: var(--color-base-200);
 }
 .goal-card:has(input:focus-visible) {
-  outline: 2px solid var(--color-vermilion);
+  outline: 2px solid var(--color-base-content);
   outline-offset: 2px;
 }
 .goal-card input {
@@ -237,9 +248,12 @@
 }
 .goal-card__title {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.375rem;
-  line-height: 1.15;
+  line-height: 1.12;
 }
 .goal-card__summary {
   font-size: 15px;
@@ -301,10 +315,11 @@
 /* /learn comparison table */
 .learn__table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-box);
 }
 .learn__table-wrap:focus-visible {
-  outline: 2px solid var(--color-vermilion);
+  outline: 2px solid var(--color-base-content);
   outline-offset: 2px;
 }
 .learn__table {
@@ -324,8 +339,12 @@
 .learn__table thead th {
   background: var(--color-base-200);
   font-family: var(--font-display);
-  font-weight: 400;
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.25rem;
+  line-height: 1.12;
 }
 .learn__table tbody th {
   position: sticky;

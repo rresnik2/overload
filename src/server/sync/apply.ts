@@ -81,7 +81,12 @@ function isDatabaseError(error: unknown): boolean {
 
 export async function applySyncSlots(ctx: UserCtx, envelope: SyncEnvelope, slots: MutationSlot[]): Promise<SyncResponse> {
   const nowMs = Date.now();
-  const outcome = await prisma.$transaction((tx) => runBatch(new BatchInit(tx, ctx, envelope, slots, nowMs)));
+  // A pull-only request (nothing to push: the common case for a visibility or reconnect sync) needs no write transaction, no row
+  // lock and no PR rebuild. It only has to know whether the client's cursor fell behind the tombstone GC floor.
+  const outcome =
+    slots.length === 0
+      ? await pullOnlyOutcome(ctx, envelope)
+      : await prisma.$transaction((tx) => runBatch(new BatchInit(tx, ctx, envelope, slots, nowMs)));
 
   const page = outcome.reset
     ? { changes: emptyChanges(), cursor: 0, hasMore: true }
@@ -97,6 +102,15 @@ export async function applySyncSlots(ctx: UserCtx, envelope: SyncEnvelope, slots
     reset: outcome.reset,
     serverTime: new Date(nowMs).toISOString(),
     serverHlc: serverClock.receive(envelope.clientHlc),
+  };
+}
+
+async function pullOnlyOutcome(ctx: UserCtx, envelope: SyncEnvelope) {
+  const state = await prisma.syncState.findUnique({ where: { userId: ctx.id }, select: { gcFloorVersion: true } });
+  return {
+    results: [] as MutationResult[],
+    newPrs: [] as Awaited<ReturnType<typeof rebuildSeriesPrs>>,
+    reset: envelope.cursor > 0 && envelope.cursor < (state?.gcFloorVersion ?? 0),
   };
 }
 

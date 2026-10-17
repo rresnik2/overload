@@ -1,4 +1,4 @@
-/* View transitions and motion (stream B): the portfolio's page slides. Honours prefers-reduced-motion.
+/* View transitions and motion: the page slides (easing is --ease-out, spec section 09). Honours prefers-reduced-motion.
    <PageTransition> (components/shell) tags enter/exit with the classes below; links carry transitionTypes. */
 
 /* Only the named page content animates: stop the browser's default whole-document crossfade. */
@@ -18,7 +18,7 @@
 }
 @keyframes page-slide {
   from {
-    translate: var(--slide-offset, 2.5rem) 0;
+    translate: var(--slide-offset, 1.5rem) 0;
   }
   to {
     translate: 0 0;
@@ -27,26 +27,26 @@
 
 /* Forward: old content leaves quickly to the left, new content arrives from the right after it. */
 ::view-transition-old(.page-out) {
-  --slide-offset: -2.5rem;
+  --slide-offset: -1.5rem;
   animation:
     var(--page-out) var(--ease-out) both page-fade reverse,
     var(--page-out) var(--ease-out) both page-slide reverse;
 }
 ::view-transition-new(.page-in) {
-  --slide-offset: 2.5rem;
+  --slide-offset: 1.5rem;
   animation:
     var(--page-in) var(--ease-out) var(--page-out) both page-fade,
     var(--page-in) var(--ease-out) var(--page-out) both page-slide;
 }
 /* Back: mirrored. */
 ::view-transition-old(.page-out-back) {
-  --slide-offset: 2.5rem;
+  --slide-offset: 1.5rem;
   animation:
     var(--page-out) var(--ease-out) both page-fade reverse,
     var(--page-out) var(--ease-out) both page-slide reverse;
 }
 ::view-transition-new(.page-in-back) {
-  --slide-offset: -2.5rem;
+  --slide-offset: -1.5rem;
   animation:
     var(--page-in) var(--ease-out) var(--page-out) both page-fade,
     var(--page-in) var(--ease-out) var(--page-out) both page-slide;
@@ -58,9 +58,65 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
+  /* Calibrated Dial spec section 09: under reduced motion every duration and stagger is 0. */
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
   }
+}
+
+/* The transition overlay must never swallow a tap: the page underneath stays live throughout (swipe navigation, spec section 04). */
+::view-transition {
+  pointer-events: none;
+}
+
+/* The shell's bars stay put through a page slide. Without their own names they are part of the root snapshot, and the page content's
+   snapshot (drawn above the root, and often reaching under the fixed dock or the sticky header) faded them out and back in. Named, they
+   are captured on their own, kept above the page, and switch to the new state at once (the dock's active tab, the sync status). */
+.shell-header {
+  view-transition-name: shell-header;
+}
+.shell-dock {
+  view-transition-name: shell-dock;
+}
+::view-transition-group(shell-header),
+::view-transition-group(shell-dock) {
+  z-index: 1;
+  animation: none;
+}
+::view-transition-old(shell-header),
+::view-transition-old(shell-dock) {
+  display: none;
+}
+::view-transition-new(shell-header),
+::view-transition-new(shell-dock) {
+  animation: none;
+}
+
+/* ---- Swipe navigation (useSwipe, spec section 04) ------------------------ */
+/* The browser keeps vertical pans and pinch; horizontal drags reach the swipe handlers. Sideways scrollers inside are unaffected. */
+.shell-main[data-swipe-tabs],
+html[data-edge-back] {
+  touch-action: pan-y pinch-zoom;
+}
+/* A short page still gets the whole screen as its swipe area. */
+@media (max-width: 767px) {
+  .shell-main[data-swipe-tabs] {
+    min-height: 100dvh;
+  }
+}
+
+/* Edge back peek (installed iPhone app): the page follows the finger, then snaps back or hands over to the nav-back slide. */
+html[data-edge-peek] #main {
+  translate: var(--edge-dx, 0px) 0;
+  will-change: translate;
+}
+html[data-edge-peek="settle"] #main {
+  transition: translate 0.18s var(--ease-out);
 }

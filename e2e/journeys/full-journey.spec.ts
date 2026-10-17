@@ -4,8 +4,9 @@
 // Production builds (E2E_PROD=1) cache the app in the service worker, so the workout really is logged offline; under `next dev` there is no
 // service worker, so the same steps run online and the offline leg is skipped. Verification mail needs the mocked inbox: dev only (see
 // _support/db.ts), production builds mark the user verified directly. The insight narrative needs the fake model (INSIGHTS_E2E_FAKE=1).
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { isProductionServer, testDb } from "../_support/db";
+import { logSetByTyping } from "../_support/logging";
 import { completeOnboarding, createUser, newPassword, signUpThroughForm, uniqueEmail, verifyEmail } from "../_support/user";
 
 test.describe.configure({ timeout: 360_000 });
@@ -19,15 +20,7 @@ async function serverSets(email: string) {
   return prisma.workoutSet.count({ where: { userId: user.id, deletedAt: null, completedAt: { not: null } } });
 }
 
-async function logSet(page: Page, n: number, weight: string, reps: string) {
-  const block = page.getByRole("region", { name: BENCH });
-  await block.getByRole("textbox", { name: new RegExp(`^Set ${n} weight`) }).fill(weight);
-  await block.getByRole("textbox", { name: `Set ${n} reps` }).fill(reps);
-  await block.getByRole("button", { name: `Complete set ${n}` }).click();
-  await expect(block.getByRole("button", { name: `Mark set ${n} not done` })).toBeVisible();
-}
-
-test("sign up to insight: the full journey", async ({ page, context, request }) => {
+test("sign up to insight: the full journey", async ({ page, context, request, isMobile }) => {
   const production = await isProductionServer(request);
 
   // ---- 1. Account: the real sign-up form and the mocked inbox (dev), or the API plus a database verify (production) ----
@@ -70,7 +63,7 @@ test("sign up to insight: the full journey", async ({ page, context, request }) 
   await expect(page.getByRole("region", { name: BENCH })).toBeVisible();
   for (let n = 1; n <= 3; n++) {
     if (n > 1) await page.getByRole("region", { name: BENCH }).getByRole("button", { name: `Add set to ${BENCH}` }).click();
-    await logSet(page, n, String(60 + n * 2.5), "8");
+    await logSetByTyping(page.getByRole("region", { name: BENCH }), n, String(60 + n * 2.5), "8", isMobile);
   }
   await page.getByRole("button", { name: "Finish", exact: true }).click();
   await expect(page.getByTestId("finish-summary")).toBeVisible();
@@ -83,9 +76,11 @@ test("sign up to insight: the full journey", async ({ page, context, request }) 
   await expect.poll(() => serverSets(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toBe(3);
   await expect(page.locator('.sync-pip[data-state="idle"]')).toContainText(/^Synced$/, COLD);
 
-  // ---- 5. Charts show the data: /today volume card, the progress overview, the series page ----
+  // ---- 5. Charts show the data: /today hard-sets card, the progress overview, the series page ----
   await page.goto("/today");
-  await expect(page.getByRole("region", { name: "This week's volume" })).toBeVisible(COLD);
+  // The Calibrated Dial /today replaced the old "This week's volume" card with "Hard sets this week" (one row per muscle) once there are sets.
+  await expect(page.getByTestId("today-hard-sets")).toBeVisible(COLD);
+  await expect(page.getByTestId("today-hard-sets").getByRole("listitem").filter({ hasText: "Chest" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Resume workout" })).toHaveCount(0); // the workout is finished
   await page.goto("/progress");
   const card = page.getByTestId("series-cards").getByRole("link").filter({ hasText: BENCH });

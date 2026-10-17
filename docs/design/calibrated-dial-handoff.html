@@ -1,0 +1,712 @@
+<title>Calibrated Dial Handoff</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&display=swap">
+<style>
+/* Layout: a spec document. Left table of contents on wide screens, one reading column of prose with full-width
+   tables (each in its own scroll box), code blocks for props, two inline diagrams. */
+:root{
+  --bg:#f4f4f1; --surface:#ffffff; --fg:#17181a; --muted:#5b5f65; --line:#dcdcd6; --accent:#2556c4; --code:#f0f0ec;
+  --ok:#1f7a3c; --warn:#7a5700; --bad:#b3261e;
+  --ui:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --stamp:"Archivo", "Arial Narrow", sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#121315; --surface:#1a1b1e; --fg:#ececea; --muted:#9da1a7; --line:#2c2e32; --accent:#7d9bff; --code:#202226; --ok:#62cc80; --warn:#efbd2a; --bad:#ff7a6e; color-scheme:dark }
+}
+:root[data-theme="dark"]{ --bg:#121315; --surface:#1a1b1e; --fg:#ececea; --muted:#9da1a7; --line:#2c2e32; --accent:#7d9bff; --code:#202226; --ok:#62cc80; --warn:#efbd2a; --bad:#ff7a6e; color-scheme:dark }
+
+*,*::before,*::after{ box-sizing:border-box }
+body{ background:var(--bg); color:var(--fg); font:15px/1.6 var(--ui); -webkit-font-smoothing:antialiased }
+h1,h2,h3,h4,p,ul,ol,figure,pre{ margin:0 }
+a{ color:var(--accent) }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px }
+code{ font:0.86em/1.4 var(--mono); background:var(--code); padding:1px 5px; border-radius:4px; overflow-wrap:anywhere }
+pre{ background:var(--code); border:1px solid var(--line); border-radius:8px; padding:14px 16px; overflow-x:auto; font:12.5px/1.6 var(--mono) }
+pre code{ background:none; padding:0; font:inherit }
+
+.shell{ max-width:1180px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); display:grid; grid-template-columns:200px minmax(0, 1fr); gap:48px }
+@media (max-width: 920px){ .shell{ grid-template-columns:minmax(0, 1fr); gap:0 } .toc{ display:none } }
+.toc{ position:sticky; top:env(safe-area-inset-top, 0px); align-self:start; padding-block:56px 24px; font-size:13.5px }
+.toc b{ display:block; font:600 11px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:10px }
+.toc ol{ list-style:none; padding:0; display:flex; flex-direction:column; gap:3px }
+.toc a{ color:var(--muted); text-decoration:none; display:block; padding:2px 0 }
+.toc a:hover{ color:var(--fg) }
+.toc .n{ font-family:var(--mono); font-size:11px; margin-right:8px; opacity:.7 }
+
+main{ padding-block:48px 96px; min-width:0 }
+header.doc{ padding-bottom:28px; border-bottom:1px solid var(--line); margin-bottom:8px }
+.kicker{ font:500 12px/1.4 var(--mono); color:var(--muted); letter-spacing:.04em; text-transform:uppercase }
+h1{ font:italic 850 clamp(40px, 7vw, 64px)/0.95 var(--stamp); font-stretch:62%; text-transform:uppercase; letter-spacing:.005em; margin-top:12px }
+.lede{ font-size:17px; color:var(--muted); max-width:66ch; margin-top:14px }
+.meta{ display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:16px; font-size:13px; color:var(--muted) }
+.meta span b{ color:var(--fg); font-weight:600 }
+
+section{ padding-top:44px; scroll-margin-top:12px }
+h2{ font-size:26px; letter-spacing:-.015em; font-weight:650; display:flex; align-items:baseline; gap:12px; text-wrap:balance }
+h2 .n{ font:500 13px/1 var(--mono); color:var(--muted) }
+h3{ font-size:16.5px; font-weight:650; margin-top:26px; margin-bottom:8px }
+section > p, .prose p{ max-width:70ch; margin-top:10px }
+section > ul, section > ol, .prose ul{ max-width:72ch; margin-top:10px; padding-left:20px; display:flex; flex-direction:column; gap:6px }
+.why{ border-left:3px solid var(--accent); padding:2px 0 2px 14px; color:var(--muted); margin-top:12px; max-width:70ch }
+.why b{ color:var(--fg); font-weight:600 }
+
+.tbl{ overflow-x:auto; margin-top:14px; border:1px solid var(--line); border-radius:8px; background:var(--surface) }
+table{ border-collapse:collapse; width:100%; font-size:13.5px; line-height:1.5 }
+th, td{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top }
+tr:last-child td{ border-bottom:0 }
+thead th{ font:600 11px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--muted); background:var(--code); white-space:nowrap }
+td code{ white-space:nowrap }
+.w-min{ white-space:nowrap }
+.sw{ display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:-2px; margin-right:6px; box-shadow:inset 0 0 0 1px rgba(127,127,127,.4) }
+.pass{ color:var(--ok); font-weight:600 } .lim{ color:var(--warn); font-weight:600 } .fail{ color:var(--bad); font-weight:600 }
+.num{ font-variant-numeric:tabular-nums }
+.tag{ display:inline-block; font:600 10.5px/1 var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:4px 6px; border-radius:4px; border:1px solid var(--line); color:var(--muted); white-space:nowrap }
+.tag.new{ color:var(--ok); border-color:currentColor }
+.tag.cr{ color:var(--warn); border-color:currentColor }
+
+.figs{ display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); gap:20px; margin-top:16px }
+@media (max-width: 720px){ .figs{ grid-template-columns:minmax(0, 1fr) } }
+figure.diag{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; min-width:0 }
+figure.diag svg{ display:block; width:100%; height:auto; max-width:100% }
+figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:10px }
+
+.callout{ margin-top:14px; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--surface); max-width:76ch }
+.callout b{ font-weight:600 }
+.qs{ counter-reset:q; list-style:none; padding:0; display:flex; flex-direction:column; gap:10px; margin-top:12px; max-width:76ch }
+.qs li{ counter-increment:q; padding:12px 14px 12px 46px; position:relative; background:var(--surface); border:1px solid var(--line); border-radius:8px }
+.qs.dec li::before{ content:"✓"; color:var(--ok) }
+.qs li::before{ content:"Q" counter(q); position:absolute; left:12px; top:12px; font:600 12px/1.6 var(--mono); color:var(--warn) }
+
+/* diagram tokens */
+.d-floor{ fill:#16181a } .d-panel{ fill:#1f2225 } .d-line{ stroke:#31363b } .d-fg{ fill:#ecebe6 } .d-mute{ fill:#a2a8ae }
+.d-lbl{ font:500 10.5px var(--mono); fill:var(--muted) } .d-dim{ stroke:var(--muted); stroke-width:1 } .d-txt{ font:600 11px var(--ui); fill:#ecebe6 }
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Contents">
+  <b>Contents</b>
+  <ol>
+    <li><a href="#overview"><span class="n">01</span>Overview</a></li>
+    <li><a href="#work"><span class="n">02</span>Work and owners</a></li>
+    <li><a href="#tokens"><span class="n">03</span>Design tokens</a></li>
+    <li><a href="#layout"><span class="n">04</span>Layout</a></li>
+    <li><a href="#components"><span class="n">05</span>Components</a></li>
+    <li><a href="#equipment"><span class="n">06</span>Equipment pictures</a></li>
+    <li><a href="#dial"><span class="n">07</span>The dial</a></li>
+    <li><a href="#states"><span class="n">08</span>States</a></li>
+    <li><a href="#motion"><span class="n">09</span>Motion</a></li>
+    <li><a href="#content"><span class="n">10</span>Content rules</a></li>
+    <li><a href="#edges"><span class="n">11</span>Edge cases</a></li>
+    <li><a href="#a11y"><span class="n">12</span>Accessibility</a></li>
+    <li><a href="#haptics"><span class="n">13</span>Haptics (dropped)</a></li>
+    <li><a href="#questions"><span class="n">14</span>Decisions</a></li>
+    <li><a href="#done"><span class="n">15</span>Definition of done</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="doc">
+  <p class="kicker">Overload · developer handoff · 15 October 2026</p>
+  <h1>Calibrated Dial</h1>
+  <p class="lede">This spec covers the chosen A+B direction: the Calibrated look (rubber-floor dark, plate colours, condensed italic type) with a plate-face rotary dial for weight entry, and a picture of the equipment that reacts as the dial turns.</p>
+  <div class="meta">
+    <span><b>Source:</b> <a href="https://claude.ai/artifact/KoP3mCJwC7sdV1VtBLME4q#dial">direction mockup, section A+B</a></span>
+    <span><b>Stack:</b> Next 16, React 19, Tailwind 4 + daisyUI 5</span>
+    <span><b>Status:</b> ready for build · 7 decisions recorded 15 Oct</span>
+    <span><b>Checked against:</b> <code>main</code> at <code>20dfb63</code> (after the UX merge) when written; sections 04, 06, 08, 09, 11 and 13 re-checked against <code>design/calibrated-dial</code> after the phone test and Wave D (swipe, gear, sync policy, haptics dropped)</span>
+  </div>
+</header>
+
+<!-- 01 -->
+<section id="overview">
+  <h2><span class="n">01</span>Overview</h2>
+  <p>Lifters log a set between efforts, often with chalky or sweaty hands, standing next to the equipment. Today the weight field is a text input between −/+ buttons that move one step per tap. Going from 82.5 to 100 kg takes seven taps.</p>
+  <p>The new mobile set editor replaces that with three things:</p>
+  <ul>
+    <li><b>A big readout</b> of the weight and reps, readable at arm’s length. Tap it to type an exact number.</li>
+    <li><b>A plate-face dial.</b> One click of the dial is one step for that equipment (2.5 kg on a barbell, 2 kg on dumbbells, the next bell size on kettlebells, one pin on a machine stack).</li>
+    <li><b>An equipment picture</b> above the dial that shows what the number means: plates per side on the bar, the size of the dumbbells or bell, or how many plates the pin lifts.</li>
+  </ul>
+  <p>Reps keep a horizontal number strip and RIR/RPE keeps five buttons, as in direction A. The rest of the app adopts A’s palette and type through new daisyUI themes.</p>
+  <p class="why"><b>Why a dial and not a slider:</b> a slider’s precision depends on its length, so on a 320 px screen with 120 values each value gets under 3 px. A dial gives every value the same 12° of travel however many values there are, and you can keep turning it.</p>
+</section>
+
+<!-- 02 -->
+<section id="work">
+  <h2><span class="n">02</span>Work and owners</h2>
+  <p>Ownership follows <code>ownership.json</code>. Frozen files need a change request (<code>change-requests/&lt;STREAM&gt;-&lt;n&gt;.md</code>) before anyone edits them.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Item</th><th>Path</th><th>Owner</th><th>Type</th></tr></thead>
+    <tbody>
+      <tr><td>Swap fonts: Instrument Serif + Newsreader → Archivo (variable <code>wdth</code> 62–125, <code>wght</code>, italic)</td><td><code>src/app/layout.tsx</code></td><td>Coordinator</td><td><span class="tag cr">Change request</span></td></tr>
+      <tr><td>Rewrite the design rule (“square corners, vermilion…, Instrument Serif never bold”)</td><td><code>CLAUDE.md</code>, <code>CONTRACTS.md</code> “Fonts”</td><td>Coordinator</td><td><span class="tag cr">Change request</span></td></tr>
+      <tr><td>New daisyUI themes <code>overload-floor</code> (dark) and <code>overload-daylight</code> (light), plate tokens, chart palette</td><td><code>src/styles/theme.css</code></td><td>B</td><td>Edit</td></tr>
+      <tr><td><code>Dial</code> and <code>NumberStrip</code> primitives, plus styleguide entries</td><td><code>src/components/ui/</code>, <code>src/app/styleguide/</code></td><td>B</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Plate math, dial values, pin math (pure, tested)</td><td><code>src/components/workout/plates.ts</code></td><td>E2</td><td><span class="tag new">New</span></td></tr>
+      <tr><td><code>EquipmentPicture</code>, <code>WeightReadout</code>, <code>ActiveSetPanel</code></td><td><code>src/components/workout/</code></td><td>E2</td><td><span class="tag new">New</span></td></tr>
+      <tr><td><code>SetRow</code> compact variant, and the active-set switch in <code>ExerciseBlock</code></td><td><code>src/components/workout/</code></td><td>E2</td><td>Edit</td></tr>
+      <tr><td>Restyle partials off <code>vermilion</code> / <code>shadow-hard</code> / <code>font-display</code></td><td><code>shell</code> 20, <code>primitives</code> 30, <code>workout</code> 22, <code>insights</code> 13, <code>hints</code> 13, <code>catalog</code> 9, <code>progress</code> 9, <code>auth</code> 7, <code>today</code> 2 uses</td><td>Each partial’s owner</td><td>Edit</td></tr>
+      <tr><td>Add <code>platesKg</code> (a list of plate weights, nullable) to <code>MachineProfile</code>: an additive schema field for the gym’s plate inventory (D6)</td><td><code>prisma/schema.prisma</code>, <code>src/contracts/entities.ts</code>, mappers</td><td>Coordinator</td><td><span class="tag cr">Change request</span></td></tr>
+      <tr><td>Bar profiles: reuse <code>MachineProfile</code> for bars (<code>baseLoadKg</code> = bar weight, <code>platesKg</code> = plates owned), editable from the exercise and from Settings → Machines (D1, D6)</td><td><code>src/components/workout/</code>, <code>settings/machines</code></td><td>E2</td><td>Edit</td></tr>
+      <tr><td>Haptics helper behind <code>Dial.onDetent</code> (D7). Dropped after a device test: no haptics fired on iPhone or Android. The helper, its test and the toggle were deleted.</td><td>none (<code>haptics.ts</code> removed)</td><td>-</td><td>Dropped</td></tr>
+      <tr><td>Gear profiles: the user’s own dumbbell step and kettlebells, as a <code>MachineProfile</code> with <code>equipment</code> set (section 06)</td><td><code>prisma/schema.prisma</code> (additive), <code>src/contracts/</code>, <code>src/client/repo/gear.ts</code>, <code>src/components/workout/</code>, <code>settings/machines</code></td><td>DIAL (GEAR)</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Phone-test fixes: Android edge-to-edge and keyboard (<code>--sab</code> / <code>--sat</code> tokens, <code>interactiveWidget: "resizes-content"</code>, sign-in that scrolls under the keyboard), the dial's <code>touch-action: none</code> limited to its face, a header that fits 360 px</td><td><code>src/app/layout.tsx</code>, <code>src/styles/</code>, <code>e2e/mobile-viewport.spec.ts</code></td><td>DIAL (FIX)</td><td>Edit</td></tr>
+      <tr><td>Swipe navigation between the dock tabs, the iOS-standalone edge back, and the exercise tab with its Left / Right setting (section 04)</td><td><code>src/components/shell/</code>, <code>src/components/workout/ExerciseTab.tsx</code>, <code>src/components/profile/ExerciseTabSetting.tsx</code>, <code>motion.css</code></td><td>DIAL (SWIPE)</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Workout sync policy and the “Sync now” control (sections 08 and 11): at most one background sync every 5 minutes during a workout</td><td><code>src/client/sync/engine.ts</code>, <code>src/components/workout/SyncNow.tsx</code></td><td>DIAL (PERF-3)</td><td><span class="tag new">New</span></td></tr>
+      <tr><td>Today restyle plus new content: e1RM tiles for the four main lifts with 4-week change, and a bench e1RM chart (D4)</td><td><code>src/components/today/</code>; data from the analytics in <code>src/lib/analytics/</code></td><td>Integration (W3)</td><td>Edit + <span class="tag new">New</span></td></tr>
+      <tr><td>New glossary terms: <code>weightDial</code> (“turn the plate, tap the number to type”), <code>barProfile</code> and <code>plateInventory</code></td><td><code>src/lib/glossary.ts</code></td><td>Integration (W3)</td><td>Edit</td></tr>
+      <tr><td>Update the first step of “How logging works” for the dial on phones</td><td><code>src/components/workout/LoggingGuide.tsx</code></td><td>E2</td><td>Edit</td></tr>
+      <tr><td>Regenerate visual baselines</td><td><code>e2e/budgets/</code></td><td>Integration (W3)</td><td>Edit</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout"><b>Changes from the UX merge (<code>75ac473</code>) that this build must respect.</b> Nothing the spec relies on was removed or renamed, and <code>MachineProfile</code> is unchanged (the only schema change was the <code>FAT_LOSS</code> goal). New since the first draft:
+    <ul>
+      <li><b>Glossary hints:</b> <code>InfoHint</code>, <code>Term</code>, <code>PageIntro</code> and <code>src/lib/glossary.ts</code>. <code>NumberStepper</code> gained <code>labelHint?: TermId</code>. <code>ExerciseBlock</code> renders a <code>SetLegend</code> line of hints (weight meaning, effort, set type, last time) above the sets.</li>
+      <li><b>“How logging works”</b> (<code>LoggingGuide</code>) explains typing a weight. Its first step needs new copy for the dial.</li>
+      <li><b>Tips toggle:</b> Settings → Profile has a per-device “Show tips” toggle stored in <code>localStorage</code> (<code>src/components/ui/tips.ts</code>).</li>
+      <li><b>Today</b> gained a <code>PageIntro</code> and a <code>TodayTemplatesCard</code>. The new layout must place both.</li>
+      <li><b><code>src/styles/hints.css</code></b> (integration) uses the old tokens 13 times and joins the restyle list.</li>
+      <li><b><code>e2e/ux.spec.ts</code></b> runs on webkit-iphone. It expects the legend’s “What is Total weight?”, RIR and set-type hint buttons inside the exercise block, and counts <code>.wk-set</code> rows in a template workout.</li>
+    </ul></div>
+  <p class="why"><b>Order:</b> the change requests and B’s themes and primitives land first. E2 builds against the primitives. Each partial is restyled in the same wave, so no screen mixes the two looks. Baselines are regenerated last.</p>
+</section>
+
+<!-- 03 -->
+<section id="tokens">
+  <h2><span class="n">03</span>Design tokens</h2>
+  <p>The tokens are daisyUI theme variables plus a few custom ones, defined in <code>theme.css</code> and exposed to Tailwind through <code>@theme</code>. Components reference tokens, never hex values. Contrast is the WCAG ratio against the surface named in the table.</p>
+
+  <h3>Colour: <code>overload-floor</code> (dark, <code>prefersdark: true</code>, the gym default)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Token</th><th>Value</th><th>Usage</th><th>Contrast</th></tr></thead>
+    <tbody>
+      <tr><td><code>--color-base-100</code></td><td><span class="sw" style="background:#16181a"></span>#16181A</td><td>Page (“floor”)</td><td>–</td></tr>
+      <tr><td><code>--color-base-200</code></td><td><span class="sw" style="background:#1f2225"></span>#1F2225</td><td>Panels, cards, segmented track</td><td>–</td></tr>
+      <tr><td><code>--color-base-300</code></td><td><span class="sw" style="background:#31363b"></span>#31363B</td><td>Hairlines and dividers only (decorative)</td><td>1.46 on base-100 (decorative only)</td></tr>
+      <tr><td><code>--color-line-strong</code></td><td><span class="sw" style="background:#6b7279"></span>#6B7279</td><td>Borders that mark a control’s edge (RIR buttons, Finish, the readout underline)</td><td><span class="pass">3.65</span> base-100 · <span class="pass">3.28</span> base-200</td></tr>
+      <tr><td><code>--color-base-content</code></td><td><span class="sw" style="background:#ecebe6"></span>#ECEBE6</td><td>Text, the dial pointer, focus ring</td><td><span class="pass">14.91</span> · <span class="pass">13.39</span> on 200</td></tr>
+      <tr><td><code>--color-muted</code></td><td><span class="sw" style="background:#a2a8ae"></span>#A2A8AE</td><td>Secondary text, labels, axis text</td><td><span class="pass">7.42</span> · <span class="pass">6.66</span> on 200</td></tr>
+      <tr><td><code>--color-primary</code> / <code>-content</code></td><td><span class="sw" style="background:#2f63d6"></span>#2F63D6 / #FFFFFF</td><td>Plate 20 blue: Log set, Start, active underline, reps selection box</td><td><span class="pass">5.42</span> (white on blue). Blue on base-100 is 3.29: borders only, never text.</td></tr>
+      <tr><td><code>--color-secondary</code> / <code>-content</code></td><td><span class="sw" style="background:#d8262d"></span>#D8262D / #FFFFFF</td><td>Plate 25 red: PR markers</td><td><span class="pass">4.96</span></td></tr>
+      <tr><td><code>--color-accent</code> / <code>-content</code></td><td><span class="sw" style="background:#efbd2a"></span>#EFBD2A / #16181A</td><td>Plate 15 yellow: stall and below-target notices, insight edge</td><td><span class="pass">10.16</span>. Yellow text on base-200: <span class="pass">9.12</span></td></tr>
+      <tr><td><code>--color-success</code> / <code>-content</code></td><td><span class="sw" style="background:#2f9a4f"></span>#2F9A4F / #FFFFFF</td><td>Plate 10 green: done set dots, Logged state</td><td><span class="lim">3.59</span>: icons and text ≥ 19 px bold only</td></tr>
+      <tr><td><code>--color-up</code></td><td><span class="sw" style="background:#62cc80"></span>#62CC80</td><td>Small positive deltas (“+7.5 kg”)</td><td><span class="pass">7.97</span> on base-200</td></tr>
+      <tr><td><code>--color-error</code> / <code>-content</code></td><td><span class="sw" style="background:#ff7a6e"></span>#FF7A6E / #16181A</td><td>Errors</td><td><span class="pass">7.00</span> on base-100</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Colour: <code>overload-daylight</code> (light, the default when the OS is light)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Token</th><th>Value</th><th>Contrast</th></tr></thead>
+    <tbody>
+      <tr><td><code>--color-base-100</code> / <code>200</code> / <code>300</code></td><td><span class="sw" style="background:#f2f2ef"></span>#F2F2EF · <span class="sw" style="background:#e5e5e0"></span>#E5E5E0 · <span class="sw" style="background:#c4c6c0"></span>#C4C6C0</td><td>–</td></tr>
+      <tr><td><code>--color-base-content</code></td><td><span class="sw" style="background:#16181a"></span>#16181A</td><td><span class="pass">15.87</span> · <span class="pass">14.08</span> on 200</td></tr>
+      <tr><td><code>--color-muted</code></td><td><span class="sw" style="background:#565b62"></span>#565B62</td><td><span class="pass">6.10</span> · <span class="pass">5.41</span> on 200</td></tr>
+      <tr><td><code>--color-line-strong</code></td><td><span class="sw" style="background:#80868d"></span>#80868D</td><td><span class="pass">3.28</span></td></tr>
+      <tr><td><code>--color-primary</code></td><td><span class="sw" style="background:#2556c4"></span>#2556C4, white content</td><td><span class="pass">6.55</span>; <span class="pass">5.84</span> as text on base-100</td></tr>
+      <tr><td><code>--color-secondary</code></td><td><span class="sw" style="background:#c21f26"></span>#C21F26, white content</td><td><span class="pass">5.97</span></td></tr>
+      <tr><td><code>--color-accent</code> + <code>--color-accent-ink</code></td><td><span class="sw" style="background:#efbd2a"></span>#EFBD2A fill · <span class="sw" style="background:#735200"></span>#735200 text</td><td>Ink text <span class="pass">6.38</span> · <span class="pass">5.66</span> on 200</td></tr>
+      <tr><td><code>--color-success</code> / <code>--color-up</code></td><td><span class="sw" style="background:#1f7a3c"></span>#1F7A3C · <span class="sw" style="background:#1a6e36"></span>#1A6E36</td><td>White on success <span class="pass">5.37</span>; up text <span class="pass">4.99</span> on 200</td></tr>
+      <tr><td><code>--color-error</code></td><td><span class="sw" style="background:#b3261e"></span>#B3261E, white content</td><td><span class="pass">6.54</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Plate colours (identical in both themes)</h3>
+  <p>Plates are physical objects, so they keep their real colours in both themes. In the light theme, white and black plates get a 1 px <code>--color-line-strong</code> outline.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Token</th><th>kg plate</th><th>lb plate</th><th>Fill</th><th>Ink on it</th></tr></thead>
+    <tbody>
+      <tr><td><code>--plate-red</code></td><td>25</td><td>55</td><td><span class="sw" style="background:#d8262d"></span>#D8262D</td><td>white</td></tr>
+      <tr><td><code>--plate-blue</code></td><td>20</td><td>45</td><td><span class="sw" style="background:#2f63d6"></span>#2F63D6</td><td>white</td></tr>
+      <tr><td><code>--plate-yellow</code></td><td>15</td><td>35</td><td><span class="sw" style="background:#efbd2a"></span>#EFBD2A</td><td>#16181A</td></tr>
+      <tr><td><code>--plate-green</code></td><td>10</td><td>25</td><td><span class="sw" style="background:#2f9a4f"></span>#2F9A4F</td><td>white</td></tr>
+      <tr><td><code>--plate-white</code></td><td>5</td><td>10</td><td><span class="sw" style="background:#ecebe6"></span>#ECEBE6</td><td>#16181A</td></tr>
+      <tr><td><code>--plate-black</code></td><td>2.5</td><td>5</td><td><span class="sw" style="background:#26282a"></span>#26282A</td><td>white</td></tr>
+      <tr><td><code>--plate-chrome</code></td><td>1.25</td><td>2.5</td><td><span class="sw" style="background:#b9bdc2"></span>#B9BDC2</td><td>#16181A</td></tr>
+      <tr><td><code>--steel</code> / <code>--steel-dark</code></td><td colspan="2">bar sleeves, handles, collars</td><td><span class="sw" style="background:#b5babf"></span>#B5BABF · <span class="sw" style="background:#8c9196"></span>#8C9196</td><td>–</td></tr>
+    </tbody>
+  </table></div>
+  <p class="why"><b>Rule:</b> plate colours appear on plates, lifts and data only, never as decoration. The chart palette (<code>--chart-*</code>) maps free weight to blue, machine to steel, cable to green and bodyweight to yellow. It must be re-validated with the <code>dataviz</code> skill, as stream B did for the current palette.</p>
+
+  <h3>Type</h3>
+  <p>One family, Archivo, at two widths. Every number uses <code>tabular-nums lining-nums</code>. Confirm Archivo has a <code>tnum</code> feature; if not, keep the <code>--font-numeric</code> fallback.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Token</th><th>Spec</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td><code>--type-display-xl</code></td><td>Archivo 62% width, 850 italic, uppercase, 76 px / 0.95</td><td>Desktop page title (“Today”)</td></tr>
+      <tr><td><code>--type-readout</code></td><td>Archivo 62% width, 850 italic, 62 px / 1.0, tabular</td><td>Weight readout (52 px when the value has 4+ integer digits)</td></tr>
+      <tr><td><code>--type-display-m</code></td><td>Archivo 62% width, 850 italic, uppercase, 36 px / 1.12</td><td>Exercise name on the active set (30 px when it wraps to 2 lines)</td></tr>
+      <tr><td><code>--type-display-s</code></td><td>Archivo 62% width, 850 italic, uppercase, 22–25 px / 1.0</td><td>Primary buttons (Log set, Start)</td></tr>
+      <tr><td><code>--type-label</code></td><td>Archivo 100% width, 700, 11 px / 1.4, uppercase, letter-spacing 0.12em</td><td>Section labels, “REPS”, “RIR”, unit after the readout</td></tr>
+      <tr><td><code>--type-body</code></td><td>Archivo 100% width, 400–600, 15 px / 1.5 (13 px in dense lists)</td><td>Everything else. Inputs stay at least 16 px (iOS zoom).</td></tr>
+    </tbody>
+  </table></div>
+  <p class="why"><b>Line-height trap from the mockup:</b> display type at <code>line-height: 0.9</code> clips ascenders inside any <code>overflow: hidden</code> or flex-shrinking box. Use 1.12 wherever the text truncates.</p>
+
+  <h3>Spacing, radius, sizes</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+    <tbody>
+      <tr><td><code>--space-1</code> … <code>--space-8</code></td><td class="num">4 · 6 · 8 · 10 · 12 · 16 · 22 · 28 px</td><td>The active-set panel stacks at <code>--space-2</code> (6 px). The page gutter is <code>--space-6</code>. Desktop grid gaps are <code>--space-7</code>.</td></tr>
+      <tr><td><code>--radius-field</code> / <code>--radius-box</code></td><td>4 px / 6 px</td><td>Buttons and inputs / panels and cards. This replaces the square-corner rule. Dots, the dial and plates are round.</td></tr>
+      <tr><td><code>--tap-target</code></td><td>44 px (unchanged)</td><td>Minimum for every control</td></tr>
+      <tr><td><code>--dial-size</code></td><td><code>clamp(176px, 48vw, 220px)</code>; 160 px when the viewport is under 700 px tall</td><td>Dial diameter</td></tr>
+      <tr><td><code>--picture-h</code></td><td>120 px (88 px when the viewport is under 700 px tall)</td><td>Equipment picture</td></tr>
+      <tr><td><code>--ease-out</code></td><td><code>cubic-bezier(.22, 1, .36, 1)</code> (existing)</td><td>All motion in this spec</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 04 -->
+<section id="layout">
+  <h2><span class="n">04</span>Layout</h2>
+
+  <h3>Mobile active-set panel (&lt; 768 px)</h3>
+  <p>The first incomplete set of the focused exercise renders as <code>ActiveSetPanel</code>. The other sets of that exercise render as compact <code>SetRow</code>s above and below it. Tapping a compact row makes it the active set. The panel is one column at the page gutter. Heights below are at 320 pt content width (an iPhone mini). Everything scales with width except the fixed heights.</p>
+  <div class="figs">
+    <figure class="diag">
+      <svg viewBox="0 0 320 560" role="img" aria-label="Mobile active-set panel layout with element heights">
+        <rect class="d-floor" x="0" y="0" width="200" height="560" rx="14"/>
+        <g font-family="Geist, sans-serif">
+          <rect class="d-panel" x="12" y="12" width="176" height="28" rx="3"/><text class="d-txt" x="20" y="30">‹ Push A · 24:18 · Finish</text>
+          <text x="20" y="66" style="font:italic 850 24px Archivo, sans-serif;font-stretch:62%;fill:#ecebe6">BENCH PRESS</text>
+          <rect x="20" y="74" width="150" height="6" rx="2" class="d-mute" opacity=".5"/>
+          <rect x="12" y="88" width="176" height="74" rx="3" fill="none" stroke="#31363b" stroke-dasharray="3 3"/>
+          <rect x="22" y="121" width="156" height="5" fill="#b5babf"/><rect x="58" y="104" width="8" height="40" fill="#d8262d"/><rect x="68" y="110" width="6" height="28" fill="#efbd2a"/><rect x="126" y="110" width="6" height="28" fill="#efbd2a"/><rect x="134" y="104" width="8" height="40" fill="#d8262d"/>
+          <rect x="44" y="168" width="112" height="6" rx="2" class="d-mute" opacity=".5"/>
+          <text x="100" y="212" text-anchor="middle" style="font:italic 850 38px Archivo, sans-serif;font-stretch:62%;fill:#ecebe6">102.5</text>
+          <circle cx="100" cy="282" r="56" fill="#d8262d"/><circle cx="100" cy="282" r="40" fill="#000" opacity=".18"/><circle cx="100" cy="282" r="16" fill="#b5babf"/><polygon points="94,222 106,222 100,231" class="d-fg"/>
+          <rect class="d-panel" x="12" y="350" width="176" height="34" rx="3"/><rect x="83" y="352" width="34" height="30" rx="3" fill="none" stroke="#2f63d6" stroke-width="2"/>
+          <g fill="none" stroke="#6b7279"><rect x="12" y="392" width="31" height="30" rx="3"/><rect x="48" y="392" width="31" height="30" rx="3"/><rect x="84" y="392" width="31" height="30" rx="3" fill="#ecebe6"/><rect x="120" y="392" width="31" height="30" rx="3"/><rect x="156" y="392" width="31" height="30" rx="3"/></g>
+          <rect x="12" y="432" width="176" height="38" rx="4" fill="#2f63d6"/><text x="100" y="456" text-anchor="middle" style="font:italic 850 15px Archivo, sans-serif;font-stretch:62%;fill:#fff">LOG SET · 102.5 KG × 5</text>
+        </g>
+        <g class="d-lbl">
+          <line class="d-dim" x1="204" x2="214" y1="26" y2="26"/><text x="218" y="30">Top bar · 44</text>
+          <line class="d-dim" x1="204" x2="214" y1="60" y2="60"/><text x="218" y="56">Name · 40 (2 lines: 68)</text><text x="218" y="70">Meta · 18–36</text>
+          <line class="d-dim" x1="204" x2="214" y1="125" y2="125"/><text x="218" y="129">Picture · --picture-h 120</text>
+          <line class="d-dim" x1="204" x2="214" y1="171" y2="171"/><text x="218" y="175">Caption · min 20</text>
+          <line class="d-dim" x1="204" x2="214" y1="200" y2="200"/><text x="218" y="204">Readout · min 52</text>
+          <line class="d-dim" x1="204" x2="214" y1="282" y2="282"/><text x="218" y="286">Dial · --dial-size</text>
+          <line class="d-dim" x1="204" x2="214" y1="367" y2="367"/><text x="218" y="371">Reps strip · 50</text>
+          <line class="d-dim" x1="204" x2="214" y1="407" y2="407"/><text x="218" y="411">RIR / RPE · 44</text>
+          <line class="d-dim" x1="204" x2="214" y1="451" y2="451"/><text x="218" y="447">Log set · 54</text><text x="218" y="461">sticky bottom</text>
+          <text x="0" y="500">Gap between rows: --space-2 (6)</text>
+          <text x="0" y="516">Side gutter: max(16px, safe-area)</text>
+          <text x="0" y="532">Bottom: 18 + --sab (safe area)</text>
+        </g>
+      </svg>
+      <figcaption>Not to scale. Heights in px at 320 pt width.</figcaption>
+    </figure>
+    <div class="prose">
+      <ul>
+        <li><b>Order and focus order:</b> top bar, name, meta, <b>set legend</b> (the existing <code>SetLegend</code> hint buttons, one line, about 24 px), picture, caption, readout, dial, reps, RIR/RPE, Log set. The legend stays visible on phones: <code>e2e/ux.spec.ts</code> checks for it.</li>
+        <li><b>Log set</b> is <code>position: sticky; bottom: calc(18px + var(--sab))</code>, so it stays reachable when the panel is taller than the screen. <code>--sab</code> (and <code>--sat</code> at the top) is <code>max(env(safe-area-inset-*), env(safe-area-max-inset-*))</code>: Chrome on Android animates the plain inset while its bars hide, which slid fixed and sticky bars under the gesture bar. The viewport is <code>viewportFit: "cover"</code> with <code>interactiveWidget: "resizes-content"</code>, so the keyboard shrinks the layout and the focused field scrolls into view.</li>
+        <li><b>Short screens</b> (<code>max-height: 700px</code>, e.g. iPhone SE) use <code>--picture-h: 88px</code> and a 160 px dial. The panel scrolls and Log set stays pinned.</li>
+        <li><b>Rest bar:</b> the existing <code>.wk-rest</code> bar sits above Log set while a rest is running, adding <code>--wk-rest-h</code> to the bottom offset.</li>
+        <li><b>No equipment picture</b> (bodyweight-plus, plates, medicine ball, other): the picture and caption rows collapse, and the dial moves up.</li>
+        <li><b>No weight field</b> (<code>setFields().weight === false</code>): there is no readout weight and no dial. Reps and RIR only.</li>
+      </ul>
+      <p class="why"><b>Why one set at a time:</b> on a phone the set you are about to do is the only one you edit. Giving it the full width makes room for the dial and the picture. The finished sets above it are a record, not inputs.</p>
+    </div>
+  </div>
+
+  <h3>Breakpoints</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Breakpoint</th><th>Workout screen</th><th>Today (desktop mock)</th></tr></thead>
+    <tbody>
+      <tr><td class="w-min">&lt; 768 px</td><td>Active-set panel with dial, as above</td><td>One column: title, <code>PageIntro</code>, Next up (start card), templates card, e1RM tiles (2 × 2), hard sets, insight, bodyweight, chart</td></tr>
+      <tr><td class="w-min">768–1023 px</td><td>Panel at <code>max-width: 28rem</code>, centred. Same controls.</td><td>Two columns: [Next up + templates + bodyweight] [e1RM + chart]. Hard sets and insight follow, full width. <code>PageIntro</code> sits under the title.</td></tr>
+      <tr><td class="w-min">≥ 1024 px, fine pointer</td><td>Typing only (D3): the inline <code>SetRow</code> with <code>NumberStepper</code>. No dial. The equipment picture shows at 96 px beside the active row as a preview.</td><td>Three columns, 290 px / 1fr / 270 px, gap <code>--space-7</code>, max width 1280 px. The left column stacks Next up, templates and bodyweight.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="why"><b>Why typing only on desktop:</b> with a keyboard, typing “102.5” is quicker than turning anything, and dragging a dial with a mouse is awkward. Base the choice on <code>(pointer: coarse)</code> as well as width, so an iPad in landscape still gets the dial.</p>
+
+  <h3>Exercise tab (phones, <code>/workout</code>)</h3>
+  <p>The way to move between the stacked exercises. A slim tab fixed to the left or right screen edge, in the thumb zone. It shows only in the dial layout, with two or more exercises, and is hidden while a sheet or modal is open.</p>
+  <ul>
+    <li><b>Contents, top to bottom:</b> an up chevron (previous exercise), the count (“2/5”, <code>num</code>), a down chevron (next exercise). Each is a real button of at least <code>--tap-target</code>. Labels name the target: “Previous exercise: Bench press”, “Next exercise: Romanian deadlift”, “Jump to an exercise, 2 of 5”. The chevrons are disabled at the ends (no wrap-around).</li>
+    <li><b>Jump list:</b> the count opens a sheet listing every exercise in workout order with its progress (“3/4 sets”). The focused one is marked (<code>aria-current</code>, “Now”). Choosing a row focuses that exercise and closes the sheet. The sheet is a native dialog, so focus is trapped and restored.</li>
+    <li><b>Position:</b> against the chosen edge (<code>env(safe-area-inset-*)</code> respected), its bottom above the sticky Log set row (<code>--sab + 18 px + 54 px + --space-7</code>), and above the rest bar while that shows. The page reserves the tab’s width plus <code>--space-3</code> on that side, so it never covers the dial.</li>
+    <li><b>Look:</b> <code>--color-base-200</code> surface, <code>--color-line-strong</code> edge, <code>--radius-box</code> on the corners away from the screen edge and square against it, no shadow, no plate colours. It slides in from its edge in 200 ms (none under reduced motion).</li>
+    <li><b>Setting:</b> Settings → Profile → “Exercise tab: Left / Right”, per device (<code>localStorage</code> key <code>overload:exercise-tab-side</code>, default right; a blocked store means right). Changing it moves the tab live on an open workout.</li>
+    <li><b>Scrolling:</b> whenever focus changes (tap on a row, the tab, or auto-advance) the exercise scrolls into view, smooth or instant under reduced motion, with its top clear of the sticky workout bar (the bar is measured; the gap is <code>--space-6</code>).</li>
+  </ul>
+
+  <h3>Swipe navigation (phones)</h3>
+  <p>Two horizontal gestures, all by touch or pen pointer events (<code>useSwipe</code>, <code>components/shell</code>). A mouse never swipes, and every gesture has a button or link that does the same thing. There is no swipe between exercises on <code>/workout</code> (the exercise tab, above, replaced it).</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Gesture</th><th>Where</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td class="w-min">Swipe left / right</td><td><code>/today</code>, <code>/exercises</code>, <code>/progress</code> only (under 768 px)</td><td>Goes to the next / previous tab in dock order with <code>nav-forward</code> / <code>nav-back</code>. No wrap-around. Nested pages and the More pages ignore it. A dock tap picks the same direction from the tab’s position.</td></tr>
+      <tr><td class="w-min">Edge swipe</td><td>Installed iPhone/iPad app only (<code>display-mode: standalone</code> on iOS)</td><td>A touch within 20 px of the left edge drags the page with the finger; releasing past 64 px (or with a fling) goes back one history entry as <code>nav-back</code>, otherwise it snaps back. Does nothing without an earlier entry. Android and Safari already have a system back gesture, so it is off there.</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Intent:</b> horizontal only. The move must pass 10 px, then <code>|dx| &gt; 1.5 × |dy|</code>; it commits at 64 px or a fling (at least 24 px at 0.5 px/ms). Vertical intent cancels for good and the page scrolls as normal; the pointer handlers never call <code>preventDefault</code>. Swipe areas use <code>touch-action: pan-y pinch-zoom</code>.</li>
+    <li><b>iOS exception:</b> Safari ignores the <code>pan-y</code> axis lock and starts a vertical scroll on the slightest drift, which cancels the pointer stream, so a swipe only registered when it was perfectly straight. On iPhone and iPad a non-passive <code>touchmove</code> therefore claims a touch (prevents the page scroll for that one gesture) once it has moved 6 px and is more sideways than vertical. A touch that moves vertically first is never claimed, and Android is unchanged.</li>
+    <li><b>Opt-outs:</b> a gesture that starts inside <code>[data-no-swipe]</code>, a form field, or an element that really scrolls sideways is ignored. <code>data-no-swipe</code> is on the Dial, NumberStrip, Tabs and ModalityTabs, <code>.exercise-tabs</code>, <code>.settings-nav</code>, chart frames (plots and table scrollers), the learn table, the PR tables, dialogs and sheets, and the exercise tab.</li>
+    <li><b>Reduced motion:</b> the gestures still work; the slides and the snap-back have no animation.</li>
+    <li><b>No sideways exercise swipe.</b> A swipe between exercises was tried on <code>/workout</code> and dropped after the phone test: the exercises are stacked vertically, so a sideways move made the page jump up or down. <code>/workout</code> has no swipe area at all.</li>
+    <li><b>Page slides</b> are about 200 ms in total (<code>--page-out</code> 80 ms, <code>--page-in</code> 120 ms), and <code>::view-transition</code> has <code>pointer-events: none</code> so a tap during a slide reaches the page. The header and the dock have their own <code>view-transition-name</code> (<code>shell-header</code>, <code>shell-dock</code>): they stay above the page and switch to their new state at once instead of fading with it. Browser back, forward and the edge swipe are tagged <code>nav-back</code> / <code>nav-forward</code> too.</li>
+  </ul>
+</section>
+
+<!-- 05 -->
+<section id="components">
+  <h2><span class="n">05</span>Components</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Component</th><th>Owner</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>Dial</code> <span class="tag new">New</span></td><td>B · <code>ui/Dial.tsx</code></td><td>Generic plate-face rotary control over a list of values. It doesn’t know about equipment.</td></tr>
+      <tr><td><code>NumberStrip</code> <span class="tag new">New</span></td><td>B · <code>ui/NumberStrip.tsx</code></td><td>Horizontal scroll-snap strip for integers (reps). Native scrolling on touch, drag on mouse.</td></tr>
+      <tr><td><code>WeightReadout</code> <span class="tag new">New</span></td><td>E2</td><td>Big tabular number. A tap switches it to an input, and the typed value snaps to the dial’s values.</td></tr>
+      <tr><td><code>EquipmentPicture</code> <span class="tag new">New</span></td><td>E2</td><td>SVG picture plus caption for barbell, plate-loaded, dumbbell, kettlebell and stack (section 06).</td></tr>
+      <tr><td><code>ActiveSetPanel</code> <span class="tag new">New</span></td><td>E2</td><td>Composes the readout, picture, dial, strip, effort buttons and Log set. Writes through the same <code>onChange</code> patches as <code>SetRow</code>.</td></tr>
+      <tr><td><code>SetRow</code> <span class="tag">Edit</span></td><td>E2</td><td>Adds <code>variant: "full" | "compact"</code>. Compact is a read-only summary row (badge, weight × reps, effort, done tick). Tapping it calls <code>onActivate</code>. Both variants and the active panel keep the <code>wk-set</code> class and <code>data-set-id</code>, so existing e2e selectors keep working.</td></tr>
+      <tr><td><code>MachineProfileForm</code> <span class="tag">Edit</span></td><td>E2</td><td>Adds <code>kind: "machine" | "bar"</code>. The bar form labels <code>baseLoadKg</code> as “Bar weight” with <code>labelHint="barProfile"</code> (the machine form keeps “Base load”) and adds the plate checkboxes.</td></tr>
+      <tr><td><code>NumberStepper</code> <span class="tag">Unchanged</span></td><td>B</td><td>Still used on desktop, for duration and distance, and as the typing fallback.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Props</h3>
+<pre><code>// src/components/ui/Dial.tsx (stream B)
+export interface DialProps {
+  /** Accessible name, e.g. "Set 3 weight". */
+  label: string;
+  /** A glossary term: adds a small "i" (same as NumberStepper.labelHint). */
+  labelHint?: TermId;
+  /** Every selectable value, ascending. One detent = one index. */
+  values: readonly number[];
+  /** Selected value, or null when nothing is chosen yet (the dial rests at restIndex). */
+  value: number | null;
+  onChange: (next: number) =&gt; void;
+  /** Spoken value: "102.5 kilograms total", "Pin 9, 45 kilograms". */
+  valueText: (v: number) =&gt; string;
+  /** Rim fill and the ink for ticks and stamps on it (token names). Default: primary / primary-content. */
+  rim?: string;
+  ink?: string;
+  /** Where the dial points while value is null. Default 0. */
+  restIndex?: number;
+  /** Degrees per detent. Default 12. */
+  detentDeg?: number;
+  disabled?: boolean;
+  /** Fired once per detent in the direction turned, for a caller that wants to react to each step (no caller uses it yet). */
+  onDetent?: (dir: 1 | -1) =&gt; void;
+  className?: string;
+}
+
+// src/components/ui/NumberStrip.tsx (stream B)
+export interface NumberStripProps {
+  label: string;
+  labelHint?: TermId;
+  values: readonly number[];
+  value: number | null;
+  onChange: (next: number) =&gt; void;
+  valueText?: (v: number) =&gt; string;
+  /** Item width in px. Default 46. */
+  itemSize?: number;
+  disabled?: boolean;
+  className?: string;
+}
+
+// src/components/workout/plates.ts (stream E2, pure: no react)
+export type PlateTone = "red" | "blue" | "yellow" | "green" | "white" | "black" | "chrome";
+export interface Plate { weight: number; tone: PlateTone; height: number; width: number }
+export const PLATES: Record&lt;WeightUnit, readonly Plate[]&gt;;            // heaviest first
+export const DEFAULT_BAR_WEIGHT: Partial&lt;Record&lt;Equipment, Record&lt;WeightUnit, number&gt;&gt;&gt;; // used when no bar profile
+/** Plates available: the profile's platesKg converted to `unit`, or the standard set. */
+export function plateSet(unit: WeightUnit, platesKg: readonly number[] | null): readonly Plate[];
+export interface Loadout { perSide: Plate[]; loaded: number; exact: boolean }
+export function loadBar(total: number, bar: number, plates: readonly Plate[]): Loadout;
+export function loadSide(perSide: number, plates: readonly Plate[]): Loadout;  // plate-loaded machines
+/** Every total the plate set can make from `bar` up to `max`, ascending. */
+export function loadableTotals(bar: number, plates: readonly Plate[], max: number): number[];
+export const KETTLEBELL_SIZES: Record&lt;WeightUnit, readonly number[]&gt;;
+export function dialValues(input: {
+  equipment: Equipment; loadType: LoadType; unit: WeightUnit; step: number;
+  current: number | null; bar: number | null;
+}): number[];                                                          // inserts `current` if it is off-step
+export function pinFor(value: number, step: number, base: number | null): number;
+
+// src/components/workout/ActiveSetPanel.tsx (stream E2)
+export interface ActiveSetPanelProps extends Pick&lt;SetRowProps,
+  "label" | "ordinal" | "set" | "exercise" | "unit" | "step" | "effortScale" | "ghost" | "isPr" | "onChange" | "onToggleComplete"&gt; {
+  exerciseName: string;
+  setCount: number;
+  machine: Pick&lt;MachineProfileRow, "pinStepKg" | "baseLoadKg" | "labelUnit"&gt; | null;
+}</code></pre>
+  <p>Reuse what exists: <code>weightStep()</code>, <code>weightPatch()</code>, <code>shownWeight()</code> and <code>unitForSet()</code> from <code>session.ts</code>; <code>loadLabel()</code>, <code>setFields()</code> and <code>effortOptions()</code> from <code>labels.ts</code>; and <code>defaultIncrement()</code> and <code>formatWeight()</code> from <code>src/lib/units.ts</code>. The dial works in the row’s display unit, and every write goes through <code>weightPatch()</code>, so storage stays in kg.</p>
+</section>
+
+<!-- 06 -->
+<section id="equipment">
+  <h2><span class="n">06</span>Equipment pictures</h2>
+  <p>The picture is chosen from <code>Exercise.equipment</code> and <code>loadType</code>. In the app nothing switches equipment; the segmented control in the mockup is only there for the demo.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Equipment</th><th>loadType</th><th>Picture</th><th>Dial values</th><th>Readout unit</th><th>Caption</th></tr></thead>
+    <tbody>
+      <tr><td><code>BARBELL</code></td><td>TOTAL</td><td>Bar with plates per side</td><td>bar … 400 kg / 900 lb, step from <code>weightStep</code> (2.5 kg / 5 lb)</td><td>KG</td><td>Per side ● 25 + ● 15 + ● 1.25</td></tr>
+      <tr><td><code>EZ_BAR</code>, <code>TRAP_BAR</code></td><td>TOTAL</td><td>Same bar picture with that bar’s weight (D1)</td><td>same</td><td>KG</td><td>same</td></tr>
+      <tr><td><code>SMITH_MACHINE</code></td><td>TOTAL</td><td>Bar picture. Bar weight comes from the machine profile’s <code>baseLoadKg</code>; if that’s unset, show plates only.</td><td>same</td><td>KG</td><td>“Bar weight not set” when unknown</td></tr>
+      <tr><td><code>MACHINE_PLATE_LOADED</code></td><td>PLATES_PER_SIDE</td><td>One loading horn with plates</td><td>0 … 250 kg per side, step from <code>weightStep</code></td><td>KG / SIDE</td><td>“+ 30 kg base = 130 kg total” when <code>baseLoadKg</code> is set</td></tr>
+      <tr><td><code>DUMBBELL</code></td><td>PER_IMPLEMENT</td><td>A pair, or one when <code>isUnilateral</code></td><td>1 … 80 kg, step 2 kg / 5 lb, or the user’s own step from the gear profile (below)</td><td>KG / HAND</td><td>Pair of 32 kg · 64 kg total / One 32 kg dumbbell</td></tr>
+      <tr><td><code>DUMBBELL</code></td><td>TOTAL</td><td>One dumbbell held vertically (goblet)</td><td>same</td><td>KG</td><td>One 32 kg dumbbell</td></tr>
+      <tr><td><code>KETTLEBELL</code></td><td>PER_IMPLEMENT / TOTAL</td><td>A bell, or a pair when per-implement and two-handed</td><td><code>KETTLEBELL_SIZES</code> in kg and lb (D5), or the bells the user owns from the gear profile (below)</td><td>KG (/ HAND)</td><td>● 24 kg bell</td></tr>
+      <tr><td><code>MACHINE_SELECTORIZED</code>, <code>CABLE</code></td><td>STACK</td><td>Weight stack with pin</td><td>step = machine <code>pinStepKg</code>, else 5 kg / 10 lb (cable 2.5 / 5)</td><td>KG</td><td>Pin 9 of 20 · 45 kg · 5 kg per plate</td></tr>
+      <tr><td>Bodyweight-plus, <code>PLATE</code>, <code>MEDICINE_BALL</code>, other</td><td>any</td><td>None (rows collapse)</td><td><code>weightStep</code></td><td>KG</td><td>Bodyweight-plus: “Added to 82.5 kg bodyweight”</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Bar profiles and plate inventory (D1, D6)</h3>
+  <ul>
+    <li><b>Bar weight per exercise.</b> A bar profile is a <code>MachineProfile</code> linked by <code>exerciseId</code>. Its <code>baseLoadKg</code> is the bar weight. Catalog exercises are global and read-only, so the override lives on this per-user profile, not on the exercise. With no profile, the defaults are barbell 20 kg / 45 lb, EZ bar 10 kg / 25 lb and trap bar 25 kg / 55 lb.</li>
+    <li><b>Plates owned.</b> The new nullable <code>platesKg</code> on the profile lists the plate weights the gym has, for example <code>[25, 20, 15, 10, 5, 2.5, 1.25, 0.5]</code>. Null means the standard set for the unit. Loading uses only those plates. Dial values are every total the inventory can make, from the bar weight up to the range cap, so a gym without 1.25 kg plates steps by 5 kg. Plates not in the table (0.5 kg, 1 lb) draw as chrome with width 4 and height 26.</li>
+    <li><b>Editing.</b> A “Bar and plates” link under the barbell caption opens the profile sheet. The same profile is also listed in Settings → Machines. The sheet has a bar weight field (a <code>NumberStepper</code>) and a checkbox chip for each plate weight.</li>
+    <li><b>Smith and plate-loaded machines</b> use the same profile: <code>baseLoadKg</code> is the sled or carriage weight, and <code>platesKg</code> drives the loading.</li>
+  </ul>
+
+  <h3>Gear profiles: dumbbell step and owned kettlebells</h3>
+  <ul>
+    <li><b>What it is.</b> A gear profile is a <code>MachineProfile</code> with the new nullable <code>equipment</code> set to <code>DUMBBELL</code> or <code>KETTLEBELL</code>, <code>exerciseId</code> null and <code>gymName</code> null. It is set once per equipment and applies to every dumbbell or kettlebell exercise. Machine lists (the machine chooser, the template editor, Settings → Machines) show only profiles with <code>equipment</code> null.</li>
+    <li><b>Dumbbells:</b> <code>pinStepKg</code> is the step the user sets (default 2 kg / 5 lb). The dial runs from one step to 80 kg / 180 lb in that step.</li>
+    <li><b>Kettlebells:</b> <code>platesKg</code> is the sorted list of bells the user owns (at most 20, each up to 100 kg). Null means the standard sizes above. The dial offers exactly those bells. A value from history that is not among them is still inserted in order.</li>
+    <li><b>Editing.</b> A link under the picture caption reads “Dumbbells · 2 kg steps · Edit” or “Kettlebells · your 6 bells · Edit” and opens the same kind of sheet as “Bar and plates”; the first save creates the profile. Settings → Machines and gear lists both under a Gear section.</li>
+    <li><b>Per gym later.</b> The same row shape with <code>gymName</code> set will override the user-wide profile for that gym. <code>pickGear(rows, equipment, gymName?)</code> and <code>repo.machineProfiles.gear(equipment, gymName?)</code> already take the optional gym and fall back to the user-wide profile, so no schema or lookup redesign is needed.</li>
+  </ul>
+
+  <h3>Barbell and plate-loaded</h3>
+  <ul>
+    <li><b>Canvas:</b> viewBox 300 × 92, centred in the picture row. Sleeves are 0–92 and 208–300 (height 10, <code>--steel</code>). The shaft is 96–204 (height 4, <code>--steel-dark</code>). Collars are 7 × 22 at x 90 and 203.</li>
+    <li><b>Plates</b> (height × width, viewBox units): 25/55 = 86 × 13, 20/45 = 86 × 11, 15/35 = 74 × 10, 10/25 = 60 × 9, 5/10 = 44 × 7, 2.5/5 = 36 × 6, 1.25/2.5 = 30 × 5. Corner radius 2, gap 1.5. They stack outward from the collar, heaviest innermost. The right side starts at x 211; the left mirrors it from x 89.</li>
+    <li><b>Loading</b> is greedy, heaviest first, from <code>(total − bar) / 2</code>. If the remainder isn’t 0, <code>exact = false</code>: draw the nearest loadable weight below, and the caption says “101 kg can’t be loaded exactly · nearest 100 kg”. The entered value is still saved as typed.</li>
+    <li><b>Overflow:</b> if a side’s plates are wider than 85 units, scale plate widths down (to 60% at least), then draw the rest as a “+n” badge.</li>
+    <li><b>Plate-loaded machines</b> draw the right horn only (x 120–300) and load <code>perSide</code> directly.</li>
+  </ul>
+
+  <h3>Dumbbell</h3>
+  <ul>
+    <li><b>Canvas:</b> viewBox 288 × 120. Two dumbbells centred at x 72 and 216, or one at 144. Handle 48 × 8 (<code>--steel</code>). The hex heads are drawn at full size, 34 × 92 with chamfer 9, fill #2B2E33 and stroke #4D535A.</li>
+    <li><b>Scale:</b> heads scale with <code>k = (26 + 66 · √((w − 2) / 58)) / 92</code>, clamped between 0.28 and 1. The left head’s transform origin is its right edge, and the right head’s is its left edge (<code>transform-box: fill-box</code>). The square root keeps light weights visible and stops heavy ones from overflowing.</li>
+  </ul>
+
+  <h3>Kettlebell</h3>
+  <ul>
+    <li><b>Canvas:</b> viewBox 288 × 120. The bell is drawn at 48 kg size and scaled from its base centre with <code>k = 0.42 + 0.58 · √((w − 4) / 44)</code>. The handle is a 12-unit stroke in #2B2E33, and the stamped number is 24-unit Archivo condensed italic.</li>
+    <li><b>Values (kg):</b> 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 40, 44, 48. <b>Values (lb)</b> are the kg sizes converted and rounded the way bells are labelled: 9, 13, 18, 22, 26, 31, 35, 44, 53, 62, 70, 80, 88, 97, 106. Each lb size takes the colour of its kg size. A value from history that isn’t on the list (for example 18 kg) is inserted in order.</li>
+    <li><b>Colour by size:</b> 4 #C7C9CC · 6 #F2B7CC · 8 #EC6FA3 · 10 #8CC6EA · 12 #2F6FD8 · 14 #8D9399 · 16 #EFBD2A · 20 #8A5CC9 · 24 #2F9A4F · 28 #EF7C22 · 32 #D8262D · 36 #5F6369 · 40 #ECEBE6 · 44 #B9BDC2 · 48 #C9A646. Use dark ink on 4, 6, 10, 16, 40, 44 and 48, and white on the rest. Inserted sizes use the colour of the next size down.</li>
+  </ul>
+
+  <h3>Weight stack</h3>
+  <ul>
+    <li><b>Canvas:</b> viewBox 288 × 120. Guide rods at x 76 and 212. Twenty plates, each 124 × 4 at a 5.2 pitch, starting at y 14. Selected plates fill with <code>--color-base-content</code> and move <code>translateY(-10)</code>; the others fill #33373C. The pin is <code>--color-primary</code>. The pin label sits at x 236 and “STACK n × step” at x 8.</li>
+    <li><b>Pin number:</b> <code>pinFor(value, step, base)</code> = <code>round((value − base) / step) + 1</code> when <code>baseLoadKg</code> is set, else <code>round(value / step)</code>.</li>
+    <li><b>Stack size is unknown</b> (it’s not in <code>MachineProfile</code>). Draw a window of 20 plates. If the pin goes past plate 17, the window scrolls so the pin stays 3 from the bottom.</li>
+  </ul>
+</section>
+
+<!-- 07 -->
+<section id="dial">
+  <h2><span class="n">07</span>The dial</h2>
+  <div class="figs">
+    <figure class="diag">
+      <svg viewBox="-150 -125 300 250" role="img" aria-label="Dial anatomy: pointer, rim, ticks, face, stamps, hub">
+        <circle r="100" cy="7" fill="#000" opacity=".35"/>
+        <circle r="100" fill="#d8262d"/>
+        <g stroke="#fff" opacity=".75">
+          <line x1="0" y1="-78" x2="0" y2="-93" stroke-width="3"/><line x1="20.8" y1="-81.1" x2="17.5" y2="-80.8" stroke-width="0"/>
+          <line x1="17.5" y1="-82.2" x2="19.3" y2="-91" stroke-width="1.6"/><line x1="34.2" y1="-76.7" x2="37.8" y2="-85" stroke-width="1.6"/><line x1="-17.5" y1="-82.2" x2="-19.3" y2="-91" stroke-width="1.6"/><line x1="-34.2" y1="-76.7" x2="-37.8" y2="-85" stroke-width="1.6"/>
+          <line x1="49.4" y1="-68" x2="54.7" y2="-75.2" stroke-width="1.6"/><line x1="-49.4" y1="-68" x2="-54.7" y2="-75.2" stroke-width="1.6"/>
+        </g>
+        <circle r="70" fill="#000" opacity=".18"/>
+        <text y="-42" text-anchor="middle" style="font:800 13px Archivo, sans-serif;font-stretch:62%;letter-spacing:3px;fill:#fff;opacity:.75">OVERLOAD</text>
+        <text y="58" text-anchor="middle" style="font:italic 850 18px Archivo, sans-serif;font-stretch:62%;fill:#fff;opacity:.75">KG</text>
+        <rect x="-3" y="-68" width="6" height="16" rx="3" fill="#fff" opacity=".75"/>
+        <circle r="32" fill="#c9cdd1"/><circle r="12" fill="#121314"/>
+        <polygon points="-9,-112 9,-112 0,-96" fill="#ecebe6"/>
+        <g class="d-lbl">
+          <line class="d-dim" x1="12" y1="-108" x2="60" y2="-108"/><text x="64" y="-104">Pointer (fixed)</text>
+          <line class="d-dim" x1="96" y1="-20" x2="112" y2="-20"/><text x="116" y="-16">Rim r100</text>
+          <line class="d-dim" x1="56" y1="-74" x2="100" y2="-96"/><text x="104" y="-92">Ticks r78–93</text>
+          <line class="d-dim" x1="62" y1="30" x2="112" y2="30"/><text x="116" y="34">Face r70</text>
+          <line class="d-dim" x1="28" y1="10" x2="112" y2="70"/><text x="116" y="74">Hub r32 / r12</text>
+          <text x="-146" y="114">Ticks: one per detent (30), major every 5</text>
+        </g>
+      </svg>
+      <figcaption>viewBox −112…112. Everything except the pointer and the drop shadow rotates.</figcaption>
+    </figure>
+    <div class="prose">
+      <ul>
+        <li><b>Turning:</b> pointer events with <code>setPointerCapture</code>. Track the angle from the centre, normalise each change into (−180°, 180°], and add it up. Each time the total passes ±<code>detentDeg</code>, step the index by ±1. Clockwise increases.</li>
+        <li><b>Rotation shown</b> = <code>index × detentDeg</code>, set on the rotating group as an SVG <code>transform</code>. It snaps per detent with no tween while dragging, which reads as a click.</li>
+        <li><b>Limits:</b> at the first or last value, the extra turn is thrown away (the total resets). The dial plays the limit bump (section 09).</li>
+        <li><b>Touch:</b> <code>touch-action: none</code> on the dial only. A drag that starts on the dial never scrolls the page.</li>
+        <li><b>Mouse wheel:</b> only when the dial has focus (after a click). Every 30 px of <code>deltaY</code> is one detent. It never captures page scroll while hovering.</li>
+        <li><b>Rim colour:</b> on a barbell it’s the tone of the heaviest plate on the bar (steel when the bar is empty), with ink from the plate table. Everything else uses <code>--color-primary</code> with white ink.</li>
+        <li><b>Value null</b> (a new set with no ghost): the dial points at <code>restIndex</code> (the bar weight, 10 kg dumbbells, 16 kg bell, pin 1). The readout shows “—”. The first detent sets the value.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 08 -->
+<section id="states">
+  <h2><span class="n">08</span>States and interactions</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Element</th><th>State</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="6">Dial</td><td>Default</td><td>As drawn. Cursor <code>grab</code> on fine pointers.</td></tr>
+      <tr><td>Hover (fine pointer)</td><td>Rim brightens 4% (<code>filter: brightness(1.04)</code>).</td></tr>
+      <tr><td>Focus-visible</td><td>2 px <code>--color-base-content</code> outline, 4 px offset, round.</td></tr>
+      <tr><td>Dragging</td><td>Cursor <code>grabbing</code>, pointer captured, <code>onDetent</code> fires per step.</td></tr>
+      <tr><td>At limit</td><td>Limit bump. No value change.</td></tr>
+      <tr><td>Disabled</td><td>Opacity 0.4, no pointer events, <code>aria-disabled</code>. Used while the set is completed and not reopened.</td></tr>
+      <tr><td rowspan="4">Readout</td><td>Default</td><td>A button showing the value, with a 2 px dotted underline in <code>--color-line-strong</code> as the cue that it can be tapped.</td></tr>
+      <tr><td>Editing</td><td>Swaps to an input (150 px, <code>inputmode="decimal"</code>, at least 16 px, 2 px <code>--color-primary</code> border, text selected). Enter commits and Esc cancels; both return focus to the readout. Blur commits.</td></tr>
+      <tr><td>Off-step value typed</td><td>Saved exactly as typed. <code>dialValues</code> inserts it, so the dial can land on it.</td></tr>
+      <tr><td>Invalid</td><td>Non-numeric or empty input reverts to the last value on commit. Out-of-range values clamp to the nearest end, and the caption shows “Limited to 400 kg” for 3 s.</td></tr>
+      <tr><td rowspan="2">Reps strip</td><td>Default</td><td>Centre item is 30 px condensed italic in base-content inside a 2 px primary box. Neighbours are 20 px muted and fade out at the edges.</td></tr>
+      <tr><td>Focus</td><td>The arrow keys step the value, and the outline matches the dial’s.</td></tr>
+      <tr><td rowspan="2">RIR / RPE buttons</td><td>Default</td><td>44 px tall, 1 px <code>--color-line-strong</code> border, 16 px 700 text.</td></tr>
+      <tr><td>Pressed</td><td><code>aria-pressed="true"</code>, fill base-content, text base-100. Tapping again clears it (existing behaviour).</td></tr>
+      <tr><td rowspan="4">Log set</td><td>Default</td><td>Primary fill, label “Log set · 102.5 kg × 5”.</td></tr>
+      <tr><td>Pressed</td><td><code>translateY(1px)</code>.</td></tr>
+      <tr><td>Logged</td><td>Success fill and “Logged ✓” for 1300 ms. Then the next incomplete set becomes active, with its values taken from its ghost.</td></tr>
+      <tr><td>Disabled</td><td>When neither weight nor reps is set: opacity 0.5, with a hint “Set a weight or reps first”.</td></tr>
+      <tr><td>Compact SetRow</td><td>Tap</td><td>Becomes the active set, and the panel animates in place (section 09).</td></tr>
+      <tr><td rowspan="5">Sync now (the workout bar, <code>SyncNow</code>)</td><td>Synced</td><td>A 16 px check and “Synced”. The label is always text, never colour alone.</td></tr>
+      <tr><td>Changes waiting</td><td>“3 unsynced” (rows with unsent changes), with a refresh icon. During a workout the app sends them by itself at most every 5 minutes (section 11), so this is how the lifter pushes sooner.</td></tr>
+      <tr><td>Syncing</td><td>“Syncing…” with a spinner. A second tap while it runs does nothing; a manual sync that arrives while another sync is running waits for it instead of being dropped.</td></tr>
+      <tr><td>Offline / signed out / failed</td><td>“Offline, 3 unsynced”, “Signed out”, “Sync failed. Tap to retry”, each with its own icon. The sets stay on the phone (Dexie) in every case.</td></tr>
+      <tr><td>After a tap</td><td>A polite <code>aria-live</code> line says where the data is (“Synced. Everything is saved to your account.”, “Offline. Your sets are saved on this phone and will sync when you are back online.”). Background syncs stay quiet.</td></tr>
+      <tr><td rowspan="3">Toast</td><td>Mouse hover</td><td>A real mouse (<code>pointerType: "mouse"</code>) over a toast, or focus inside it (the keyboard), pauses its dismissal timer; leaving restarts it. Another toast arriving does not restart a visible one.</td></tr>
+      <tr><td>Touch</td><td>A tap never pauses it (the compatibility mouse events a tap fires are not pointer events of type mouse), so a toast cannot sit over “Add set” or Log set. A tap on the toast dismisses it; its action and close buttons work as usual.</td></tr>
+      <tr><td>Durations</td><td>5 s by default, 3.5 s for a personal record, 8 s for an error; <code>duration: 0</code> stays until dismissed.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 09 -->
+<section id="motion">
+  <h2><span class="n">09</span>Motion</h2>
+  <p>All easing is <code>--ease-out</code>. Under <code>prefers-reduced-motion: reduce</code> every duration and stagger here is 0. The rule lives in <code>motion.css</code>.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th></tr></thead>
+    <tbody>
+      <tr><td>Dial</td><td>Drag detent</td><td>Rotation snaps by <code>detentDeg</code></td><td>0 ms</td></tr>
+      <tr><td>Dial</td><td>Keyboard or wheel step</td><td>Rotation tween</td><td>80 ms</td></tr>
+      <tr><td>Dial</td><td>Limit reached</td><td>Rotate ±4° past the end and spring back</td><td>160 ms</td></tr>
+      <tr><td>Bar plates</td><td>Plate added</td><td><code>scaleY 0.6 → 1</code> and opacity 0 → 1 from the plate’s centre</td><td>120 ms</td></tr>
+      <tr><td>Bar plates</td><td>Plate removed</td><td>Opacity 1 → 0</td><td>90 ms</td></tr>
+      <tr><td>Dumbbell heads, kettlebell</td><td>Value change</td><td><code>transform: scale(k)</code>; kettlebell fill colour</td><td>160 ms</td></tr>
+      <tr><td>Stack plates</td><td>Pin moves down</td><td>Newly selected plates lift <code>translateY(-10)</code> and fill. Stagger 22 ms per plate, nearest the old pin first.</td><td>140 ms each</td></tr>
+      <tr><td>Stack plates</td><td>Pin moves up</td><td>Released plates drop back, same stagger in reverse</td><td>140 ms each</td></tr>
+      <tr><td>Pin</td><td>Value change</td><td><code>translateY</code> to the new plate</td><td>140 ms</td></tr>
+      <tr><td>Log set</td><td>Logged</td><td>Background colour cross-fade</td><td>150 ms</td></tr>
+      <tr><td>Active set</td><td>Activate or advance</td><td>The new panel expands from its compact row (height plus opacity) and the old one collapses</td><td>240 ms</td></tr>
+      <tr><td>Readout number</td><td>Any change</td><td>None. Tabular figures keep the width stable.</td><td>–</td></tr>
+      <tr><td>Page</td><td>Tab, link, swipe or history navigation</td><td>Old page slides out 1.5 rem and fades; new page slides in from the other side (<code>nav-forward</code> / <code>nav-back</code>)</td><td>80 ms out, 120 ms in</td></tr>
+      <tr><td>Header and dock</td><td>Page slide</td><td>Do not move or fade: each has its own <code>view-transition-name</code>, sits above the page and shows its new state (active tab, sync label) at once</td><td>0 ms</td></tr>
+      <tr><td>Toast</td><td>Appears</td><td>Rises 0.75 rem and fades in above the dock (above the rest bar during a rest)</td><td>240 ms</td></tr>
+      <tr><td>Exercise tab</td><td>/workout opens (phones)</td><td>The tab slides in from its screen edge; a focus change scrolls the exercise into view</td><td>200 ms; scroll smooth</td></tr>
+      <tr><td>Edge back peek</td><td>Edge swipe in the installed iPhone app</td><td>The page follows the finger; a short pull eases back</td><td>0 while dragging, 180 ms to settle</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 10 -->
+<section id="content">
+  <h2><span class="n">10</span>Content rules</h2>
+  <ul>
+    <li><b>Exercise name:</b> up to 2 lines with <code>line-clamp: 2</code>, then an ellipsis. The 2-line form drops to 30 px. The full name is always in the accessible name. Longest catalog names are around 40 characters (e.g. “Single-arm cable lateral raise”).</li>
+    <li><b>Meta line:</b> “Barbell · 20 kg bar · set 3 of 4 · last 100 × 5 @ RIR 2”. It may wrap to 2 lines. Drop “last …” first if it would need a third.</li>
+    <li><b>Numbers:</b> up to 2 decimals, with trailing zeros dropped (<code>formatWeight</code>). The readout drops to 52 px when the integer part has 4+ digits.</li>
+    <li><b>Units:</b> “KG”, “LB”, “KG / HAND”, “KG / SIDE”, taken from <code>unitLabel()</code> and <code>loadLabel().short</code>, uppercased in the label style. lb rows use the lb plate set and lb steps.</li>
+    <li><b>Effort:</b> labels come from <code>effortOptions(effortScale)</code>: 0 1 2 3 4+ for RIR, or 10 9 8 7 6 for RPE. Warm-up sets hide the effort row (existing rule).</li>
+    <li><b>Copy:</b> “Log set”, “Logged ✓”, “Per side”, “Pair of 32 kg · 64 kg total”, “Pin 9 of 20”, “Empty bar · 20 kg”, “101 kg can’t be loaded exactly · nearest 100 kg”, “Set a weight or reps first”. The app is English only today, but keep these strings together in <code>labels.ts</code> so they can be translated later.</li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section id="edges">
+  <h2><span class="n">11</span>Edge cases</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Case</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td>New exercise, no ghost</td><td>Value null: readout “—”, dial at <code>restIndex</code>, empty-bar picture at 50% opacity.</td></tr>
+      <tr><td>Value from history is off-step (101 kg, an 18 kg bell)</td><td><code>dialValues</code> inserts it. The barbell caption shows the inexact-loading note.</td></tr>
+      <tr><td>Below the bar weight on a barbell</td><td>Allowed (technique bars). The picture shows the empty bar, and the caption reads “Lighter than the 20 kg bar”.</td></tr>
+      <tr><td>Above the drawable range</td><td>Plates compress, then a “+n” badge (section 06). The dial’s range is capped at 400 kg / 900 lb, and typing beyond that is allowed.</td></tr>
+      <tr><td>Unit differs from the user’s preference (lb machine label)</td><td><code>unitForSet()</code> picks the row unit. Values, plates and steps all come from that unit.</td></tr>
+      <tr><td>Machine profile missing</td><td>The step comes from <code>defaultIncrement</code> and the pin number from <code>round(value / step)</code>. The caption leaves out “of 20”.</td></tr>
+      <tr><td>Short screen (&lt; 700 px tall)</td><td>Smaller picture and dial; the panel scrolls and Log set stays sticky.</td></tr>
+      <tr><td>Another device edits this set while the dial is open (sync)</td><td>Incoming values update the dial unless a drag is in progress. The drag’s result then writes with a newer HLC and wins, as the merge rules already handle.</td></tr>
+      <tr><td>Offline or slow network</td><td>Nothing changes: writes go to Dexie, and the sync pip shows the state. Fonts are self-hosted by <code>next/font</code>, so there is no web-font wait offline.</td></tr>
+      <tr><td>Sync policy while a workout is active (<code>isWorkoutActive()</code>)</td><td>Changes are safe in Dexie the moment they are written, so syncing is about other devices. <b>Outside a workout</b> the app syncs at app start, 1.5 s after a write, every 30 s while changes are pending (the retry), on <code>online</code>, when the tab becomes visible (at most once per 30 s) and on demand. <b>During a workout</b> it syncs at app start (so a reopened app pushes what was left), on the “Sync now” button, and at most once every 5 minutes while changes are pending; writes and tab visibility trigger nothing, and <code>online</code> is held to the same 5 minutes. <b>Finishing or discarding</b> syncs at once, so history and Progress are current. A request with nothing to push is answered without a write transaction. A 45-minute workout therefore makes about ten sync requests, not one per set.</td></tr>
+      <tr><td>Another device’s changes during a workout</td><td>They arrive on the next sync (within 5 minutes, or on “Sync now”), not live. The dial rule above applies when they do.</td></tr>
+      <tr><td>Storage may be cleared</td><td>The app asks the browser for persistent storage (after sign-in and at the first workout, twice at most per browser) so unsynced sets are not evicted. A phone that refuses keeps working; “Sync now” is the safeguard before closing the app for a long time.</td></tr>
+      <tr><td>IndexedDB write fails</td><td>The existing error toast. Log set returns to its default state with no “Logged” flash.</td></tr>
+      <tr><td>Exercise without a weight field</td><td>No dial or readout weight. Reps and effort only.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 12 -->
+<section id="a11y">
+  <h2><span class="n">12</span>Accessibility</h2>
+  <ul>
+    <li><b>Use a native range as the source of truth.</b> Put a visually hidden <code>&lt;input type="range" min="0" max={values.length − 1} step="1"&gt;</code> inside <code>Dial</code>, with <code>aria-valuetext</code> from <code>valueText</code>, and mark the SVG <code>aria-hidden</code>. VoiceOver’s swipe up/down and TalkBack’s volume keys then adjust it natively, which ARIA <code>role="slider"</code> on a div doesn’t reliably get on iOS.</li>
+    <li><b>Value text:</b> “102.5 kilograms total”, “32 kilograms per hand”, “Pin 9, 45 kilograms”. Build it from <code>loadLabel().help</code> wording.</li>
+    <li><b>Keyboard:</b> Arrow up/right is +1 step, Arrow down/left is −1, Page Up/Down is ±4 steps, and Home/End go to the ends. Enter on the readout opens typing, and Esc cancels.</li>
+    <li><b>Focus order:</b> readout, dial, reps strip, effort buttons, Log set. Focus is never trapped in the panel.</li>
+    <li><b>Picture:</b> <code>role="img"</code> with a label (“Bar loaded with 25, 15 and 1.25 kilograms per side”). Not live, because the slider already announces the value.</li>
+    <li><b>Announcements:</b> after Log set, a polite live region says “Set 3 logged, 102.5 kilograms, 5 reps” (the existing toast region can carry it).</li>
+    <li><b>Targets:</b> the dial is at least 160 px; reps items are 46 × 50; effort buttons and Finish are 44 px tall.</li>
+    <li><b>Contrast:</b> see the token tables. Plate blue is never used for small text on dark, and success green with white text is used only at large or bold sizes.</li>
+    <li><b>Reduced motion:</b> section 09. The dial keeps working, with no tweens.</li>
+    <li><b>Tap-to-type</b> is the fallback for anyone who can’t do circular gestures, and it is always available.</li>
+  </ul>
+</section>
+
+<!-- 13 -->
+<section id="haptics">
+  <h2><span class="n">13</span>Haptics (dropped after a device test)</h2>
+  <p>The feature was built as specified in the first draft (an in-repo <code>tick()</code> / <code>confirm()</code> helper using the Vibration API on Android and the <code>&lt;input type="checkbox" switch&gt;</code> technique on iOS, with a Settings toggle). It was dropped after a device test: no haptics fired on an iPhone or on an Android phone. The helper (<code>haptics.ts</code> and its test), the Haptics toggle in Settings → Profile and every call in <code>ActiveSetPanel</code> were deleted.</p>
+  <p>What stays: <code>Dial.onDetent</code> remains as a generic callback (nothing uses it now), and the rest timer keeps its own separate vibration in <code>hooks.ts</code>. A stale <code>overload:haptics-off</code> key in <code>localStorage</code> is harmless and is never read.</p>
+</section>
+
+<!-- 14 -->
+<section id="questions">
+  <h2><span class="n">14</span>Decisions</h2>
+  <p>All seven open questions were settled with the product owner on 15 October 2026.</p>
+  <ol class="qs dec">
+    <li><b>D1 · Bar weights: per-exercise override.</b> Stored on a bar profile (a <code>MachineProfile</code> with <code>exerciseId</code> and <code>baseLoadKg</code>), with defaults per bar type when there’s no profile. No schema change for this part (section 06).</li>
+    <li><b>D2 · Light theme: build from this spec.</b> <code>overload-daylight</code> ships with the values in section 03 and is reviewed in the app. No separate mockup.</li>
+    <li><b>D3 · Desktop: typing only.</b> Fine pointers at ≥ 1024 px keep <code>NumberStepper</code> typing with the picture as a preview, and show no dial.</li>
+    <li><b>D4 · Today: restyle plus new content.</b> Add the e1RM tiles (four main lifts, 4-week change) and the bench e1RM chart, as in the desktop mock.</li>
+    <li><b>D5 · Kettlebells in lb: converted size list.</b> 9, 13, 18, 22, 26, 31, 35, 44, 53, 62, 70, 80, 88, 97, 106 lb.</li>
+    <li><b>D6 · Plate inventory: included now.</b> A new nullable <code>platesKg</code> on <code>MachineProfile</code> (an additive change request). Loading and dial values follow it.</li>
+    <li><b>D7 · Haptics: dropped after a device test.</b> It was built behind <code>onDetent</code>, but no haptics fired on iPhone or Android, so the feature was removed (section 13).</li>
+  </ol>
+</section>
+
+<!-- 15 -->
+<section id="done">
+  <h2><span class="n">15</span>Definition of done</h2>
+  <ul>
+    <li><code>plates.test.ts</code> covers: 102.5 kg → 25 + 15 + 1.25 per side; 20 kg → empty; 101 kg → inexact with 100 loaded; lb 225 → 45 + 45; a 15 kg bar profile; an inventory without 1.25 kg giving 5 kg steps in <code>loadableTotals</code>; 0.5 kg fractionals; kettlebell insertion of 18 kg and the lb size list; <code>pinFor</code> with and without base; <code>dialValues</code> inserting an off-step current value.</li>
+    <li>Today shows the e1RM tiles and the bench chart from analytics data, with an empty state for lifts that have no history. Covered in <code>e2e/today.spec.ts</code>.</li>
+    <li><code>ui.dom.test.tsx</code> covers the <code>Dial</code> keyboard steps, limits, the hidden range staying in sync, <code>onDetent</code> direction, and the disabled state. <code>NumberStrip</code> covers keyboard steps and value sync.</li>
+    <li><code>workout.dom.test.tsx</code> covers <code>ActiveSetPanel</code> writing through <code>weightPatch</code> in kg and lb, tap-to-type snapping, Log set advancing to the next set, and warm-up hiding effort.</li>
+    <li><code>e2e/logging-offline.spec.ts</code> on an iPhone viewport: log a barbell set by dial (keyboard on the hidden range), go offline, log a dumbbell set, come back online, and the sets sync.</li>
+    <li><code>e2e/ux.spec.ts</code> still passes on chromium and webkit-iphone: legend hint buttons are visible in the exercise block, and template workouts still count four <code>.wk-set</code> rows.</li>
+    <li>After the phone test: <code>swipe-logic.test.ts</code>, <code>useSwipe.dom.test.tsx</code>, <code>dock.dom.test.tsx</code>, <code>nav.test.ts</code> and <code>exercise-tab.dom.test.tsx</code> cover the swipe thresholds, the iOS claim, the dock directions and the exercise tab; <code>e2e/journeys/swipe.spec.ts</code> drives synthetic touch pointer events; <code>e2e/mobile-viewport.spec.ts</code> checks 360 × 640 and 412 × 915 scroll and the sign-in keyboard; <code>e2e/journeys/sync-policy.spec.ts</code> and <code>e2e/perf/sync-count.spec.ts</code> check the sync policy (no request per set during a workout); <code>ui.dom.test.tsx</code> covers the toast pause and tap-to-dismiss rules.</li>
+    <li>axe shows no violations on <code>/workout</code> and <code>/styleguide</code>. Contrast checked in both themes, including the hint popovers in <code>hints.css</code>.</li>
+    <li><code>pnpm check</code>, <code>pnpm build</code> and <code>pnpm ownership:check --stream=&lt;X&gt;</code> pass. Visual baselines are regenerated and reviewed.</li>
+  </ul>
+</section>
+</main>
+</div>

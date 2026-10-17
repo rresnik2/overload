@@ -80,6 +80,8 @@ export const exampleMachineProfileRow: MachineProfileRow = {
   labelUnit: "LB",
   pinStepKg: null,
   baseLoadKg: 50,
+  platesKg: null,
+  equipment: null,
   notes: null,
   ...meta(),
 };

@@ -1,9 +1,9 @@
-/* Frame navbar, mobile dock, app shell, marketing page (stream B).
-   Frame = the portfolio's asymmetric vermilion border: border-t 1px, border-r 4px, border-b 8px, border-l 2px. */
+/* Navbar, mobile dock, app shell, marketing page. Calibrated Dial: flat bars on the floor, panels on base-200 with the
+   6px box radius, 1px hairlines (--color-base-300), plate blue only for the active indicator and the Start action. */
 
 :root {
   --dock-h: 4.5rem;
-  --backdrop-veil: 0%;
+  --backdrop-veil: 55%;
   --dock-offset: 0px;
 }
 @media (prefers-color-scheme: dark) {
@@ -11,11 +11,11 @@
     --backdrop-veil: 62%;
   }
 }
-[data-theme="overload-ink"] {
+[data-theme="overload-floor"] {
   --backdrop-veil: 62%;
 }
-[data-theme="overload-paper"] {
-  --backdrop-veil: 0%;
+[data-theme="overload-daylight"] {
+  --backdrop-veil: 55%;
 }
 @media (max-width: 767px) {
   body:has(.shell-dock) {
@@ -37,7 +37,7 @@
   right: 0;
   bottom: -0.15em;
   height: 2px;
-  background: var(--color-vermilion);
+  background: var(--color-primary);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 260ms var(--ease-out);
@@ -70,11 +70,12 @@
   padding: 0.75rem 1rem;
   background: var(--color-neutral);
   color: var(--color-neutral-content);
-  border: 2px solid var(--color-vermilion);
+  border: 2px solid var(--color-base-content);
+  border-radius: var(--radius-field);
   font-weight: 700;
 }
 .skip-link:focus {
-  top: calc(env(safe-area-inset-top) + 0.5rem);
+  top: calc(var(--sat) + 0.5rem);
 }
 
 /* ---- header / frame navbar --------------------------------------------- */
@@ -82,9 +83,9 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  padding-top: env(safe-area-inset-top);
+  padding-top: var(--sat);
   background: var(--color-base-100);
-  border-bottom: 2px solid var(--color-vermilion);
+  border-bottom: 1px solid var(--color-base-300);
 }
 .shell-frame {
   display: flex;
@@ -97,8 +98,11 @@
 .shell-brand {
   font-family: var(--font-display);
   font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.9rem;
-  line-height: 1;
+  line-height: 1.12;
   color: inherit;
   text-decoration: none;
   margin-right: auto;
@@ -125,11 +129,12 @@
   background: transparent;
   color: inherit;
   border: 1px solid transparent;
+  border-radius: var(--radius-field);
   cursor: pointer;
   transition: border-color 120ms var(--ease-out);
 }
 .theme-toggle:hover {
-  border-color: var(--color-base-content);
+  border-color: var(--color-line-strong);
 }
 
 .shell-avatar {
@@ -146,7 +151,8 @@
   width: 2.25rem;
   height: 2.25rem;
   overflow: hidden;
-  border-radius: 9999px; /* the one round element: the portfolio's avatar ring */
+  border: 2px solid var(--color-line-strong);
+  border-radius: 9999px; /* round, like the dial and the plates */
   background: var(--color-base-200);
   font-size: 0.85rem;
   font-weight: 700;
@@ -158,22 +164,12 @@
 }
 
 @media (min-width: 768px) {
-  .shell-header {
-    padding: calc(env(safe-area-inset-top) + 1rem) 1rem 0;
-    background: transparent;
-    border-bottom: 0;
-    pointer-events: none;
-  }
   .shell-frame {
     max-width: 72rem;
     margin: 0 auto;
     gap: 1.5rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--color-base-100);
-    border-style: solid;
-    border-color: var(--color-vermilion);
-    border-width: 1px 4px 8px 2px;
-    pointer-events: auto;
+    min-height: 4rem;
+    padding: 0 1.5rem;
   }
   .shell-brand {
     font-size: 2.1rem;
@@ -192,11 +188,16 @@
     list-style: none;
   }
   .shell-nav__list a {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 500;
+    color: var(--color-muted);
   }
-  .shell-nav__list a:hover {
-    color: var(--color-vermilion);
+  .shell-nav__list a:hover,
+  .shell-nav__list a[aria-current] {
+    color: var(--color-base-content);
+  }
+  .shell-nav__list a[aria-current] {
+    font-weight: 600;
   }
   .shell-start,
   .shell-header .theme-toggle {
@@ -208,7 +209,7 @@
 .shell-main {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 1.25rem 1rem calc(var(--dock-h) + env(safe-area-inset-bottom) + 2rem);
+  padding: 1.25rem 1rem calc(var(--dock-h) + var(--sab) + 2rem);
   padding-left: max(1rem, env(safe-area-inset-left));
   padding-right: max(1rem, env(safe-area-inset-right));
   outline: none;
@@ -224,14 +225,13 @@
   left: 0.5rem;
   right: 0.5rem;
   width: auto;
-  bottom: calc(env(safe-area-inset-bottom) + 0.25rem);
+  bottom: calc(var(--sab) + 0.25rem);
   height: var(--dock-h);
   padding: 0;
-  background: var(--color-base-100);
+  background: var(--color-base-200);
   color: var(--color-base-content);
-  border-style: solid;
-  border-color: var(--color-vermilion);
-  border-width: 1px 4px 8px 2px;
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
   z-index: 50;
 }
 .shell-dock > * {
@@ -246,11 +246,14 @@
   font-weight: 600;
 }
 .shell-dock .dock-active {
-  /* Small label text: primary (vermilion-deep on paper, 4.8:1) passes AA where brand vermilion (3.7:1) does not. */
-  color: var(--color-primary);
+  /* Small label text stays in the text colour (plate blue is below 4.5:1 on the floor); the indicator bar carries blue. */
+  color: var(--color-base-content);
+}
+.shell-dock .dock-active .dock-label {
+  font-weight: 800;
 }
 .shell-dock .dock-active::after {
-  background: var(--color-vermilion);
+  background: var(--color-primary);
 }
 .shell-dock__start {
   position: relative;
@@ -260,12 +263,11 @@
   height: 4.5rem;
   background: var(--color-primary);
   color: var(--color-primary-content) !important;
-  box-shadow: 3px 3px 0 var(--color-base-content);
   border: 1px solid var(--color-primary);
+  border-radius: var(--radius-box);
 }
 .shell-dock__start:active {
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  transform: translateY(1px);
 }
 @media (min-width: 768px) {
   .shell-dock {
@@ -286,14 +288,14 @@
   align-items: center;
   gap: 0.75rem;
   min-height: var(--tap-target);
-  padding: 0 0.5rem;
-  font-size: 1.1rem;
+  padding: 0 0.75rem;
+  font-size: 1.05rem;
   color: inherit;
   text-decoration: none;
 }
 .shell-more__link[aria-current="page"] {
-  color: var(--color-vermilion);
-  font-weight: 700;
+  font-weight: 800;
+  box-shadow: inset 3px 0 0 var(--color-primary);
 }
 .shell-more__theme {
   display: flex;
@@ -312,12 +314,12 @@
   margin-bottom: 1rem;
   padding: 0.6rem 0.75rem;
   background: var(--color-base-200);
-  border: 1px solid var(--color-base-content);
-  border-left: 4px solid var(--color-vermilion);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
 }
 .install-hint__icon {
   flex: none;
-  color: var(--color-vermilion);
+  color: var(--color-muted);
 }
 .install-hint__text {
   flex: 1;
@@ -363,31 +365,33 @@ body:has(.shell-backdrop) {
   z-index: 40;
   max-width: 72rem;
   margin: 0 auto;
-  padding: calc(env(safe-area-inset-top) + 0.75rem) 1rem 0;
+  padding: calc(var(--sat) + 0.75rem) 1rem 0;
 }
 .mkt-frame {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0 1.25rem;
   padding: 0.6rem 0.9rem;
-  background: var(--color-base-100);
-  border-style: solid;
-  border-color: var(--color-vermilion);
-  border-width: 1px 4px 8px 2px;
+  background: var(--color-base-200);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
 }
 .mkt-frame .shell-brand {
   margin-right: auto;
 }
 .mkt-links {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.25rem;
+  gap: 0 1rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 .mkt-links a {
-  font-size: 1.05rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
 }
 .mkt-hello {
   max-width: 72rem;
@@ -396,32 +400,35 @@ body:has(.shell-backdrop) {
   text-align: center;
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 400;
-  font-size: clamp(4.5rem, 3rem + 12vw, 11rem);
-  line-height: 0.9;
-  color: var(--color-vermilion);
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: clamp(3.5rem, 1.5rem + 12vw, 12rem);
+  line-height: 1;
+  color: var(--color-base-content);
   margin-block: 0;
 }
 .mkt-main {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0 1rem calc(4rem + env(safe-area-inset-bottom));
+  padding: 0 1rem calc(4rem + var(--sab));
 }
 .mkt-card {
   display: grid;
   gap: 2rem;
   padding: clamp(1.25rem, 4vw, 3rem);
-  background: var(--color-base-100);
-  border: 1px solid var(--color-base-content);
-  border-right: 4px solid var(--color-vermilion);
-  border-bottom: 8px solid var(--color-vermilion);
+  background: var(--color-base-200);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
 }
 .mkt-lede {
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 400;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
-  line-height: 1.02;
+  line-height: 1.05;
   margin: 0 0 0.75rem;
 }
 .mkt-cta {
@@ -453,13 +460,16 @@ body:has(.shell-backdrop) {
   font-size: 0.95rem;
 }
 .mkt-meta span[aria-hidden] {
-  color: var(--color-vermilion);
+  color: var(--color-muted);
 }
 .mkt-feature h3 {
   margin: 0 0 0.35rem;
   font-style: italic;
-  font-size: 1.6rem;
-  line-height: 1.1;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: 1.75rem;
+  line-height: 1.12;
 }
 .mkt-feature p {
   margin: 0;
@@ -468,15 +478,16 @@ body:has(.shell-backdrop) {
 .mkt-footer {
   max-width: 72rem;
   margin: 0 auto;
-  padding: 0 1rem calc(2rem + env(safe-area-inset-bottom));
+  padding: 0 1rem calc(2rem + var(--sab));
   font-size: 0.9rem;
 }
 .mkt-footer p {
   display: inline-block;
   margin: 0;
   padding: 0.4rem 0.7rem;
-  background: var(--color-base-100);
-  border: 1px solid var(--color-base-content);
+  background: var(--color-base-200);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-field);
 }
 
 /* Touch targets (W3 accessibility review): 44px minimum for the brand link and daisyUI's .btn (40px by default). */
@@ -487,4 +498,205 @@ body:has(.shell-backdrop) {
 }
 .btn {
   min-height: var(--tap-target);
+}
+
+/* ---- header fit (no sideways scroll at any width) ------------------------------------------------------------------
+   Seven links in Archivo plus the tools need about 1.2k px on one row, so the row is tightened and, below 1180px (a
+   tablet or a small laptop), the links move to their own full-width row under the brand and tools. */
+/* The tools row may shrink (the sync pip's label truncates with an ellipsis) so a long status never pushes the avatar
+   past the right edge at 360px; the brand and the fixed-size controls keep their width. */
+.shell-tools {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.shell-tools > :not(.sync-pip) {
+  flex: none;
+}
+.shell-frame .shell-brand {
+  flex: none;
+}
+.shell-nav {
+  min-width: 0;
+}
+@media (min-width: 768px) {
+  .shell-nav__list {
+    gap: 1.1rem;
+  }
+  .shell-header .shell-start {
+    padding: 0 0.9rem;
+    font-size: 1.15rem;
+  }
+  .shell-tools {
+    gap: 0.5rem;
+  }
+}
+@media (min-width: 768px) and (max-width: 1179px) {
+  .shell-frame {
+    flex-wrap: wrap;
+    gap: 0 1rem;
+    min-height: 0;
+    padding-top: 0.25rem;
+    padding-bottom: 0;
+  }
+  .shell-brand {
+    margin-right: auto;
+  }
+  .shell-nav {
+    order: 3;
+    flex: 0 0 100%;
+    margin: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .shell-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .shell-nav__list {
+    gap: 1.5rem;
+    min-width: max-content;
+  }
+}
+
+/* ---- pending indicator (components/shell/LinkPending): fixed size, only opacity changes, so it cannot shift the layout ---- */
+.link-pending {
+  position: absolute;
+  left: 25%;
+  right: 25%;
+  height: 2px;
+  background: var(--color-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms var(--ease-out);
+}
+.link-pending[data-placement="top"] {
+  top: 0.35rem;
+}
+.link-pending[data-placement="bottom"] {
+  left: 0;
+  right: 0;
+  bottom: -0.15em;
+}
+.link-pending[data-pending="true"] {
+  opacity: 1;
+  transition-delay: 80ms; /* a prefetched tap resolves faster than this and never flashes */
+}
+@media (prefers-reduced-motion: no-preference) {
+  .link-pending[data-pending="true"] {
+    animation: link-pending-pulse 900ms ease-in-out infinite alternate;
+  }
+}
+@keyframes link-pending-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- route skeletons (components/shell/Skeleton.tsx, the loading.tsx files). Every block has a fixed height so the swap to
+   the real page moves nothing; the heights below were measured from the rendered pages at 412 px and 1280 px. ---- */
+.skel-page {
+  --skel-row-h: 5.5rem;
+}
+.skel {
+  position: relative;
+  overflow: hidden;
+  height: var(--skel-h, 4rem);
+  border-radius: var(--radius-box);
+  background-color: var(--color-base-200);
+}
+.skel-rows,
+.skel-grid {
+  display: grid;
+  gap: var(--space-5);
+}
+.skel-grid {
+  grid-template-columns: minmax(0, 1fr);
+  margin-bottom: var(--space-5);
+}
+@media (min-width: 768px) {
+  .skel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-7);
+  }
+}
+.skel-desc {
+  max-width: 60ch;
+  height: calc(var(--skel-lines, 2) * 1.5em);
+  margin-top: 0.5rem;
+}
+@media (min-width: 768px) {
+  .skel-desc {
+    height: calc(var(--skel-lines-wide, var(--skel-lines, 2)) * 1.5em);
+  }
+}
+.skel--action {
+  width: 8rem;
+  height: 2.5rem;
+}
+.skel--filters {
+  --skel-h: 9rem;
+  margin-bottom: var(--space-5);
+}
+.skel--card {
+  --skel-h: 179px;
+}
+.skel--chart {
+  --skel-h: 16rem;
+  margin-bottom: var(--space-5);
+}
+.skel--narrative {
+  --skel-h: 12rem;
+  margin-bottom: var(--space-5);
+}
+.skel--form {
+  --skel-h: 12rem;
+}
+.skel--title {
+  --skel-h: 4.5rem;
+  max-width: 24rem;
+  margin-bottom: var(--space-6);
+}
+/* /today cells (mobile first; the wider columns are shorter or taller as measured) */
+.skel--t-start {
+  --skel-h: 135px;
+}
+.skel--t-templates {
+  --skel-h: 155px;
+}
+.skel--t-body {
+  --skel-h: 184px;
+}
+.skel--t-tiles {
+  --skel-h: 243px; /* the cell is 268 / 278 px with its 25 px label above */
+}
+.skel--t-chart {
+  --skel-h: 356px;
+}
+.skel--t-sets {
+  --skel-h: 155px;
+}
+.skel--t-insight {
+  --skel-h: 143px;
+}
+@media (min-width: 768px) {
+  .skel--t-tiles {
+    --skel-h: 253px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-base-300) 55%, transparent), transparent);
+    transform: translateX(-100%);
+    animation: skel-sheen 1.4s ease-in-out infinite;
+  }
+}
+@keyframes skel-sheen {
+  to {
+    transform: translateX(100%);
+  }
 }

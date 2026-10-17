@@ -1,8 +1,18 @@
 // The sync engine: push the outbox, apply the response, page through the pull, refresh the catalog.
 //
-// iOS home-screen PWAs have no Background Sync, so the triggers do its job: app start, `online`, `visibilitychange`,
-// 1.5 s after a write, every 30 s while changes are pending, and manual `syncNow`. `navigator.locks` keeps it to one
-// sync at a time across tabs. A signed-out (401) device keeps its pending changes and reports state `signed-out`.
+// iOS home-screen PWAs have no Background Sync, so the triggers do its job. Changes are safe in IndexedDB (Dexie, with the outbox)
+// the moment they are written, so syncing is about other devices and the server, not about durability. The policy keeps server use
+// low while the lifter is logging:
+//
+//   outside a workout   app start; 1.5 s after a write; every 30 s while changes are pending (the retry after a failed sync);
+//                       `online`; `visibilitychange` to visible, at most once per 30 s; manual `syncNow`.
+//   during a workout    app start (so a reopened app pushes what was left); manual (the "Sync now" button); and at most ONE sync
+//   (isWorkoutActive)   every 5 minutes while changes are pending (the 30 s tick only checks the clock, it does not call the server).
+//                       Writes and `visibilitychange` trigger nothing; `online` is throttled to the same 5 minutes.
+//   workout ends        finishing or discarding clears the flag, which syncs immediately so history and Progress are current.
+//
+// A sync with an empty outbox only pulls, and the server answers it without opening a write transaction. `navigator.locks` keeps it
+// to one sync at a time across tabs. A signed-out (401) device keeps its pending changes and reports state `signed-out`.
 import { liveQuery } from "dexie";
 import type { CatalogResponse } from "@/contracts/catalog";
 import { catalogEtag } from "@/contracts/catalog";
@@ -11,12 +21,17 @@ import type { PersonalRecordRow } from "@/contracts/entities";
 import { currentHlc, ensureDeviceId } from "@/client/db/clock";
 import { META_KEYS, getMeta, setMeta, type OverloadDb } from "@/client/db/schema";
 import { createRepo } from "@/client/repo/repo";
+import { isWorkoutActive, onWorkoutActiveChange } from "@/lib/pwa";
 import { applyResponse } from "./apply";
 import { readBatch } from "./outbox";
 import { statusStore, syncedListeners, type StatusStore, type SyncedListeners } from "./status";
 
 export const WRITE_DELAY_MS = 1_500;
 export const PENDING_INTERVAL_MS = 30_000;
+/** Outside a workout, a tab coming back to the foreground syncs at most this often. */
+export const VISIBILITY_MIN_MS = 30_000;
+/** During a workout, background triggers (the pending tick, `online`) sync at most this often. */
+export const WORKOUT_SYNC_INTERVAL_MS = 5 * 60_000;
 const CATALOG_RECHECK_MS = 6 * 60 * 60 * 1000;
 const MAX_ROUNDS = 100;
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -29,7 +44,14 @@ export interface EngineOptions {
   /** Test seam; defaults to navigator.locks when available, else an in-process flag. */
   locks?: Pick<LockManager, "request">;
   writeDelayMs?: number;
+  /** How often the pending-changes tick runs (it only calls the server when the policy allows). */
   intervalMs?: number;
+  visibilityMinMs?: number;
+  workoutIntervalMs?: number;
+  /** Test seam; defaults to the localStorage flag in src/lib/pwa.ts. */
+  isWorkoutActive?: () => boolean;
+  /** Test seam; defaults to `onWorkoutActiveChange` from src/lib/pwa.ts. */
+  onWorkoutActiveChange?: (listener: (active: boolean) => void) => () => void;
   now?: () => number;
 }
 
@@ -62,6 +84,10 @@ export function createEngine(options: EngineOptions): Engine {
   let lastCatalogCheck = 0;
   let stopFns: (() => void)[] = [];
   let previousPending = 0;
+  /** When the last cycle that reached for the network began (0 = none yet). Offline attempts do not count. */
+  let lastRunAt = 0;
+  const inWorkout = options.isWorkoutActive ?? (() => isWorkoutActive());
+  const throttled = (minMs: number) => lastRunAt !== 0 && now() - lastRunAt < minMs;
 
   async function postSync(request: SyncRequest): Promise<SyncResponse> {
     const res = await fetchImpl("/api/sync", {
@@ -76,11 +102,14 @@ export function createEngine(options: EngineOptions): Engine {
   }
 
   async function refreshCatalog(reason: SyncReason): Promise<void> {
-    const due = reason === "start" || reason === "manual" || reason === "online" || now() - lastCatalogCheck > CATALOG_RECHECK_MS;
-    if (!due || !isOnline()) return;
+    if (!isOnline()) return;
+    // A 304 is cheap but not free: check at app start and every few hours, not on every manual or reconnect sync. A device that has
+    // never received the catalog (the first fetch failed) keeps trying on every sync: without it the exercise picker is empty.
+    const etag = await getMeta<string>(db, META_KEYS.catalogEtag);
+    const due = reason === "start" || etag === undefined || now() - lastCatalogCheck > CATALOG_RECHECK_MS;
+    if (!due) return;
     lastCatalogCheck = now();
     try {
-      const etag = await getMeta<string>(db, META_KEYS.catalogEtag);
       const res = await fetchImpl("/api/catalog", { headers: etag ? { "if-none-match": etag } : {}, credentials: "same-origin" });
       if (res.status !== 200) return; // 304: up to date; anything else (501 until the catalog ships): try again later
       const catalog = (await res.json()) as CatalogResponse;
@@ -97,6 +126,7 @@ export function createEngine(options: EngineOptions): Engine {
     status.set({ state: "syncing" });
     try {
       if (!isOnline()) throw new TypeError("offline");
+      lastRunAt = now();
       const deviceId = await ensureDeviceId(db);
       for (let round = 0; round < MAX_ROUNDS; round++) {
         const batch = await readBatch(db);
@@ -106,6 +136,7 @@ export function createEngine(options: EngineOptions): Engine {
         result.pushed += outcome.pushed;
         result.pulled += outcome.pulled;
         result.rejected += outcome.rejected;
+        result.serverVersion = response.cursor;
         newPrs.push(...response.newPrs);
         if (outcome.rejected > 0) console.warn("[sync] rejected mutations", outcome.rejections);
         const remaining = await db.outbox.count();
@@ -121,7 +152,7 @@ export function createEngine(options: EngineOptions): Engine {
         rejectedCount: result.rejected,
       });
       if (result.pushed > 0 || result.pulled > 0 || result.rejected > 0) {
-        listeners.emit({ pushed: result.pushed, pulled: result.pulled, rejected: result.rejected, newPrs });
+        listeners.emit({ pushed: result.pushed, pulled: result.pulled, rejected: result.rejected, newPrs, serverVersion: result.serverVersion });
       }
       return result;
     } catch (error) {
@@ -138,12 +169,21 @@ export function createEngine(options: EngineOptions): Engine {
     }
   }
 
-  async function syncNow(reason: SyncReason = "manual"): Promise<SyncResult> {
+  /**
+   * Background triggers skip when a sync is already running. A request that names "manual" (the Sync now button, finishing or
+   * discarding a workout, the module-level `syncNow`) waits its turn instead: the running cycle read the outbox before the change
+   * that prompted the call. Called with no reason (tests), it skips like a background trigger.
+   */
+  async function syncNow(requested?: SyncReason): Promise<SyncResult> {
+    const reason = requested ?? "manual";
+    const waits = requested === "manual";
     const skipped: SyncResult = { ok: true, pushed: 0, pulled: 0, rejected: 0, newPrs: [], skipped: true };
     const locks = options.locks ?? (typeof navigator !== "undefined" ? navigator.locks : undefined);
     if (locks) {
-      return locks.request(`overload-sync-${db.userId}`, { ifAvailable: true }, async (lock) => (lock ? cycle(reason) : skipped)) as Promise<SyncResult>;
+      const mode = waits ? {} : { ifAvailable: true };
+      return locks.request(`overload-sync-${db.userId}`, mode, async (lock) => (lock ? cycle(reason) : skipped)) as Promise<SyncResult>;
     }
+    while (waits && inProcessBusy) await new Promise((resolve) => setTimeout(resolve, 50));
     if (inProcessBusy) return skipped;
     inProcessBusy = true;
     try {
@@ -157,6 +197,8 @@ export function createEngine(options: EngineOptions): Engine {
     if (stopFns.length > 0) return;
     const writeDelay = options.writeDelayMs ?? WRITE_DELAY_MS;
     const interval = options.intervalMs ?? PENDING_INTERVAL_MS;
+    const visibilityMin = options.visibilityMinMs ?? VISIBILITY_MIN_MS;
+    const workoutInterval = options.workoutIntervalMs ?? WORKOUT_SYNC_INTERVAL_MS;
     let writeTimer: ReturnType<typeof setTimeout> | undefined;
     let pending = 0;
 
@@ -167,19 +209,33 @@ export function createEngine(options: EngineOptions): Engine {
         status.set({ pendingCount: count });
         if (count > previousPending) {
           clearTimeout(writeTimer);
-          writeTimer = setTimeout(() => void syncNow("write"), writeDelay);
+          // Decided when the timer fires, not when it is set: the workout flag may flip in between.
+          writeTimer = setTimeout(() => {
+            if (!inWorkout()) void syncNow("write");
+          }, writeDelay);
         }
         previousPending = count;
       },
       error() {},
     });
     const intervalId = setInterval(() => {
-      if (pending > 0) void syncNow("interval");
+      if (pending === 0) return;
+      if (inWorkout() && throttled(workoutInterval)) return;
+      void syncNow("interval");
     }, interval);
-    const onOnline = () => void syncNow("online");
-    const onVisible = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") void syncNow("visibility");
+    const onOnline = () => {
+      if (inWorkout() && throttled(workoutInterval)) return;
+      void syncNow("online");
     };
+    const onVisible = () => {
+      if (typeof document === "undefined" || document.visibilityState !== "visible") return;
+      if (inWorkout() || throttled(visibilityMin)) return;
+      void syncNow("visibility");
+    };
+    // Finishing or discarding a workout clears the flag: push everything now so history and Progress are current.
+    const unsubscribeWorkout = (options.onWorkoutActiveChange ?? onWorkoutActiveChange)((active) => {
+      if (!active) void syncNow("manual");
+    });
     if (typeof window !== "undefined") window.addEventListener("online", onOnline);
     if (typeof document !== "undefined") document.addEventListener("visibilitychange", onVisible);
 
@@ -187,6 +243,7 @@ export function createEngine(options: EngineOptions): Engine {
       () => subscription.unsubscribe(),
       () => clearInterval(intervalId),
       () => clearTimeout(writeTimer),
+      unsubscribeWorkout,
       () => typeof window !== "undefined" && window.removeEventListener("online", onOnline),
       () => typeof document !== "undefined" && document.removeEventListener("visibilitychange", onVisible),
     ];

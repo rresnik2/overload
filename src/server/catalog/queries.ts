@@ -16,14 +16,30 @@ export async function getCatalogVersion(): Promise<number> {
   return (await prisma.catalogMeta.findUnique({ where: { id: 1 } }))?.version ?? 0;
 }
 
-/** Every global catalog exercise with its muscles, as contract rows. */
-export async function loadCatalog(version: number): Promise<CatalogResponse> {
+// The global catalog only changes on a reseed, which bumps CatalogMeta.version, so the full response (876 exercises, about 1.1 MB
+// read from the database) is kept in memory per version: every new device used to cost a full read. Concurrent misses share one
+// read. Custom exercises are never part of it (userId null only).
+let fullCatalog: { version: number; response: Promise<CatalogResponse> } | null = null;
+
+async function readCatalog(version: number): Promise<CatalogResponse> {
   const rows = await prisma.exercise.findMany({
     where: { userId: null, deletedAt: null },
     include: { muscles: true },
     orderBy: [{ name: "asc" }, { id: "asc" }],
   });
   return { version, generatedAt: new Date().toISOString(), exercises: rows.map(exerciseToRow) };
+}
+
+/** Every global catalog exercise with its muscles, as contract rows. Cached per catalog version. */
+export function loadCatalog(version: number): Promise<CatalogResponse> {
+  if (fullCatalog?.version === version) return fullCatalog.response;
+  const response = readCatalog(version);
+  fullCatalog = { version, response };
+  // A failed read must not stay cached: the next request tries again.
+  response.catch(() => {
+    if (fullCatalog?.response === response) fullCatalog = null;
+  });
+  return response;
 }
 
 // ───────────────────────────── library ─────────────────────────────
@@ -45,14 +61,45 @@ export async function listFavoriteExerciseIds(ctx: UserCtx): Promise<Set<string>
  * read are fetched for the ~900 visible rows (not the instructions and photo lists); the shared keyword search, filters,
  * facets and paging run in memory (see ./library) and just the page's rows are then loaded in full.
  */
+const SLIM_SELECT = { id: true, slug: true, name: true, aliases: true, modality: true, equipment: true, standardLift: true, mechanic: true, muscles: { select: { muscle: true, role: true } } } as const;
+type SlimExercise = Prisma.ExerciseGetPayload<{ select: typeof SLIM_SELECT }>;
+
+// The global catalog (about 870 of the ~900 visible rows, with their muscles) only changes when the catalog is re-seeded, which bumps
+// CatalogMeta.version. Its slim columns are kept in memory per server instance, keyed by that version, and the version itself is
+// re-read at most once a minute: a library request then queries only the user's own exercises, favorites and the page's rows.
+const CATALOG_VERSION_TTL_MS = 60_000;
+let catalogVersionRead: { at: number; version: number } | null = null;
+let slimCatalog: { version: number; rows: SlimExercise[] } | null = null;
+
+async function currentCatalogVersion(now: number): Promise<number> {
+  if (catalogVersionRead && now - catalogVersionRead.at < CATALOG_VERSION_TTL_MS) return catalogVersionRead.version;
+  const version = await getCatalogVersion();
+  catalogVersionRead = { at: now, version };
+  return version;
+}
+
+async function globalSlimCatalog(): Promise<SlimExercise[]> {
+  const version = await currentCatalogVersion(Date.now());
+  if (slimCatalog?.version === version) return slimCatalog.rows;
+  const rows = await prisma.exercise.findMany({ where: { deletedAt: null, userId: null }, select: SLIM_SELECT });
+  slimCatalog = { version, rows };
+  return rows;
+}
+
+/** Test seam: forget what was cached. */
+export function resetLibraryCache(): void {
+  catalogVersionRead = null;
+  slimCatalog = null;
+  fullCatalog = null;
+}
+
 export async function listLibrary(ctx: UserCtx, query: LibraryQuery = {}): Promise<LibraryResult> {
-  const [slim, favoriteIds] = await Promise.all([
-    prisma.exercise.findMany({
-      where: visibleTo(ctx),
-      select: { id: true, slug: true, name: true, aliases: true, modality: true, equipment: true, standardLift: true, mechanic: true, muscles: { select: { muscle: true, role: true } } },
-    }),
+  const [global, own, favoriteIds] = await Promise.all([
+    globalSlimCatalog(),
+    prisma.exercise.findMany({ where: { deletedAt: null, userId: ctx.id }, select: SLIM_SELECT }), // always this user's: never cached
     listFavoriteExerciseIds(ctx),
   ]);
+  const slim = [...global, ...own];
   const page = applyLibraryQuery(slim, query, favoriteIds);
   const rows = await prisma.exercise.findMany({ where: { AND: [visibleTo(ctx), { id: { in: page.exercises.map((e) => e.id) } }] }, include: { muscles: true } });
   const byId = new Map(rows.map((r) => [r.id, exerciseToRow(r)]));

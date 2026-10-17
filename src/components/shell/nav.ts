@@ -31,3 +31,28 @@ export const MORE_ITEMS = [navItem("/templates"), navItem("/history"), navItem("
 export function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/** The swipe ring on phones: only these three top-level pages, in dock order, with no wrap-around. */
+export const TAB_RING: readonly string[] = DOCK_ITEMS.map((i) => i.href);
+
+export type NavTransition = "nav-forward" | "nav-back";
+
+/** The neighbouring tab of `pathname` when it is exactly a top-level tab (not a nested or More page), else null. */
+export function tabNeighbour(pathname: string, step: 1 | -1): string | null {
+  const i = TAB_RING.indexOf(pathname.length > 1 ? pathname.replace(/\/$/, "") : pathname);
+  if (i < 0) return null;
+  return TAB_RING[i + step] ?? null;
+}
+
+/**
+ * Which way a dock tap slides, by position: toward a tab further right is forward, toward one further left (or up out of a nested
+ * page into its own tab) is back. Pages outside the dock (More) count as forward. A swipe uses the same rule, so both slide alike.
+ */
+export function dockTransition(pathname: string, href: string): NavTransition {
+  const from = DOCK_ITEMS.findIndex((i) => isActive(pathname, i.href));
+  const to = DOCK_ITEMS.findIndex((i) => i.href === href);
+  if (from < 0 || to < 0) return "nav-forward";
+  if (to < from) return "nav-back";
+  if (to === from) return pathname === href ? "nav-forward" : "nav-back";
+  return "nav-forward";
+}

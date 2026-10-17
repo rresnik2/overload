@@ -1,5 +1,6 @@
 // Progress overview: one card per progression series, this and last week's sets per muscle, the training calendar and DOTS.
 import Link from "next/link";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { CalendarHeatmap } from "@/components/charts/CalendarHeatmap";
 import { WeeklySetsChart } from "@/components/charts/WeeklySetsChart";
 import { formatDate } from "@/components/charts/format";
@@ -11,18 +12,22 @@ import { PageIntro } from "@/components/ui/PageIntro";
 import { Term } from "@/components/ui/Term";
 import { BigThreeCard, SeriesCards } from "@/components/progress/OverviewSections";
 import { requireUser } from "@/server/auth/session";
-import { loadProgressOverview } from "@/server/queries/progress";
+import { loadProgressOverview, loadToday } from "@/server/queries/progress";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Progress" };
 
 export default async function ProgressPage() {
   const ctx = await requireUser();
-  const overview = await loadProgressOverview(ctx);
+  // The sync version is read beside the profile, before any synced row is (src/server/sync/page-version.ts).
+  const [today, syncVersion] = await Promise.all([loadToday(ctx), pageSyncVersion(ctx)]);
+  const overview = await loadProgressOverview(ctx, { today });
   const unit = overview.profile.unitPreference;
   const [thisWeek, lastWeek] = overview.weeks;
 
   return (
     <>
+      <SyncVersionStamp version={syncVersion} />
       <PageHeader
         title="Progress"
         meta={["Last 16 weeks", `${overview.cards.length} series`]}

@@ -5,6 +5,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { ARTICLES } from "@/components/learn/articles";
 import { completeOnboarding, createUserAtOnboarding } from "../_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 test.describe.configure({ timeout: 240_000 });
 
@@ -48,7 +49,7 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
           ["styleguide", "/styleguide"],
         ] as const) {
           await page.goto(path);
-          await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+          await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
           await shoot(page, `${name}-${vpName}-${theme}`);
         }
       });
@@ -72,7 +73,7 @@ for (const [vpName, viewport] of Object.entries(VIEWPORTS)) {
           ["settings-security", "/settings/security"],
         ] as const) {
           await page.goto(path);
-          await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+          await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
           await shoot(page, `${name}-${vpName}-${theme}`);
         }
       });

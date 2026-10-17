@@ -8,13 +8,13 @@ import { InfoHint } from "./InfoHint";
 export type ToastKind = "info" | "success" | "pr" | "error";
 
 export interface ToastInput {
-  /** pr = personal record (vermilion star), success = sync results, error = failures (announced assertively, stays longer). */
+  /** pr = personal record (plate-red star), success = sync results, error = failures (announced assertively, stays longer). */
   kind?: ToastKind;
   title: string;
   description?: ReactNode;
   /** One optional action ("Undo", "View"). */
   action?: { label: string; onClick: () => void };
-  /** Auto-dismiss in ms. Default 5000 (8000 for errors). 0 keeps it until dismissed. */
+  /** Auto-dismiss in ms. Default 5000 (3500 for records, 8000 for errors). 0 keeps it until dismissed. */
   duration?: number;
 }
 
@@ -38,11 +38,16 @@ export function useToast(): ToastApi {
 const ICONS = { info: Info, success: CircleCheck, pr: Star, error: CircleAlert } as const;
 const MAX_VISIBLE = 3;
 
-function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void }) {
+function ToastCard({ item, dismiss }: { item: ToastItem; dismiss: (id: number) => void }) {
   const kind = item.kind ?? "info";
   const Icon = ICONS[kind];
-  const duration = item.duration ?? (kind === "error" ? 8000 : 5000);
+  const duration = item.duration ?? (kind === "error" ? 8000 : kind === "pr" ? 3500 : 5000);
+  const id = item.id;
+  // Stable across the provider's re-renders, so another toast arriving does not restart this one's timer.
+  const onDismiss = useCallback(() => dismiss(id), [dismiss, id]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // How the last press arrived: a tap on a touch screen dismisses, a mouse click on the card's text does not.
+  const pressedBy = useRef<string>("mouse");
   const disarm = useCallback(() => {
     if (timer.current) clearTimeout(timer.current);
   }, []);
@@ -56,12 +61,25 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: () => void
   }, [arm, disarm]);
 
   return (
-    // Errors are assertive (role=alert), the rest polite (role=status). Hover/focus pauses the timer.
+    // Errors are assertive (role=alert), the rest polite (role=status). A real mouse hovering the card, or focus inside it
+    // (the keyboard), pauses the timer. Touch never does: a tap fires compatibility mouse events and a finger leaves no
+    // hover behind, so a paused toast would sit over the controls beneath it. A tap on the card dismisses it instead.
     <div
       role={kind === "error" ? "alert" : "status"}
       className={clsx("toast", `toast--${kind}`)}
-      onMouseEnter={disarm}
-      onMouseLeave={arm}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") disarm();
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === "mouse") arm();
+      }}
+      onPointerDown={(e) => {
+        pressedBy.current = e.pointerType;
+      }}
+      onClick={(e) => {
+        if (pressedBy.current === "mouse" || (e.target as Element).closest("button, a")) return;
+        onDismiss();
+      }}
       onFocus={disarm}
       onBlur={arm}
     >
@@ -109,7 +127,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div className="toast-region" role="region" aria-label="Notifications" aria-live="polite">
         {items.map((item) => (
-          <ToastCard key={item.id} item={item} onDismiss={() => dismiss(item.id)} />
+          <ToastCard key={item.id} item={item} dismiss={dismiss} />
         ))}
       </div>
     </ToastContext.Provider>

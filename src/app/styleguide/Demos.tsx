@@ -2,7 +2,9 @@
 // Interactive demos for /styleguide (client-only pieces: steppers, tabs, sheet, toasts).
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Dial } from "@/components/ui/Dial";
 import { NumberStepper } from "@/components/ui/NumberStepper";
+import { NumberStrip } from "@/components/ui/NumberStrip";
 import { Modal, Sheet } from "@/components/ui/Sheet";
 import { ModalityTabs, Tabs, type ModalityTab } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toast";
@@ -19,6 +21,50 @@ export function StepperDemo() {
       <NumberStepper label="RIR" kind="rir" step={1} min={0} max={10} value={rir} onChange={setRir} hint="Reps in reserve" />
       <NumberStepper label="Weight (error)" kind="weight" unit="kg" step={2.5} value={null} onChange={() => {}} error="Enter a weight" />
       <NumberStepper label="Weight (disabled)" kind="weight" unit="kg" step={2.5} value={60} onChange={() => {}} disabled />
+    </div>
+  );
+}
+
+const DIAL_WEIGHTS = Array.from({ length: 113 }, (_, i) => 20 + i * 2.5);
+const DIAL_REPS = Array.from({ length: 30 }, (_, i) => i + 1);
+
+/** The dial over bar weights (rim and ink from the plate tokens), the rep strip, an empty dial and a disabled one. */
+export function DialDemo() {
+  const [weight, setWeight] = useState<number | null>(102.5);
+  const [reps, setReps] = useState<number | null>(5);
+  const [empty, setEmpty] = useState<number | null>(null);
+  const [ticks, setTicks] = useState(0);
+  return (
+    <div className="sg-grid">
+      <div className="sg-stack">
+        <Dial
+          label="Set 3 weight"
+          values={DIAL_WEIGHTS}
+          value={weight}
+          onChange={setWeight}
+          valueText={(v) => `${v} kilograms total`}
+          onDetent={() => setTicks((n) => n + 1)}
+          rim="plate-red"
+          ink="#ffffff"
+        />
+        <p className="num m-0">
+          {weight} kg · {ticks} detents
+        </p>
+        <p className="m-0">Drag in a circle (clockwise adds), or focus it and use the arrows, Page Up/Down, Home/End or the mouse wheel.</p>
+      </div>
+      <div className="sg-stack">
+        <NumberStrip label="Reps" values={DIAL_REPS} value={reps} onChange={setReps} valueText={(v) => `${v} reps`} />
+        <NumberStrip label="Reps (empty)" values={DIAL_REPS} value={null} onChange={() => {}} />
+        <NumberStrip label="Reps (disabled)" values={DIAL_REPS} value={8} onChange={() => {}} disabled />
+        <p className="num m-0">{reps} reps</p>
+      </div>
+      <div className="sg-stack">
+        <Dial label="Dumbbell weight, no value yet" labelHint="weightDial" values={[10, 12, 14, 16, 18, 20]} value={empty} onChange={setEmpty} valueText={(v) => `${v} kilograms per hand`} restIndex={0} />
+        <p className="num m-0">{empty ?? "—"}</p>
+      </div>
+      <div className="sg-stack">
+        <Dial label="Weight (disabled)" values={DIAL_WEIGHTS} value={60} onChange={() => {}} valueText={(v) => `${v} kilograms`} disabled />
+      </div>
     </div>
   );
 }

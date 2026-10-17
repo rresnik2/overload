@@ -3,7 +3,9 @@
 // One user per worker (sign-up is rate-limited in production builds); the tests share its session and its data.
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { logSetByTyping } from "./_support/logging";
 import { completeOnboarding, createUser, createUserAtOnboarding } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 const COLD = { timeout: 45_000 };
 
@@ -45,6 +47,28 @@ async function startEmptyWorkout(page: Page) {
   await expect(start.or(name)).toBeVisible({ timeout: 60_000 });
   if (await start.isVisible()) await start.click();
   await expect(name).toBeVisible(COLD);
+}
+
+/**
+ * Discard workouts until none is active. Each test gets a fresh browser context (an empty local database) for the same user, so the
+ * workouts earlier tests left on the server arrive by sync after this page loaded, and more than one can be active across devices.
+ */
+async function discardActiveWorkouts(page: Page) {
+  const start = page.getByRole("button", { name: "Start empty workout" });
+  const name = page.getByRole("textbox", { name: "Workout name" });
+  for (let i = 0; i < 8; i++) {
+    await expect(start.or(name)).toBeVisible(COLD);
+    if (await start.isVisible()) {
+      await page.waitForTimeout(2000); // a sync pull may still be bringing one in
+      if (await start.isVisible()) return;
+      continue;
+    }
+    await page.locator('summary[aria-label="Workout options"]').click();
+    await page.getByRole("button", { name: "Discard workout" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
+    await expect(page.getByRole("dialog")).toBeHidden();
+  }
+  throw new Error("workouts kept coming back after being discarded");
 }
 
 /** Open the picker once so the catalog is in Dexie, then close it. */
@@ -159,14 +183,11 @@ test.describe("templates are easy to reach and use", () => {
     await expect(page.getByRole("heading", { name: "Templates", level: 1 })).toBeVisible();
   });
 
-  test("create, edit, duplicate and start a template; /today lists it; a finished workout can be saved as one", async ({ page }) => {
+  test("create, edit, duplicate and start a template; /today lists it; a finished workout can be saved as one", async ({ page, isMobile }) => {
     await startEmptyWorkout(page);
     await waitForCatalog(page);
-    // leave the empty workout behind so templates can be started
-    await page.locator('summary[aria-label="Workout options"]').click();
-    await page.getByRole("button", { name: "Discard workout" }).click();
-    await page.getByRole("dialog").getByRole("button", { name: "Discard workout" }).click();
-    await expect(page.getByRole("button", { name: "Start empty workout" })).toBeVisible(COLD);
+    // leave every open workout behind so templates can be started
+    await discardActiveWorkouts(page);
     await expect.poll(async () => page.evaluate(() => document.querySelectorAll(".wk-active").length)).toBe(0);
 
     // create
@@ -212,9 +233,7 @@ test.describe("templates are easy to reach and use", () => {
     await expect(block.locator(".wk-set")).toHaveCount(4);
 
     // log a set and finish
-    await block.getByRole("textbox", { name: /^Set 1 weight/ }).fill("60");
-    await block.getByRole("textbox", { name: "Set 1 reps" }).fill("8");
-    await block.getByRole("button", { name: "Complete set 1" }).click();
+    await logSetByTyping(block, 1, "60", "8", isMobile);
     await page.getByRole("button", { name: "Finish", exact: true }).click();
     const sheet = page.getByRole("dialog");
     await expect(sheet.getByText(/checks it for personal records/)).toBeVisible();
@@ -286,7 +305,7 @@ for (const theme of ["paper", "ink"] as const) {
     for (const path of ["/today", "/templates", "/exercises", "/history", "/progress", "/insights", "/settings/profile", "/workout", "/learn/choosing-a-goal"]) {
       test(path, async ({ page }) => {
         await page.goto(path);
-        await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+        await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
         await expect(page.locator("main").first()).toBeVisible(COLD);
         const hint = page.getByRole("button", { name: /^What is / }).first();
         if (await hint.count()) {

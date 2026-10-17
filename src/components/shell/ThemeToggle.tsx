@@ -16,7 +16,7 @@ const subscribe = (cb: () => void) => {
 };
 const isDark = () => {
   const t = document.documentElement.getAttribute("data-theme");
-  return t ? t === "overload-ink" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+  return t ? t === "overload-floor" : window.matchMedia("(prefers-color-scheme: dark)").matches;
 };
 
 /** Flips paper <-> ink and remembers the choice (localStorage via applyTheme). 44px target. */

@@ -12,15 +12,15 @@ import { Stat } from "@/components/ui/Stat";
 import { SyncPipView } from "@/components/ui/SyncPip";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SYNC_STATES } from "@/contracts/sync";
-import { OverlayDemo, StepperDemo, TabsDemo } from "./Demos";
+import { DialDemo, OverlayDemo, StepperDemo, TabsDemo } from "./Demos";
 import { PaletteSample } from "./PaletteSample";
 import { CHART, COLORS, contrast, TEXT_PAIRS, THEME_NAME, type ThemeKey } from "./tokens";
 
 export const metadata: Metadata = { title: "Styleguide", robots: { index: false } };
 
 const THEMES: { key: ThemeKey; title: string }[] = [
-  { key: "paper", title: "Light: overload-paper" },
-  { key: "ink", title: "Dark: overload-ink" },
+  { key: "paper", title: "Light: overload-daylight" },
+  { key: "ink", title: "Dark: overload-floor" },
 ];
 
 function Swatches({ theme }: { theme: ThemeKey }) {
@@ -79,11 +79,11 @@ function Showcase({ theme }: { theme: ThemeKey }) {
           <ContrastTable theme={theme} />
           <div className="sg-stack">
             <p className="sg-note m-0">
-              Vermilion is for borders, hard shadows, display type and icons. It is <strong>3.7:1</strong> on paper, so it is never used for small body text: text uses ink, or the deeper primary.
+              Plate colours (primary blue, secondary red, accent yellow, success green) appear on plates, lifts and data only, never as decoration. Plate blue is <strong>3.29:1</strong> on the dark floor, so it marks borders and fills but is never small text.
             </p>
             <div className="sg-row">
-              <span className="sg-vermilion-box">Hard shadow</span>
-              <span className="sg-frame-box">Frame border</span>
+              <span className="sg-panel-box">Panel on base-200</span>
+              <span className="sg-edge-box">Control edge (line-strong)</span>
             </div>
           </div>
         </div>
@@ -91,11 +91,14 @@ function Showcase({ theme }: { theme: ThemeKey }) {
 
       <section className="sg-section">
         <SectionHeader id={id("type")} index={2} title="Type" />
-        <p className="font-display m-0 text-6xl italic leading-none">Instrument Serif italic</p>
-        <p className="m-0 mt-3 text-lg">Newsreader body text for everything you read, at least 16px in inputs. Numbers use tabular figures:</p>
+        <p className="type-display-xl m-0">Display XL</p>
+        <p className="type-display-m m-0 mt-2">Display M, exercise names</p>
+        <p className="type-display-s m-0 mt-2">Display S, primary buttons</p>
+        <p className="type-label m-0 mt-3 text-muted">Label, section labels and units</p>
+        <p className="m-0 mt-3 text-lg">Archivo body text for everything you read, at least 16px in inputs. Numbers use tabular figures:</p>
         <p className="num m-0 mt-1 text-2xl">0123456789 · 82.5 kg × 8 @ 2 RIR</p>
         <p className="m-0 mt-3">
-          A <a className="link-underline tap-target" href="#main">link with the animated vermilion underline</a>.
+          A <a className="link-underline tap-target" href="#main">link with the animated blue underline</a>.
         </p>
       </section>
 
@@ -140,7 +143,12 @@ function Showcase({ theme }: { theme: ThemeKey }) {
       </section>
 
       <section className="sg-section">
-        <SectionHeader id={id("stats")} index={5} title="Stats" />
+        <SectionHeader id={id("dial")} index={5} title="Dial and rep strip" />
+        <DialDemo />
+      </section>
+
+      <section className="sg-section">
+        <SectionHeader id={id("stats")} index={6} title="Stats" />
         <div className="sg-row sg-row--top">
           <Stat label="Weekly sets" value="14" size="sm" />
           <Stat label="Estimated 1RM" value="142.5" unit="kg" size="md" />
@@ -150,17 +158,17 @@ function Showcase({ theme }: { theme: ThemeKey }) {
       </section>
 
       <section className="sg-section">
-        <SectionHeader id={id("tabs")} index={6} title="Tabs" />
+        <SectionHeader id={id("tabs")} index={7} title="Tabs" />
         <TabsDemo />
       </section>
 
       <section className="sg-section">
-        <SectionHeader id={id("overlays")} index={7} title="Sheet, modal, toast" />
+        <SectionHeader id={id("overlays")} index={8} title="Sheet, modal, toast" />
         <OverlayDemo />
       </section>
 
       <section className="sg-section">
-        <SectionHeader id={id("sync")} index={8} title="Sync pip" />
+        <SectionHeader id={id("sync")} index={9} title="Sync pip" />
         <div className="sg-row">
           {SYNC_STATES.map((state) => (
             <SyncPipView key={state} state={state} pendingCount={state === "offline" ? 3 : 0} />
@@ -169,7 +177,7 @@ function Showcase({ theme }: { theme: ThemeKey }) {
       </section>
 
       <section className="sg-section">
-        <SectionHeader id={id("primitives")} index={9} title="Primitives" />
+        <SectionHeader id={id("primitives")} index={10} title="Primitives" />
         <PageHeader as="h2" title="Back squat" meta={["Free weight", "Barbell"]} description="PageHeader with a meta line." actions={<Button variant="ink">Edit</Button>} />
         <div className="sg-grid">
           <HardCard>HardCard (static)</HardCard>
@@ -183,7 +191,7 @@ function Showcase({ theme }: { theme: ThemeKey }) {
       </section>
 
       <section className="sg-section">
-        <SectionHeader id={id("chart")} index={10} title="Chart palette" />
+        <SectionHeader id={id("chart")} index={11} title="Chart palette" />
         <ul className="sg-swatches">
           {Object.entries(CHART[theme]).map(([name, hex]) => (
             <li key={name} className="sg-swatch">

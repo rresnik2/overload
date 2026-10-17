@@ -8,6 +8,8 @@ import type { SyncedInfo } from "@/contracts/sync";
 import { createStatusStore, createSyncedListeners, statusStore, syncedListeners } from "./status";
 import { useOnSynced, useSyncStatus } from "./hooks";
 import { SyncProvider } from "./provider";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }), usePathname: () => "/workout" }));
 import { syncNow } from "./engine";
 
 afterEach(async () => {

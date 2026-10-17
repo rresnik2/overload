@@ -134,8 +134,8 @@ Owner of the implementation: **E1**. Shapes are frozen.
 * **Request**: `deviceId`, `cursor`, `clientHlc`, ≤ `SYNC_MAX_MUTATIONS` (200) mutations, validated by `syncRequestSchema`. Each mutation: `mutationId`, `entity`, `id`, `fields` (only writable fields + `deletedAt`), `fieldHlc` (exactly one HLC per field).
 * **Server order of operations**: validate each mutation (shape, owner, references, catalog read-only) → a bad one gets `rejected` and a `SyncDeadLetter` row and never blocks the rest → lock the user's `SyncState` row (`FOR UPDATE`) → merge fields by HLC → every changed row gets the next per-user `version` → derive `workoutId/exerciseId/machineProfileId/seriesKey/localDate/effectiveLoadKg/e1rmKg` for sets → rebuild PRs for each affected `seriesKey` → return rows with `version > cursor`, ≤ `SYNC_MAX_PULL_ROWS` (1000) per page, ordered by version across all entities.
 * A mutation referencing a parent that is missing for this user is `MISSING_REFERENCE`. Mutations in one batch are applied in `SYNC_ORDER` (parents first). Children of a tombstoned parent are tombstoned by the server (orphan rule).
-* **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; exerciseFavorites; then machineProfiles and exercises).
-* **Triggers** (client): app start, `online`, `visibilitychange`, 1.5 s after a write, every 30 s while pending, manual. `navigator.locks` ensures one sync at a time. iOS has no Background Sync.
+* **Hard-delete order for GC / account deletion**: the schema uses `onDelete: NoAction` for cross-entity references (so deleting a `User` can cascade everywhere), which means garbage collection must delete children before parents (sets → workoutExercises → workouts; templateExercises → templates; exerciseFavorites; then machineProfiles and exercises). `PersonalRecord.workout` is the one `Cascade` into derived data, so GC first rebuilds the PRs of any series whose records point at a workout or set it is about to collect, and never hard-deletes a workout a PR still references. `collectTombstones(now, ttlDays, scope?)` takes `{ userIds }`; only the cron calls it unscoped, and tests must scope it (an unscoped run on a shared database collects every user's tombstones and raises every user's `gcFloorVersion`).
+* **Triggers** (client), by `isWorkoutActive()` (`src/lib/pwa.ts`). Outside a workout: app start, `online`, `visibilitychange` (at most once per 30 s), 1.5 s after a write, every 30 s while pending (the retry), manual. During a workout: app start, manual (the "Sync now" button), and at most one sync per 5 minutes while changes are pending (`online` is throttled to the same rule; writes and `visibilitychange` trigger nothing). Finishing or discarding a workout syncs immediately. A request with no mutations is answered without a write transaction. `navigator.locks` ensures one sync at a time (a manual sync waits its turn, the others skip). iOS has no Background Sync.
 
 <!-- sig: src/contracts/sync.ts#SyncRequest,MutationResult,SyncResponse,SyncStatus,SyncReason,SyncResult,SyncedInfo -->
 ```ts
@@ -187,6 +187,11 @@ export interface SyncResult {
   pulled: number;
   rejected: number;
   newPrs: PersonalRecordRow[];
+  /**
+   * The server version (`SyncResponse.cursor` of the last round) this device has caught up to. A server-rendered page that was
+   * rendered at a version >= this one already shows everything the sync pushed or pulled, so it needs no refresh.
+   */
+  serverVersion?: number;
   /** Set when ok is false. */
   error?: string;
   /** true when another sync was already running (navigator.locks) and this call did nothing. */
@@ -194,7 +199,7 @@ export interface SyncResult {
 }
 
 /** Info passed to useOnSynced listeners after every completed sync that pulled or pushed something. */
-export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs">;
+export type SyncedInfo = Pick<SyncResult, "pushed" | "pulled" | "rejected" | "newPrs" | "serverVersion">;
 ```
 
 Server entry point and route:
@@ -275,6 +280,11 @@ export interface Repo {
     forExercise(exerciseId: string): Promise<MachineProfileRow[]>;
     /** The profile most recently used for this exercise (drives the "default to last used" machine picker). */
     lastUsedFor(exerciseId: string): Promise<MachineProfileRow | undefined>;
+    /**
+     * The user's gear profile for dumbbells or kettlebells (a MachineProfile with `equipment` set and no exercise): the one for
+     * `gymName` when given and present, else the user-wide one (gymName null). Undefined until the first save.
+     */
+    gear(equipment: GearEquipment, gymName?: string | null): Promise<MachineProfileRow | undefined>;
   };
   bodyMetrics: EntityRepo<"bodyMetric"> & {
     /** Inclusive, ordered by measuredAt ascending. */
@@ -343,6 +353,8 @@ export function useSyncStatus(): SyncStatus;
 export function useOnSynced(_callback: (info: SyncedInfo) => void): void;
 ```
 
+Server-rendered pages that show synced data (`/today`, `/progress/*`, `/exercises`, `/exercises/[id]`, `/insights/*`) render `<SyncVersionStamp version={await pageSyncVersion(ctx)} />` (`src/client/sync/SyncVersionStamp.tsx`, `src/server/sync/page-version.ts`). The version is `SyncState.version` read **before** the page's own synced-row queries, so the page contains every row up to it. After a sync that pushed or pulled something, `useRefreshServerDataOnSync` calls `router.refresh()` only if the open page's version is below `SyncResult.serverVersion` (the cursor the sync reached); a page with no stamp, or a sync with no version, refreshes (correctness over savings). Both numbers are the server's own counter, so no clock is compared.
+
 <!-- sig: src/contracts/sync-client.ts#SyncProviderProps -->
 ```ts
 // from src/contracts/sync-client.ts
@@ -353,7 +365,7 @@ export interface SyncProviderProps {
 }
 ```
 
-`SyncProvider` (`src/client/sync/provider.tsx`) takes `SyncProviderProps & { children: ReactNode }`; it opens the per-user Dexie database `overload-<userId>` and starts the engine. It is already mounted in `src/app/(app)/layout.tsx`; stream B must keep it when replacing that layout, and `(workout)` must mount it too.
+`SyncProvider` (`src/client/sync/provider.tsx`) takes `SyncProviderProps & { children: ReactNode }`; it opens the per-user Dexie database `overload-<userId>` and starts the engine. It is mounted in `src/app/(app)/layout.tsx` and in `src/app/(workout)/layout.tsx`; providers lease the engine of their database (`src/client/sync/provider.tsx`), so moving between the two groups hands the running engine over instead of restarting it.
 
 PR detection (pure, shared by server rebuild and the client's live toast):
 
@@ -967,8 +979,8 @@ Server-only modules start with `import "server-only"` (it is aliased to a no-op 
 ```ts
 // from src/components/primitives/HardCard.tsx
 /**
- * The signature surface: paper, square corners, a 6px vermilion hard shadow.
- * Props are FROZEN (CONTRACTS.md). `interactive` adds the press state (moves translate(2px,2px), shadow shrinks to 4px);
+ * The base surface: a base-200 panel with a 1px hairline border and the theme's small radius, no shadow.
+ * Props are FROZEN (CONTRACTS.md). `interactive` adds the press state (the border firms up on hover, the card drops 1px);
  * for a card that is a link, wrap/compose it with <Link> and keep this as the visual shell.
  */
 export interface HardCardProps extends HTMLAttributes<HTMLElement> {
@@ -986,8 +998,8 @@ export interface HardCardProps extends HTMLAttributes<HTMLElement> {
 ```ts
 // from src/components/primitives/SectionHeader.tsx
 /**
- * Numbered section header: "01/Progress" in Instrument Serif italic with a 2px vermilion underline rule.
- * Props are FROZEN (CONTRACTS.md). `index` renders as a zero-padded number followed by a vermilion slash
+ * Numbered section header: "01/Progress" in condensed italic Archivo display caps over a 1px hairline rule.
+ * Props are FROZEN (CONTRACTS.md). `index` renders as a zero-padded number followed by a muted slash
  * (index={1} -> "01/"); a string is shown as given. The index and slash are decorative (aria-hidden).
  */
 export interface SectionHeaderProps {
@@ -1010,11 +1022,11 @@ export function formatSectionIndex(index: number | string): string;
 // from src/components/primitives/PageHeader.tsx
 /**
  * Page title block. Props are FROZEN (CONTRACTS.md).
- * `meta` renders as a meta line with vermilion slashes: ["Free weight", "Barbell"] -> "Free weight / Barbell".
+ * `meta` renders as a meta line with muted slashes: ["Free weight", "Barbell"] -> "Free weight / Barbell".
  */
 export interface PageHeaderProps {
   title: string;
-  /** Meta line parts, joined with a vermilion slash. */
+  /** Meta line parts, joined with a muted slash. */
   meta?: string[];
   description?: ReactNode;
   /** Right-aligned buttons/links. */
@@ -1035,7 +1047,7 @@ export interface PageHeaderProps {
 export interface EmptyStateProps {
   title: string;
   description?: ReactNode;
-  /** A decorative icon (rendered in vermilion). */
+  /** A decorative icon (rendered in the muted text colour). */
   icon?: ReactNode;
   /** The call to action (a Button/Link). */
   action?: ReactNode;
@@ -1045,11 +1057,13 @@ export interface EmptyStateProps {
 
 ## 10. Design tokens, fonts, CSS ownership
 
-* Themes `overload-paper` (light) and `overload-ink` (dark) in `src/styles/theme.css` with the plan's exact values; `--color-vermilion` (`#E4402B` / `#F26A55`) is a Tailwind color (`text-vermilion`, `border-vermilion`). Never use vermilion for small body text (3.7:1 on paper). Computed contrast (verified): ink on paper 16.5:1; paper on `#C8321F` 4.77:1; ink on `#F26A55` 6.1:1; provisional secondary/accent/semantic colors all ≥ 5.3:1. **Stream B finalizes** secondary (slate blue = cable) and accent (ochre = bodyweight) and validates the chart palette with the `dataviz` skill.
-* The active theme is `localStorage["overload-theme"]` = `paper` | `ink` | absent (follow the system; installed PWAs default to ink). The inline `<head>` script is `themeInitScript` (`src/lib/theme.ts`); `applyTheme(choice)` switches at runtime.
-* **Fonts (verified).** Instrument Serif (400, regular + italic) for display, Newsreader variable (`wght` 200–800, `opsz` 6–72) for body/UI, via `next/font/google` (`--font-instrument`, `--font-newsreader`; Tailwind `font-display`, `font-body`). **Newsreader HAS the `tnum` OpenType feature** (and `pnum`; no `lnum`/`onum` features exist because its default figures are already lining), checked on the exact latin woff2 files `next/font` serves. So use the `num` utility (`font-variant-numeric: tabular-nums lining-nums`) for every changing number. **Instrument Serif has no `tnum`**: use it only for static big stat numerals, never for live-updating numbers (timers, steppers, set inputs). `font-numeric` (Newsreader + monospace fallback) exists for set inputs if a glyph ever misbehaves.
-* CSS partials, one per stream (`src/styles/globals.css` only imports them and is frozen): `theme.css`, `shell.css`, `motion.css`, `primitives.css` (B) · `auth.css` (A) · `catalog.css` (C) · `workout.css` (E2) · `progress.css` (F) · `insights.css` (G). Motion: `--page-out: .18s`, `--page-in: .36s`, `--ease-out: cubic-bezier(.22,1,.36,1)`; disable under `prefers-reduced-motion`.
-* Root layout (frozen): `viewportFit: "cover"`, `appleWebApp` (`capable`, `black-translucent`), light/dark `themeColor`, `suppressHydrationWarning` + inline theme script, `SerwistProvider swUrl="/serwist/sw.js"` (disabled in `next dev`). Screens pad with `env(safe-area-inset-*)`.
+* **Calibrated Dial design system** (spec: `docs/design/calibrated-dial-handoff.html`, section 03). Themes `overload-floor` (dark, `prefersdark`, the gym default) and `overload-daylight` (light, `default`) in `src/styles/theme.css`. Both use 4 px field and 6 px box radii (`--radius-field`, `--radius-box`; dots, the dial and plates are round) and no shadows. Custom tokens beyond daisyUI's: `--color-muted`, `--color-line-strong` (borders that mark a control's edge, 3:1), `--color-up` (small positive deltas), `--color-accent-ink` (yellow as text in daylight), the plate colours `--plate-red|blue|yellow|green|white|black|chrome` (identical in both themes; they appear on plates, lifts and data only, never as decoration), `--steel` / `--steel-dark`, `--space-1…8`, `--dial-size`, `--picture-h` and the `--type-*` sizes. Plate blue (`primary`) is never small text on the dark floor (3.29:1): borders and fills only. Success green with white text is 3.59:1: large or bold sizes only. The chart palette (`--chart-*`) keeps its previous values until stream RESTYLE re-validates the new mapping (free weight blue, machine steel, cable green, bodyweight yellow) with the `dataviz` skill.
+* **No legacy aliases.** The editorial-era tokens (`--color-vermilion`, `--color-ink`, `--color-paper`, `--shadow-hard*`, `--font-instrument`, `--font-newsreader`) were removed after wave 2; `src/app/styleguide/tokens.test.ts` fails if one comes back.
+* **Safe-area tokens.** `--sab` and `--sat` (`theme.css`) are `max(env(safe-area-inset-*), env(safe-area-max-inset-*))`. Chrome on Android animates the plain inset while its bars hide, so every bottom or top padding and every fixed or sticky offset uses the tokens, never `env(safe-area-inset-bottom/top)` directly (the left and right insets are still used as they are).
+* The active theme is `localStorage["overload-theme"]` = `paper` (daylight) | `ink` (floor) | absent (follow the system; installed PWAs default to the floor). The stored values predate the rename and stay so saved choices keep working. The inline `<head>` script is `themeInitScript` (`src/lib/theme.ts`); `applyTheme(choice)` switches at runtime.
+* **Fonts (verified).** One family, **Archivo** (variable `wght` 100–900 and `wdth` 62–125, normal + italic) via `next/font/google` (`--font-archivo`; `--font-display` and `--font-body` both resolve to it; Tailwind `font-display`, `font-body`). Display type is `font-stretch: 62%`, italic 850, uppercase where the spec says so: use the `type-display-xl`, `type-readout`, `type-display-m`, `type-display-s`, `type-label` and `type-body` utilities rather than restating the settings. **Archivo HAS the `tnum` OpenType feature** (and `pnum`; no `lnum`, its default figures are already lining), checked on the exact latin woff2 files `next/font` serves. So use the `num` utility (`font-variant-numeric: tabular-nums lining-nums`) for every changing number. `font-numeric` (Archivo, monospace as a last resort) exists for set inputs. Display type at `line-height` below 1.1 clips ascenders inside `overflow: hidden`: use 1.12 wherever the text truncates.
+* CSS partials, one per stream (`src/styles/globals.css` only imports them and is frozen): `theme.css`, `shell.css`, `motion.css`, `primitives.css` (B) · `auth.css` (A) · `catalog.css` (C) · `workout.css` (E2) · `progress.css` (F) · `insights.css` (G). Motion: `--page-out: .08s`, `--page-in: .12s` (a page slide is about 200 ms in total; the header and the dock have their own view-transition names and do not move), `--ease-out: cubic-bezier(.22,1,.36,1)`; disable under `prefers-reduced-motion`.
+* Root layout (frozen): `viewportFit: "cover"`, `interactiveWidget: "resizes-content"` (the on-screen keyboard shrinks the layout instead of covering it), `appleWebApp` (`capable`, `black-translucent`), light/dark `themeColor`, `suppressHydrationWarning` + inline theme script, `SerwistProvider swUrl="/serwist/sw.js"` (disabled in `next dev`). Screens pad with `--sab` / `--sat` and `env(safe-area-inset-left|right)`.
 
 ## 11. Routes, ports, environment
 
@@ -1086,6 +1100,9 @@ PWA coordination (`src/lib/pwa.ts`, frozen): E2 calls `setWorkoutActive(true/fal
 // PWA coordination flag between the workout screen (stream E2) and the service-worker update flow (stream B). PURE.
 // While a workout is in progress E2 calls setWorkoutActive(true); B's shell only posts SKIP_WAITING to a waiting
 // service worker when isWorkoutActive() is false ("a service-worker update never activates in the middle of a workout").
+// The sync engine reads the same flag for its workout policy (src/client/sync/engine.ts): while it is set, writes do not
+// trigger a sync and the other triggers are throttled to once every 5 minutes. Turning it off (finish or discard) syncs at once,
+// which is why changes to it are broadcast: `onWorkoutActiveChange` fires in this tab (custom event) and in other tabs (storage).
 export const ACTIVE_WORKOUT_STORAGE_KEY = "overload-active-workout";
 
 export function setWorkoutActive(active: boolean): void;

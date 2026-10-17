@@ -1,0 +1,1800 @@
+<title>Overload Design Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400..600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300..700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400..800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&display=swap">
+<style>
+/* Layout: a review board. Intro and critique, sticky option chips, then one band per direction
+   (desktop mock beside a live phone, notes below), comparison and adoption notes last. */
+:root{
+  --bg:#f2f2ef; --surface:#fbfbf9; --fg:#18191b; --muted:#5c5f64; --line:#d8d8d2; --focus:#2d5bff;
+  --ui:"Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono:"Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --bg:#111214; --surface:#18191c; --fg:#ececea; --muted:#9b9ea4; --line:#2b2d31; --focus:#86a0ff; color-scheme:dark }
+}
+:root[data-theme="dark"]{ --bg:#111214; --surface:#18191c; --fg:#ececea; --muted:#9b9ea4; --line:#2b2d31; --focus:#86a0ff; color-scheme:dark }
+
+*,*::before,*::after{ box-sizing:border-box }
+body{ background:var(--bg); color:var(--fg); font:15px/1.55 var(--ui); -webkit-font-smoothing:antialiased }
+h1,h2,h3,p,ul,ol,figure{ margin:0 }
+button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer }
+:focus-visible{ outline:2px solid var(--focus); outline-offset:2px }
+.num{ font-variant-numeric:tabular-nums lining-nums }
+
+.wrap{ max-width:1240px; margin:0 auto; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)) }
+
+/* ---- intro ---- */
+.intro{ padding-block:56px 28px }
+.eyebrow{ font:500 12px/1.4 var(--mono); color:var(--muted); letter-spacing:.04em; text-transform:uppercase }
+.intro h1{ font-size:clamp(34px, 6vw, 60px); line-height:1.02; letter-spacing:-.025em; font-weight:650; margin-top:14px; text-wrap:balance }
+.lede{ max-width:64ch; font-size:17px; color:var(--muted); margin-top:16px }
+.lede strong{ color:var(--fg); font-weight:600 }
+
+.why{ padding-block:8px 40px }
+.why h2{ font:600 12px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:14px }
+.why-list{ list-style:none; padding:0; display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1px; background:var(--line); border:1px solid var(--line) }
+.why-list li{ background:var(--surface); padding:16px 18px; display:flex; flex-direction:column; gap:6px; min-width:0 }
+.why-list b{ font-weight:600; font-size:15px }
+.why-list span{ color:var(--muted); font-size:14px }
+.sev{ font:500 11px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; display:inline-flex; align-items:center; gap:6px; color:var(--muted) }
+.sev::before{ content:""; width:7px; height:7px; border-radius:50% }
+.sev.hi::before{ background:#d6452f } .sev.md::before{ background:#d29a1c } .sev.lo::before{ background:#5d9b6a }
+
+/* ---- chips ---- */
+.chips{ position:sticky; top:env(safe-area-inset-top, 0px); z-index:20; background:color-mix(in srgb, var(--bg) 90%, transparent); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); border-block:1px solid var(--line) }
+.chips-in{ display:flex; gap:6px; overflow-x:auto; padding-block:10px; scrollbar-width:none }
+.chips-in::-webkit-scrollbar{ display:none }
+.chips a{ flex:none; display:inline-flex; align-items:center; gap:8px; padding:7px 12px 7px 8px; border:1px solid var(--line); border-radius:999px; color:var(--fg); text-decoration:none; font-size:14px; background:var(--surface) }
+.chips a b{ font:600 11px/1 var(--mono); width:20px; height:20px; display:grid; place-items:center; border-radius:50%; background:var(--fg); color:var(--bg) }
+.chips a:hover{ border-color:var(--fg) }
+
+/* ---- direction band ---- */
+.dir{ padding-block:64px 24px; scroll-margin-top:60px }
+.dir + .dir{ border-top:1px solid var(--line) }
+.dir-head{ display:flex; gap:18px; align-items:flex-start; margin-bottom:28px }
+.dir-letter{ flex:none; font:600 13px/1 var(--mono); width:32px; height:32px; display:grid; place-items:center; border:1.5px solid var(--fg); border-radius:50%; margin-top:10px }
+.dir h2{ font-size:clamp(36px, 6vw, 60px); line-height:1; letter-spacing:-.01em; margin-bottom:10px; text-wrap:balance }
+.thesis{ max-width:64ch; color:var(--muted); font-size:17px }
+.h-cal{ font-family:"Archivo", "Arial Narrow", sans-serif; font-stretch:62%; font-weight:850; font-style:italic; text-transform:uppercase }
+.h-ins{ font-family:"Schibsted Grotesk", system-ui, sans-serif; font-weight:800; letter-spacing:-.04em; text-transform:lowercase }
+.h-clk{ font-family:"Oxanium", system-ui, sans-serif; font-weight:700; text-transform:uppercase; letter-spacing:.08em }
+.h-chk{ font-family:"Bricolage Grotesque", system-ui, sans-serif; font-weight:700; letter-spacing:-.035em; font-variation-settings:"opsz" 96 }
+
+.stage{ display:grid; grid-template-columns:minmax(0, 1fr) 340px; gap:36px; align-items:start }
+@media (max-width: 1000px){ .stage{ grid-template-columns:minmax(0, 1fr) } .phone-fig{ justify-self:center } }
+figcaption{ font:12px/1.5 var(--mono); color:var(--muted); margin-top:12px }
+figcaption b{ color:var(--fg); font-weight:600 }
+
+.desk{ min-width:0 }
+.browser{ border-radius:12px; overflow:hidden; box-shadow:0 0 0 1px var(--line), 0 28px 50px -30px rgba(0,0,0,.45); background:var(--surface); max-width:100% }
+.browser-bar{ height:30px; display:flex; align-items:center; gap:6px; padding:0 12px; border-bottom:1px solid var(--line) }
+.browser-bar i{ width:9px; height:9px; border-radius:50%; background:var(--line) }
+.browser-bar span{ margin-left:10px; font:11px var(--mono); color:var(--muted) }
+.desk-scale{ position:relative; width:100%; max-width:100%; aspect-ratio:1000 / 640; overflow:hidden }
+.desk-canvas{ position:absolute; top:0; left:0; width:1000px; height:640px; transform-origin:0 0; overflow:hidden }
+
+.phone-fig{ width:340px; max-width:100% }
+.phone{ width:100%; height:720px; border-radius:48px; padding:10px; background:#0c0c0d; box-shadow:0 0 0 1px var(--line), 0 30px 60px -30px rgba(0,0,0,.55) }
+.screen{ position:relative; height:100%; border-radius:39px; overflow:hidden; display:flex; flex-direction:column }
+.sb{ flex:none; height:44px; display:flex; align-items:center; justify-content:space-between; padding:6px 26px 0; font:600 13px/1 var(--ui); position:relative }
+.sb::after{ content:""; position:absolute; left:50%; top:10px; width:88px; height:25px; margin-left:-44px; border-radius:20px; background:#000 }
+.pc{ flex:1; min-height:0; display:flex; flex-direction:column; gap:10px; padding:4px 16px 18px }
+
+.notes{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:32px; margin-top:36px }
+@media (max-width: 860px){ .notes{ grid-template-columns:minmax(0, 1fr); gap:24px } }
+.notes h3{ font:600 12px/1.4 var(--mono); text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:10px }
+.notes p{ max-width:60ch }
+.notes p + p{ margin-top:10px }
+.pros{ list-style:none; padding:0; display:flex; flex-direction:column; gap:8px }
+.pros li{ padding-left:22px; position:relative }
+.pros li::before{ position:absolute; left:0; top:0; font:600 13px/1.55 var(--mono) }
+.pros .up::before{ content:"+"; color:#3c8a50 }
+.pros .dn::before{ content:"\2212"; color:#c2412d }
+.swatches{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px }
+.sw{ display:flex; flex-direction:column; gap:4px; font:10.5px/1.2 var(--mono); color:var(--muted); width:58px }
+.sw i{ height:34px; border-radius:4px; box-shadow:inset 0 0 0 1px rgba(127,127,127,.25) }
+.typespec{ display:flex; flex-direction:column; gap:4px; font-size:14px; color:var(--muted) }
+.typespec b{ color:var(--fg); font-weight:600 }
+
+/* ---- generic scroller (wheel / ruler / drum) ---- */
+.sc{ position:relative; display:flex; overflow:auto; scrollbar-width:none; overscroll-behavior:contain; -webkit-tap-highlight-color:transparent; touch-action:pan-x pan-y }
+.sc::-webkit-scrollbar{ display:none }
+.sc-y{ flex-direction:column; scroll-snap-type:y mandatory }
+.sc-x{ flex-direction:row; scroll-snap-type:x mandatory }
+.sc-pad{ flex:0 0 calc(50% - var(--size) / 2) }
+.sc-item{ flex:0 0 var(--size); scroll-snap-align:center; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; -webkit-user-select:none }
+.sc.dragging{ cursor:grabbing }
+
+/* ---- knob ---- */
+.knob{ display:block; touch-action:none; cursor:grab; border-radius:50%; -webkit-tap-highlight-color:transparent }
+.knob:active{ cursor:grabbing }
+.knob svg{ display:block; width:100%; height:100% }
+
+/* ---- seven-segment ---- */
+.seg{ display:block; overflow:visible; filter:drop-shadow(0 0 5px currentColor) }
+.seg .on{ fill:currentColor }
+.seg .off{ fill:currentColor; opacity:.08 }
+
+/* =====================================================================
+   A · CALIBRATED  (competition plates on a rubber floor)
+   ===================================================================== */
+.cal{
+  --c-bg:#16181a; --c-panel:#1f2225; --c-line:#31363b; --c-fg:#ecebe6; --c-mute:#a2a8ae; --c-up:#62cc80;
+  --p25:#d8262d; --p20:#2f63d6; --p15:#efbd2a; --p10:#2f9a4f; --p5:#ecebe6; --p2:#26282a; --p1:#b9bdc2;
+  background:var(--c-bg); color:var(--c-fg); font-family:"Archivo", "Helvetica Neue", Arial, sans-serif;
+}
+.cal .disp{ font-stretch:62%; font-weight:850; font-style:italic; text-transform:uppercase; line-height:.9; letter-spacing:.005em }
+.cal .k{ font-size:11px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--c-mute) }
+.cal .mute{ color:var(--c-mute) }
+.cald-bar{ height:64px; display:flex; align-items:center; gap:26px; padding:0 28px; border-bottom:1px solid var(--c-line) }
+.cald-logo{ font-size:30px; display:flex; flex-direction:column; gap:5px }
+.stripe{ display:flex; height:4px; gap:2px } .stripe i{ flex:1; background:var(--c) }
+.cald-bar nav{ display:flex; gap:22px; font-size:14px; font-weight:500; align-self:stretch }
+.cald-bar nav span{ display:flex; align-items:center; color:var(--c-mute); border-bottom:3px solid transparent; padding-top:3px }
+.cald-bar nav .on{ color:var(--c-fg); border-color:var(--p20) }
+.cald-start{ margin-left:auto; background:var(--p20); color:#fff; font-size:21px; padding:10px 18px 9px; border-radius:4px }
+.cald-av{ width:34px; height:34px; border-radius:50%; border:2px solid var(--c-line); background:var(--c-panel) }
+.cald-main{ display:grid; grid-template-columns:290px 1fr 270px; gap:22px; padding:22px 28px }
+.cald-col{ display:flex; flex-direction:column; gap:12px; min-width:0 }
+.cald-h{ font-size:76px; margin-top:-4px }
+.cald-card{ background:var(--c-panel); border-radius:6px; padding:16px }
+.cald-plan{ font-size:36px; margin:6px 0 8px }
+.cald-list{ list-style:none; padding:0; font-size:13px }
+.cald-list li{ display:flex; justify-content:space-between; padding:7px 0; border-top:1px solid var(--c-line) }
+.cald-list li span:last-child{ color:var(--c-mute) }
+.cald-go{ margin-top:12px; background:var(--p20); color:#fff; font-size:22px; padding:11px; border-radius:4px; text-align:center }
+.cald-bw{ display:flex; flex-direction:column; gap:4px }
+.cald-bw .disp{ font-size:44px }
+.cald-lifts{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+.cald-lift{ background:var(--c-panel); border-radius:6px; padding:12px 14px; border-left:6px solid var(--c); display:flex; flex-direction:column; gap:2px }
+.cald-lift .n{ font-size:13px; font-weight:600 }
+.cald-lift .v{ font-size:52px } .cald-lift .v small{ font-size:18px; margin-left:3px; color:var(--c-mute) }
+.cald-lift .d{ font-size:12px; color:var(--c-up) } .cald-lift .d.flat{ color:var(--p15) }
+.cald-chart svg{ display:block; margin-top:8px }
+.cald-vol{ display:flex; flex-direction:column; gap:9px; margin-top:4px }
+.vrow{ display:grid; grid-template-columns:78px 1fr 22px; align-items:center; gap:8px; font-size:12.5px }
+.vtrack{ position:relative; height:10px; background:var(--c-panel); border-radius:2px }
+.vband{ position:absolute; top:-3px; bottom:-3px; border:1px dashed var(--c-line); border-radius:2px }
+.vfill{ position:absolute; left:0; top:0; bottom:0; background:var(--c-fg); border-radius:2px }
+.vfill.low{ background:var(--p15) }
+.vrow .c{ text-align:right; font-weight:600 }
+.cald-ins{ border-left:6px solid var(--p15); font-size:13.5px; line-height:1.45; display:flex; flex-direction:column; gap:6px }
+.cald-ins b{ font-weight:700 }
+
+.calp .pc{ gap:9px }
+.calp-top{ display:flex; align-items:center; justify-content:space-between; font-size:14px; min-height:32px }
+.calp-top .fin{ border:1px solid var(--c-line); border-radius:4px; padding:5px 10px; font-size:13px; font-weight:600 }
+.calp-name{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px }
+.calp-name .disp{ font-size:42px }
+.dots{ display:flex; gap:5px; padding-bottom:4px }
+.dots i{ width:22px; height:22px; border-radius:50%; border:2px solid var(--c-line); display:grid; place-items:center; font:700 11px/1 "Archivo", sans-serif; font-style:normal }
+.dots .ok{ background:var(--p10); border-color:var(--p10); color:#fff }
+.dots .cur{ border-color:var(--p20); color:var(--c-fg) }
+.calp-meta{ font-size:12.5px; color:var(--c-mute); margin-top:-4px }
+.calp-bar{ height:92px }
+.calp-side{ display:flex; align-items:center; justify-content:center; gap:6px; font-size:12px; color:var(--c-mute); min-height:20px; flex-wrap:wrap }
+.pl{ display:inline-flex; align-items:center; gap:4px; color:var(--c-fg); font-weight:600 }
+.pl i{ width:9px; height:9px; border-radius:50%; box-shadow:0 0 0 1px var(--c-line) }
+.calp-read{ display:flex; align-items:baseline; justify-content:center; gap:6px; min-height:66px }
+.calp-w{ font-size:76px; padding:0 4px; border-bottom:2px dotted var(--c-line); line-height:.85 }
+.calp-w:hover{ border-bottom-color:var(--c-mute) }
+.cal-type{ width:150px; font:850 italic 56px/1 "Archivo", sans-serif; font-stretch:62%; text-align:center; background:var(--c-panel); color:var(--c-fg); border:2px solid var(--p20); border-radius:4px; padding:4px }
+.calp-read .u{ font-size:14px; font-weight:700; letter-spacing:.1em; color:var(--c-mute) }
+.calp-read .x{ font-size:38px; color:var(--c-mute); margin-left:6px }
+.calp-read .r{ font-size:52px }
+.cal-ruler{ position:relative; height:64px }
+.cal-ruler .sc{ height:100%; -webkit-mask-image:linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent); mask-image:linear-gradient(90deg, transparent, #000 20%, #000 80%, transparent) }
+.cal-ruler .sc-item{ position:relative; flex-direction:column; justify-content:flex-end; padding-bottom:4px }
+.cal-ruler .tk{ width:2px; height:12px; background:var(--c-mute); opacity:.6 }
+.cal-ruler .mid .tk{ height:20px; opacity:.8 }
+.cal-ruler .maj .tk{ height:28px; background:var(--c-fg); opacity:1 }
+.cal-ruler .sc-item b{ position:absolute; top:4px; font-size:11px; font-weight:600; color:var(--c-mute) }
+.cal-ruler::after{ content:""; position:absolute; left:50%; top:16px; bottom:0; width:3px; margin-left:-1.5px; background:var(--p20); border-radius:2px; pointer-events:none }
+.cal-ruler::before{ content:""; position:absolute; left:50%; top:9px; margin-left:-6px; border:6px solid transparent; border-top-color:var(--p20); pointer-events:none; z-index:1 }
+.calp-row{ display:flex; align-items:center; gap:10px }
+.calp-row .k{ width:34px; flex:none }
+.cal-reps{ position:relative; flex:1; min-width:0; height:50px }
+.cal-reps .sc{ height:100%; -webkit-mask-image:linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent); mask-image:linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent) }
+.cal-reps .sc-item{ font-size:20px; font-weight:600; color:var(--c-mute); transition:font-size .12s }
+.cal-reps .sc-item.is-sel{ color:var(--c-fg); font-size:30px; font-weight:800; font-stretch:62%; font-style:italic }
+.cal-reps::after{ content:""; position:absolute; left:50%; top:3px; bottom:3px; width:46px; margin-left:-23px; border:2px solid var(--p20); border-radius:4px; pointer-events:none }
+.rir{ display:flex; gap:6px; flex:1 }
+.rir button{ flex:1; height:44px; border:1px solid var(--c-line); border-radius:4px; font-weight:700; font-size:16px }
+.rir button[aria-pressed="true"]{ background:var(--c-fg); color:var(--c-bg); border-color:var(--c-fg) }
+.calp-log{ margin-top:auto; height:54px; border-radius:6px; background:var(--p20); color:#fff; font-size:25px }
+.calp-log.logged{ background:var(--p10) }
+
+/* =====================================================================
+   B · BENCH INSTRUMENT  (aluminium panel, OLED, rotary encoders)
+   ===================================================================== */
+.ins{
+  --i-bg:#d5d5d0; --i-panel:#e5e5e0; --i-ink:#1a1b1d; --i-mute:#5c5f63; --i-line:#b9b9b2;
+  --i-oled:#0b0c0d; --i-oled-fg:#f2f2ee; --i-oled-mute:#8b8f94;
+  --i-blue:#2f5bff; --i-blue-hi:#7d97ff; --i-green:#16a85a; --i-green-hi:#3fdc87; --i-orange:#ff7a1a; --i-white:#f5f5f1;
+  background-color:var(--i-bg);
+  background-image:repeating-linear-gradient(0deg, rgba(255,255,255,.16) 0 1px, transparent 1px 3px);
+  color:var(--i-ink); font-family:"Schibsted Grotesk", system-ui, sans-serif;
+}
+.ins .mono{ font-family:"Martian Mono", ui-monospace, Menlo, monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase }
+.ins .mod{ background:var(--i-panel); border:1px solid var(--i-line); border-radius:10px; padding:14px; box-shadow:inset 0 1px 0 rgba(255,255,255,.7), 0 1px 0 rgba(0,0,0,.06) }
+.ins .lbl{ color:var(--i-mute) }
+.led{ display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--c); box-shadow:0 0 6px var(--c) }
+.insd-bar{ height:70px; display:flex; align-items:center; gap:22px; padding:0 24px }
+.insd-logo{ display:flex; flex-direction:column; gap:2px }
+.insd-logo b{ font-size:27px; font-weight:800; letter-spacing:-.045em; line-height:1 }
+.keys{ display:flex; gap:6px }
+.key{ display:inline-flex; align-items:center; gap:7px; padding:9px 12px; background:var(--i-panel); border:1px solid var(--i-line); border-radius:7px; box-shadow:0 2px 0 var(--i-line) }
+.key.on{ background:var(--i-white) }
+.key.go{ margin-left:auto; background:var(--i-ink); color:var(--i-white); border-color:var(--i-ink); box-shadow:0 2px 0 #000 }
+.insd-grid{ display:grid; grid-template-columns:430px 1fr; grid-template-rows:290px 238px; gap:16px; padding:2px 24px 24px }
+.oled{ background:var(--i-oled); color:var(--i-oled-fg); border-radius:12px; padding:16px; box-shadow:inset 0 0 0 1px #000, 0 0 0 4px var(--i-panel), 0 0 0 5px var(--i-line) }
+.oled .lbl{ color:var(--i-oled-mute) }
+.insd-oled{ display:flex; flex-direction:column; gap:6px }
+.insd-read{ font-family:"Martian Mono", monospace; font-size:46px; font-weight:500; color:var(--i-blue-hi); letter-spacing:-.04em; line-height:1 }
+.insd-read small{ font-size:12px; color:var(--i-oled-mute); letter-spacing:.06em; margin-left:6px }
+.insd-chs{ display:grid; grid-template-columns:1fr 1fr; gap:12px }
+.ch{ display:flex; flex-direction:column; gap:4px }
+.ch-top{ display:flex; justify-content:space-between; align-items:center }
+.ch-v{ font-family:"Martian Mono", monospace; font-size:28px; font-weight:500; letter-spacing:-.04em }
+.ch-v small{ font-size:10px; color:var(--i-mute); letter-spacing:.04em; margin-left:4px }
+.ch svg{ margin-top:auto }
+.insd-vu{ display:flex; flex-direction:column; gap:10px }
+.vu{ display:flex; gap:16px; align-items:flex-end; flex:1; position:relative; padding-left:4px }
+.vu-col{ display:flex; flex-direction:column; align-items:center; gap:6px }
+.vu-cells{ display:flex; flex-direction:column-reverse; gap:2px }
+.vu-cells i{ width:34px; height:6px; border-radius:1px; background:rgba(0,0,0,.09) }
+.vu-cells i.on{ background:var(--i-green) }
+.vu-cells i.on.low{ background:var(--i-orange) }
+.vu-cells i.tg{ box-shadow:0 -1px 0 var(--i-ink) }
+.insd-low{ display:grid; grid-template-columns:1fr 1fr; gap:16px }
+.patch{ list-style:none; padding:0; display:flex; flex-direction:column; font-size:13px }
+.patch li{ display:flex; justify-content:space-between; padding:6px 0; border-top:1px dashed var(--i-line) }
+.patch li span:last-child{ font-family:"Martian Mono", monospace; font-size:10.5px; color:var(--i-mute) }
+.receipt{ background:#fbfbf7; border-radius:2px; padding:14px 14px 18px; font-family:"Martian Mono", monospace; font-size:10.5px; line-height:1.6; color:#2a2b2d; box-shadow:0 1px 0 var(--i-line), 0 8px 18px -12px rgba(0,0,0,.35); -webkit-mask-image:linear-gradient(#000 92%, transparent); mask-image:linear-gradient(#000 92%, transparent) }
+.receipt hr{ border:0; border-top:1px dashed #b5b5ad; margin:6px 0 }
+
+.insp .pc{ gap:12px }
+.insp-top{ display:flex; justify-content:space-between; align-items:center; padding-top:2px }
+.insp-oled{ display:flex; flex-direction:column; gap:8px }
+.insp-ex{ display:flex; justify-content:space-between; align-items:baseline }
+.insp-ex b{ font-size:17px; font-weight:650 }
+.insp-w{ font-family:"Martian Mono", monospace; font-size:50px; font-weight:500; letter-spacing:-.05em; color:var(--i-blue-hi); line-height:1 }
+.insp-w small{ font-size:11px; color:var(--i-oled-mute); letter-spacing:.06em; margin-left:6px }
+.insp-sub{ display:flex; gap:18px; align-items:baseline; font-family:"Martian Mono", monospace; font-size:24px; letter-spacing:-.04em }
+.insp-sub small{ font-size:9.5px; letter-spacing:.06em; color:var(--i-oled-mute); margin-right:5px }
+.insp-sub .r{ color:var(--i-green-hi) }
+.insp-knobs{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; margin-top:4px }
+.kcell{ display:flex; flex-direction:column; align-items:center; gap:4px }
+.kcol{ display:flex; flex-direction:column; gap:10px }
+.k-lg{ width:min(176px, 46vw); aspect-ratio:1 }
+.k-sm{ width:96px; aspect-ratio:1 }
+.kcell .mono{ display:flex; gap:6px; align-items:center }
+.insp-hint{ text-align:center; color:var(--i-mute) }
+.insp-keys{ margin-top:auto; display:grid; grid-template-columns:1fr 1.6fr; gap:10px }
+.insp-keys .key{ justify-content:center; height:54px; font-family:"Martian Mono", monospace; font-size:11px; letter-spacing:.04em; white-space:nowrap }
+.insp-keys .key.go.logged{ background:var(--i-green); border-color:var(--i-green) }
+
+/* =====================================================================
+   C · GYM CLOCK  (wall-mounted LED interval timer)
+   ===================================================================== */
+.clk{
+  --k-bg:#0a0a0b; --k-panel:#121214; --k-line:#26262a; --k-red:#ff3b2f; --k-green:#2bec77; --k-amber:#ffb21e; --k-fg:#e8e8e6; --k-mute:#8a8d93;
+  background:var(--k-bg); color:var(--k-fg); font-family:"Oxanium", system-ui, sans-serif;
+}
+.clk .lbl{ font-size:10.5px; font-weight:600; letter-spacing:.2em; text-transform:uppercase; color:var(--k-mute) }
+.clk .red{ color:var(--k-red) } .clk .green{ color:var(--k-green) } .clk .amber{ color:var(--k-amber) }
+.clk .pan{ background:var(--k-panel); border:1px solid var(--k-line); border-radius:3px; padding:14px }
+.clkd-bar{ height:64px; display:flex; align-items:center; gap:30px; padding:0 22px; border-bottom:1px solid var(--k-line) }
+.clkd-logo{ font-size:20px; font-weight:800; letter-spacing:.32em }
+.clkd-bar nav{ display:flex; gap:20px; font-size:11.5px; font-weight:600; letter-spacing:.18em; color:var(--k-mute) }
+.clkd-bar nav .on{ color:var(--k-red) }
+.clkd-go{ margin-left:auto; border:2px solid var(--k-green); color:var(--k-green); padding:7px 14px; font-weight:700; letter-spacing:.2em; font-size:12px; box-shadow:0 0 14px -4px var(--k-green) }
+.clkd-body{ padding:20px 22px; display:flex; flex-direction:column; gap:16px }
+.clkd-scores{ display:grid; grid-template-columns:repeat(4, 1fr); gap:12px }
+.score{ display:flex; flex-direction:column; gap:10px }
+.score-top{ display:flex; justify-content:space-between }
+.clkd-row{ display:grid; grid-template-columns:1.1fr 1fr; gap:16px; height:352px }
+.clkd-row .pan{ display:flex; flex-direction:column; gap:12px }
+.meters{ display:flex; flex-direction:column; gap:16px; margin-top:10px }
+.meter{ display:grid; grid-template-columns:96px auto 1fr; align-items:center; gap:10px; font-size:11px; font-weight:600; letter-spacing:.14em }
+.cells{ display:flex; gap:3px }
+.cells i{ width:12px; height:15px; background:rgba(255,255,255,.05) }
+.cells i.on{ background:var(--k-green); box-shadow:0 0 6px -1px var(--k-green) }
+.cells i.on.low{ background:var(--k-amber); box-shadow:0 0 6px -1px var(--k-amber) }
+.cells i.tg{ margin-left:6px }
+.meter .c{ font-size:14px }
+.ticker{ height:40px; display:flex; align-items:center; gap:18px; border-top:1px solid var(--k-line); font-size:12.5px; font-weight:600; letter-spacing:.16em; color:var(--k-amber); white-space:nowrap; overflow:hidden }
+
+.clkp .pc{ gap:12px }
+.clkp-top{ display:flex; justify-content:space-between; align-items:center; min-height:28px }
+.clkp-rest{ display:flex; align-items:center; justify-content:space-between; gap:10px }
+.clkp-rest .side{ display:flex; flex-direction:column; gap:6px; text-align:right }
+.clkp-name{ font-size:25px; font-weight:700; letter-spacing:.06em; line-height:1.1 }
+.clkp-meta{ font-size:11.5px; font-weight:600; letter-spacing:.14em; margin-top:4px }
+.drumgrp{ display:flex; flex-direction:column; gap:6px }
+.drumrow{ display:flex; gap:22px }
+.drums{ position:relative; display:flex; width:max-content; align-items:center; gap:5px }
+.drums::before,.drums::after{ content:""; position:absolute; left:-4px; right:-4px; height:1px; background:var(--k-red); opacity:.55; pointer-events:none; z-index:1 }
+.drums::before{ top:calc(50% - 28px) } .drums::after{ top:calc(50% + 27px) }
+.drum .sc{ width:44px; height:116px; background:#050505; border:1px solid var(--k-line); border-radius:3px; color:var(--k-red); -webkit-mask-image:linear-gradient(transparent, #000 28%, #000 72%, transparent); mask-image:linear-gradient(transparent, #000 28%, #000 72%, transparent) }
+.drum.g .sc{ color:var(--k-green) }
+.drum .sc-item{ opacity:calc(1 - var(--ad, 0) * .55) }
+.drum .sc:focus-visible{ outline:2px solid var(--k-amber); outline-offset:2px }
+.ddot{ width:7px; height:7px; background:var(--k-red); align-self:center; margin-top:30px; box-shadow:0 0 6px var(--k-red) }
+.clkp-log{ margin-top:auto; height:54px; border:2px solid var(--k-red); color:var(--k-red); font-weight:800; letter-spacing:.22em; font-size:16px; box-shadow:0 0 18px -6px var(--k-red), inset 0 0 18px -10px var(--k-red) }
+.clkp-log.logged{ border-color:var(--k-green); color:var(--k-green); box-shadow:0 0 18px -6px var(--k-green) }
+
+/* =====================================================================
+   D · CHALK  (soft, bright, native pickers)
+   ===================================================================== */
+.chk{
+  --h-bg:#eef1f4; --h-card:#ffffff; --h-ink:#0f1a2b; --h-mute:#5b6778; --h-line:#e1e6ec; --h-cobalt:#2e4bea; --h-soft:#e8ecff; --h-amber:#fff1d4; --h-amber-ink:#7a4d00; --h-ok:#14946a;
+  --m-chest:#ff8a6b; --m-back:#4c6bff; --m-quads:#1fb380; --m-ham:#f2a93b; --m-sh:#9b6bff; --m-bi:#ff6fa8; --m-tri:#22b5d6;
+  background:var(--h-bg); color:var(--h-ink); font-family:"Bricolage Grotesque", system-ui, sans-serif; font-variation-settings:"opsz" 14;
+}
+.chk .mute{ color:var(--h-mute) }
+.chk .card{ background:var(--h-card); border-radius:22px; padding:18px; box-shadow:0 1px 2px rgba(15,26,43,.05) }
+.chk .ct{ font-size:13px; font-weight:600; color:var(--h-mute) }
+.chkd{ display:grid; grid-template-columns:200px 1fr; height:100% }
+.chkd-side{ padding:26px 16px; display:flex; flex-direction:column; gap:22px }
+.chkd-logo{ font-size:26px; font-weight:750; letter-spacing:-.045em; font-variation-settings:"opsz" 96; padding-left:10px }
+.chkd-nav{ display:flex; flex-direction:column; gap:4px; font-size:14.5px; font-weight:500 }
+.chkd-nav span{ padding:9px 14px; border-radius:999px }
+.chkd-nav .on{ background:var(--h-ink); color:#fff }
+.chkd-sync{ margin-top:auto; font-size:12.5px; color:var(--h-mute); display:flex; align-items:center; gap:8px; padding-left:10px }
+.chkd-sync i{ width:8px; height:8px; border-radius:50%; background:var(--h-ok) }
+.chkd-main{ padding:28px 28px 28px 8px; display:flex; flex-direction:column; gap:16px }
+.chkd-hello h3{ font-size:34px; font-weight:650; letter-spacing:-.03em; font-variation-settings:"opsz" 96; line-height:1.1; margin-top:2px }
+.chkd-grid{ flex:1; display:grid; grid-template-columns:1.15fr 1fr .9fr; grid-template-rows:222px 1fr; gap:16px }
+.chkd-start{ background:var(--h-cobalt); color:#fff; border-radius:24px; padding:20px; display:flex; flex-direction:column; gap:6px }
+.chkd-start .t{ font-size:30px; font-weight:700; letter-spacing:-.03em; font-variation-settings:"opsz" 96 }
+.tags{ display:flex; flex-wrap:wrap; gap:5px; margin-top:4px }
+.tags span{ background:rgba(255,255,255,.16); border-radius:999px; padding:4px 10px; font-size:12px }
+.chkd-start .btn{ margin-top:auto; align-self:flex-start; background:#fff; color:var(--h-cobalt); font-weight:700; border-radius:999px; padding:10px 18px; font-size:14px }
+.chkd-e1{ grid-column:2 / 4; display:flex; flex-direction:column }
+.chkd-e1 .big{ font-size:40px; font-weight:700; letter-spacing:-.03em; font-variation-settings:"opsz" 96; line-height:1.05 }
+.chkd-e1 .big small{ font-size:15px; color:var(--h-mute); font-weight:500; margin-left:3px }
+.flatpill{ background:var(--h-amber); color:var(--h-amber-ink); font-size:12px; font-weight:600; border-radius:999px; padding:3px 9px; margin-left:8px; vertical-align:middle }
+.liftlist{ display:flex; flex-direction:column; margin-top:6px }
+.liftlist div{ display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; border-top:1px solid var(--h-line); font-size:14px }
+.liftlist b{ font-size:18px; font-weight:650 } .liftlist em{ font-style:normal; font-size:12px; color:var(--h-ok); margin-left:6px } .liftlist em.flat{ color:var(--h-amber-ink) }
+.cvol{ display:flex; flex-direction:column; gap:7px; margin-top:8px }
+.cv{ display:grid; grid-template-columns:72px 1fr 18px; gap:8px; align-items:center; font-size:12.5px }
+.cv .tr{ height:8px; background:var(--h-bg); border-radius:99px; overflow:hidden }
+.cv .tr i{ display:block; height:100%; border-radius:99px; background:var(--c) }
+.cv b{ text-align:right; font-weight:600 }
+.chkd-ins{ background:var(--h-amber); color:var(--h-amber-ink); border-radius:22px; padding:18px; display:flex; flex-direction:column; gap:8px; font-size:14px; line-height:1.4 }
+.chkd-ins b{ font-size:17px; font-weight:700; letter-spacing:-.01em; color:var(--h-ink) }
+
+.chkp .pc{ padding:4px 14px 0; gap:10px }
+.chkp-head{ display:flex; justify-content:space-between; align-items:center; padding:2px 4px }
+.chkp-head .t{ font-size:26px; font-weight:700; letter-spacing:-.03em; font-variation-settings:"opsz" 96; line-height:1.1 }
+.chkp-head .s{ font-size:13px; color:var(--h-mute) }
+.pill{ background:var(--h-ink); color:#fff; border-radius:999px; padding:8px 14px; font-size:14px; font-weight:600 }
+.chkp-card{ padding:14px 12px 10px }
+.chkp-ex{ display:flex; align-items:center; gap:8px; font-size:17px; font-weight:650; padding:0 4px 8px }
+.chkp-ex i{ width:10px; height:10px; border-radius:50%; background:var(--m-chest) }
+.chkp-ex span{ margin-left:auto; font-size:12px; font-weight:500; color:var(--h-mute); background:var(--h-bg); padding:3px 9px; border-radius:99px }
+.sets{ width:100%; border-collapse:separate; border-spacing:0; font-size:15px; text-align:center }
+.sets th{ font-size:11.5px; font-weight:600; color:var(--h-mute); padding:2px 0 6px }
+.sets td{ height:34px }
+.sets td:first-child{ color:var(--h-mute); font-weight:600 }
+.sets .done td{ color:var(--h-mute) }
+.sets .done td:last-child{ color:var(--h-ok); font-weight:700 }
+.sets .act td{ background:var(--h-soft); font-weight:700 }
+.sets .act td:first-child{ border-radius:10px 0 0 10px; color:var(--h-cobalt) }
+.sets .act td:last-child{ border-radius:0 10px 10px 0 }
+.sets .ghost td{ color:#a5aebb }
+.chkp-sheet{ position:absolute; left:0; right:0; bottom:0; background:var(--h-card); border-radius:28px 28px 0 0; padding:8px 16px 22px; box-shadow:0 -12px 32px -12px rgba(15,26,43,.25); display:flex; flex-direction:column; gap:10px }
+.handle{ width:38px; height:5px; border-radius:9px; background:var(--h-line); align-self:center }
+.chkp-sh{ display:flex; justify-content:space-between; align-items:baseline; padding:0 2px }
+.chkp-sh b{ font-size:19px; font-weight:700; letter-spacing:-.02em }
+.chkp-sh span{ font-size:13px; color:var(--h-mute) }
+.wheels{ position:relative; display:grid; grid-template-columns:1.35fr 1fr 1fr; gap:4px }
+.wheels .band{ position:absolute; left:0; right:0; top:calc(22px + 64px); height:32px; border-radius:10px; background:var(--h-soft) }
+.wcol{ position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0 }
+.wcol .wl{ font-size:12px; font-weight:600; color:var(--h-mute); height:16px }
+.wheel{ width:100% }
+.wheel .sc{ height:160px; -webkit-mask-image:linear-gradient(transparent, #000 32%, #000 68%, transparent); mask-image:linear-gradient(transparent, #000 32%, #000 68%, transparent) }
+.wheel .sc-item{ font-size:20px; font-weight:500; color:var(--h-ink); transform:perspective(260px) rotateX(calc(var(--sd, 0) * -21deg)); opacity:calc(1 - var(--ad, 0) * .28) }
+.wheel .sc-item.is-sel{ font-weight:700; font-size:22px }
+.wheel .sc:focus-visible{ outline:2px solid var(--h-cobalt); outline-offset:-2px; border-radius:10px }
+.chkp-log{ height:52px; border-radius:999px; background:var(--h-cobalt); color:#fff; font-size:17px; font-weight:650 }
+.chkp-log.logged{ background:var(--h-ok) }
+
+/* =====================================================================
+   A+B · CALIBRATED DIAL  (A's look, a plate-face dial for weight)
+   ===================================================================== */
+.phone.tall{ height:800px }
+.abp .pc{ gap:6px }
+.abp .pc > *{ flex-shrink:0 }
+.ab-eq{ display:grid; grid-template-columns:repeat(4, 1fr); gap:3px; background:var(--c-panel); padding:3px; border-radius:6px }
+.ab-eq button{ height:30px; border-radius:4px; font-size:12px; font-weight:600; color:var(--c-mute) }
+.ab-eq button[aria-pressed="true"]{ background:var(--c-fg); color:var(--c-bg) }
+.cal .ab-name{ font-size:36px; line-height:1.12; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding-right:6px }
+.ab-meta{ font-size:12.5px; color:var(--c-mute); margin-top:-2px }
+.ab-vis{ height:120px; display:grid; place-items:center }
+.ab-vis > *{ grid-area:1 / 1; width:100% }
+.cal .ab-read{ min-height:52px }
+.ab-read .calp-w{ font-size:62px }
+.ab-dial{ width:180px; height:180px; align-self:center; touch-action:none; cursor:grab; border-radius:50%; -webkit-tap-highlight-color:transparent; flex:none }
+.ab-dial:active{ cursor:grabbing }
+.ab-dial svg{ display:block; width:100%; height:100% }
+.ab-dial:focus-visible{ outline:2px solid var(--p20); outline-offset:4px }
+.ab-db-l, .ab-db-r, .ab-kb{ transition:transform .16s cubic-bezier(.22, 1, .36, 1); transform-box:fill-box }
+.ab-db-l{ transform-origin:right center } .ab-db-r{ transform-origin:left center }
+.ab-kb{ transform-origin:center bottom }
+.ab-plate{ transition:transform .14s cubic-bezier(.22, 1, .36, 1), fill .14s; fill:#33373c }
+.ab-plate.on{ fill:var(--c-fg); transform:translateY(-10px) }
+.ab-pin{ transition:transform .14s cubic-bezier(.22, 1, .36, 1) }
+.gl{ display:inline-flex; align-items:center; gap:8px }
+.gl svg{ flex:none; stroke:var(--c-mute); fill:none; stroke-width:1.6 }
+
+/* ---- comparison ---- */
+.compare{ padding-block:64px 32px; border-top:1px solid var(--line); scroll-margin-top:60px }
+.compare h2, .adopt h2{ font-size:clamp(28px, 4vw, 40px); letter-spacing:-.02em; font-weight:650; margin-bottom:8px }
+.compare > p{ color:var(--muted); max-width:64ch; margin-bottom:24px }
+.tbl{ overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--surface) }
+table.cmp{ border-collapse:collapse; width:100%; min-width:760px; font-size:14px }
+.cmp th, .cmp td{ text-align:left; padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top }
+.cmp tr:last-child td, .cmp tr:last-child th{ border-bottom:0 }
+.cmp thead th{ font-weight:600; font-size:15px }
+.cmp tbody th{ font:500 11.5px/1.6 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:var(--muted); width:150px }
+.pick{ margin-top:28px; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:16px; padding:20px; border:1.5px solid var(--fg); border-radius:10px; max-width:820px }
+.pick b.tag{ font:600 11px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; background:var(--fg); color:var(--bg); padding:6px 8px; border-radius:4px; align-self:start }
+.pick p + p{ margin-top:8px }
+.adopt{ padding-block:40px 80px }
+.adopt ol{ padding-left:20px; display:flex; flex-direction:column; gap:10px; max-width:72ch; margin-top:14px }
+.adopt code{ font:13px var(--mono); background:var(--surface); border:1px solid var(--line); padding:1px 5px; border-radius:4px }
+.adopt li::marker{ font-family:var(--mono); color:var(--muted) }
+
+@media (prefers-reduced-motion: reduce){ *{ transition:none !important; scroll-behavior:auto !important } }
+</style>
+
+<header class="wrap intro">
+  <p class="eyebrow">Overload · design directions · 15 October 2026</p>
+  <h1>Four ways Overload could look</h1>
+  <p class="lede">Each direction replaces the editorial paper-and-serif look and comes with a desktop Today screen and a mobile set logger. <strong>The phones are live.</strong> Scroll the rulers and wheels, turn the knobs, and flick the digit drums. On a laptop, drag with the mouse or click a control and use the arrow keys. Every direction uses the same data and keeps the existing rules: kg in storage, tabular figures and 44 px targets. <strong>A+B, the first section, is the mix you picked.</strong></p>
+</header>
+
+<section class="wrap why" aria-labelledby="why-h">
+  <h2 id="why-h">What the editorial style gets wrong in a gym</h2>
+  <ul class="why-list">
+    <li><span class="sev hi">High</span><b>Weight entry is slow</b><span>The +/− stepper moves 2.5 kg per tap, so going from 82.5 to 100 kg takes seven taps mid-set.</span></li>
+    <li><span class="sev hi">High</span><b>It reads like a magazine</b><span>On Today the italic word “Today” is the largest thing on screen, and the numbers you came for rank below it.</span></li>
+    <li><span class="sev md">Medium</span><b>The figures are thin</b><span>Newsreader digits look elegant on a desk. They are hard to read from a bench at arm’s length.</span></li>
+    <li><span class="sev md">Medium</span><b>Every card looks the same</b><span>All four Today cards share the same vermilion offset shadow, so no card stands out as the next thing to do.</span></li>
+    <li><span class="sev lo">Low</span><b>The look is common</b><span>Cream paper, a serif display face and a red accent now appear on many products, so the app won’t look like its own.</span></li>
+  </ul>
+</section>
+
+<nav class="chips" aria-label="Directions">
+  <div class="wrap chips-in">
+    <a href="#dial"><b>+</b>A+B Dial</a>
+    <a href="#calibrated"><b>A</b>Calibrated</a>
+    <a href="#instrument"><b>B</b>Bench Instrument</a>
+    <a href="#clock"><b>C</b>Gym Clock</a>
+    <a href="#chalk"><b>D</b>Chalk</a>
+    <a href="#compare"><b>=</b>Compare</a>
+  </div>
+</nav>
+
+<main>
+<!-- ============================== A+B ============================== -->
+<section class="dir wrap" id="dial" aria-labelledby="h-ab">
+  <div class="dir-head">
+    <span class="dir-letter" aria-hidden="true" style="width:auto;padding:0 8px;border-radius:16px">A+B</span>
+    <div>
+      <h2 id="h-ab" class="h-cal">Calibrated Dial</h2>
+      <p class="thesis">A’s rubber-floor palette and stamped type, with B’s rotary control rebuilt as a calibrated plate you turn. The picture above the dial follows the equipment: plates load onto a bar, dumbbells and kettlebells grow, and a machine stack lifts plate by plate.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <figure class="desk">
+      <div class="browser">
+        <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>overload.app/today</span></div>
+        <div class="desk-scale"><div class="desk-canvas cal" id="ab-desk" aria-hidden="true"></div></div>
+      </div>
+      <figcaption><b>Desktop</b> · Today, 1280 px · each exercise shows its equipment</figcaption>
+    </figure>
+
+    <figure class="phone-fig">
+      <div class="phone tall">
+        <div class="screen cal calp abp">
+          <div class="sb"><span>9:41</span><span>87%</span></div>
+          <div class="pc">
+            <div class="calp-top"><span>‹ Push A</span><span class="mute num">24:18</span><button type="button" class="fin">Finish</button></div>
+            <div class="ab-eq" role="group" aria-label="Equipment" id="ab-eq"></div>
+            <div class="ab-name disp" id="ab-name">Bench press</div>
+            <div class="ab-meta" id="ab-meta"></div>
+            <div class="ab-vis" id="ab-vis"></div>
+            <div class="calp-side" id="ab-cap"></div>
+            <div class="calp-read ab-read">
+              <button type="button" class="calp-w disp num" id="ab-w" aria-label="Weight, tap to type">102.5</button><span class="u" id="ab-u">KG</span>
+              <span class="x disp" aria-hidden="true">×</span><span class="r disp num" id="ab-r" aria-hidden="true">5</span>
+            </div>
+            <div class="ab-dial" id="ab-dial"></div>
+            <div class="calp-row"><span class="k">Reps</span><div class="cal-reps" id="ab-reps"></div></div>
+            <div class="calp-row"><span class="k">RIR</span><div class="rir" role="group" aria-label="Reps in reserve" id="ab-rir"></div></div>
+            <button type="button" class="calp-log disp" id="ab-log">Log set</button>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Mobile</b> · switch equipment, then turn the plate</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>Equipment visuals</h3>
+      <ul class="pros">
+        <li class="up"><b>Barbell:</b> plates load per side as you turn, and the dial’s rim takes the colour of the heaviest plate on the bar.</li>
+        <li class="up"><b>Dumbbell:</b> both heads grow with the weight per hand. The dial steps 2 kg, matching the app’s dumbbell default.</li>
+        <li class="up"><b>Kettlebell:</b> the dial steps through real bell sizes (4 to 48 kg), and the bell grows and changes colour.</li>
+        <li class="up"><b>Machine:</b> each click moves the pin down one plate, and the newly selected plates lift onto the carriage. The step comes from the machine’s pin step.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>The dial</h3>
+      <p>The dial is a calibrated plate seen face-on: a rubber rim with stamped ticks and a steel hub. The pointer stays still while the plate turns under it. One click is one step, every 12°.</p>
+      <p>Tap the big number to type a value, and it snaps to the nearest step for that equipment. Reps keep A’s number strip and RIR keeps five buttons.</p>
+    </div>
+    <div>
+      <h3>Haptics</h3>
+      <p>Intended feel: a light tick on every click of the dial, a tap tick on the RIR and equipment buttons, and a firmer double pulse on Log set.</p>
+      <p>Android would use the Vibration API and iOS the switch technique from ios-haptics. Neither has been tested on a device yet, so the mock may feel silent.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== A ============================== -->
+<section class="dir wrap" id="calibrated" aria-labelledby="h-a">
+  <div class="dir-head">
+    <span class="dir-letter" aria-hidden="true">A</span>
+    <div>
+      <h2 id="h-a" class="h-cal">Calibrated</h2>
+      <p class="thesis">Based on competition plates. The background is dark like a rubber floor, the plate colours are the whole palette, and the condensed italic type looks like the stamping on a plate face. The weight control draws the bar you are about to load.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <figure class="desk">
+      <div class="browser">
+        <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>overload.app/today</span></div>
+        <div class="desk-scale">
+          <div class="desk-canvas cal" aria-hidden="true">
+            <div class="cald-bar">
+              <div class="cald-logo disp">Overload<span class="stripe"><i style="--c:var(--p25)"></i><i style="--c:var(--p20)"></i><i style="--c:var(--p15)"></i><i style="--c:var(--p10)"></i><i style="--c:var(--p5)"></i></span></div>
+              <nav><span class="on">Today</span><span>Exercises</span><span>History</span><span>Progress</span><span>Insights</span></nav>
+              <span class="cald-start disp">Start workout</span>
+              <span class="cald-av"></span>
+            </div>
+            <div class="cald-main">
+              <div class="cald-col">
+                <div class="k">Thursday 15 October</div>
+                <div class="disp cald-h">Today</div>
+                <div class="cald-card">
+                  <div class="k">Next up</div>
+                  <div class="disp cald-plan">Push A</div>
+                  <ol class="cald-list num">
+                    <li><span>Bench press</span><span>4 × 5 · 102.5</span></li>
+                    <li><span>Incline DB press</span><span>3 × 8 · 32</span></li>
+                    <li><span>Overhead press</span><span>3 × 6 · 60</span></li>
+                    <li><span>Cable fly</span><span>3 × 12 · 18</span></li>
+                    <li><span>Triceps pushdown</span><span>3 × 12 · 27</span></li>
+                  </ol>
+                  <div class="cald-go disp">Start Push A</div>
+                </div>
+                <div class="cald-card cald-bw">
+                  <div class="k">Bodyweight · 7-day trend</div>
+                  <div><span class="disp num">82.5</span> <span class="mute">kg · −0.4 this week</span></div>
+                </div>
+              </div>
+              <div class="cald-col">
+                <div class="k">Estimated 1RM · change over 4 weeks</div>
+                <div class="cald-lifts" id="cal-lifts"></div>
+                <div class="cald-card cald-chart">
+                  <div class="k">Bench press e1RM · 12 weeks</div>
+                  <div id="cal-chart"></div>
+                </div>
+              </div>
+              <div class="cald-col">
+                <div class="k">Hard sets this week · target 10–20</div>
+                <div class="cald-vol" id="cal-vol"></div>
+                <div class="cald-card cald-ins">
+                  <div class="k">Insight</div>
+                  <p><b>Bench has stalled.</b> Estimated 1RM has sat at 105 kg for four weeks. Run a 3 × 8 block at 87.5 kg before testing again.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Desktop</b> · Today, 1280 px</figcaption>
+    </figure>
+
+    <figure class="phone-fig">
+      <div class="phone">
+        <div class="screen cal calp">
+          <div class="sb"><span>9:41</span><span>87%</span></div>
+          <div class="pc">
+            <div class="calp-top"><span>‹ Push A</span><span class="mute num">24:18</span><button type="button" class="fin">Finish</button></div>
+            <div class="calp-name">
+              <span class="disp">Bench press</span>
+              <span class="dots" aria-label="Set 3 of 4"><i class="ok">✓</i><i class="ok">✓</i><i class="cur">3</i><i>4</i></span>
+            </div>
+            <div class="calp-meta">Barbell · 20 kg bar · last time 100 × 5 @ RIR 2</div>
+            <div class="calp-bar" id="cal-bar"></div>
+            <div class="calp-side" id="cal-side"></div>
+            <div class="calp-read">
+              <button type="button" class="calp-w disp num" id="cal-w" aria-label="Weight, tap to type">102.5</button><span class="u">KG</span>
+              <span class="x disp" aria-hidden="true">×</span><span class="r disp num" id="cal-r" aria-hidden="true">5</span>
+            </div>
+            <div class="cal-ruler" id="cal-ruler"></div>
+            <div class="calp-row"><span class="k">Reps</span><div class="cal-reps" id="cal-reps"></div></div>
+            <div class="calp-row"><span class="k">RIR</span><div class="rir" role="group" aria-label="Reps in reserve" id="cal-rir"></div></div>
+            <button type="button" class="calp-log disp" id="cal-log">Log set 3</button>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Mobile</b> · scroll the ruler, tap the number to type</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>Palette and type</h3>
+      <div class="swatches">
+        <span class="sw"><i style="background:#d8262d"></i>25 kg</span>
+        <span class="sw"><i style="background:#2f63d6"></i>20 kg</span>
+        <span class="sw"><i style="background:#efbd2a"></i>15 kg</span>
+        <span class="sw"><i style="background:#2f9a4f"></i>10 kg</span>
+        <span class="sw"><i style="background:#ecebe6"></i>5 kg</span>
+        <span class="sw"><i style="background:#16181a"></i>Floor</span>
+      </div>
+      <p class="typespec"><span><b>Archivo</b> at 62% width, 850 italic, for display</span><span><b>Archivo</b> at normal width for text. One family, two widths.</span></p>
+    </div>
+    <div>
+      <h3>Entering numbers</h3>
+      <p>Weight is a horizontal ruler that snaps every 2.5 kg. As it moves, the bar above reloads plates per side, so the plate math is done for you. Tap the big number to type a jump.</p>
+      <p>Reps use a number strip. RIR stays as five buttons, because five choices are quicker to tap than to scroll.</p>
+    </div>
+    <div>
+      <h3>Trade-offs</h3>
+      <ul class="pros">
+        <li class="up">Dark by default, which matches the gym default you already planned.</li>
+        <li class="up">Lifters already know what the plate colours mean, so the palette carries information.</li>
+        <li class="dn">Five saturated colours need strict rules: use them for lifts and plates only, never for decoration.</li>
+        <li class="dn">Machines and cables have no plates. Their visual would be a weight-stack pin.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== B ============================== -->
+<section class="dir wrap" id="instrument" aria-labelledby="h-b">
+  <div class="dir-head">
+    <span class="dir-letter" aria-hidden="true">B</span>
+    <div>
+      <h2 id="h-b" class="h-ins">Bench Instrument</h2>
+      <p class="thesis">Styled as a piece of training hardware: a brushed aluminium panel, an OLED readout and colour-coded rotary encoders. Every number is set with a knob that clicks from step to step.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <figure class="desk">
+      <div class="browser">
+        <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>overload.app/today</span></div>
+        <div class="desk-scale">
+          <div class="desk-canvas ins" aria-hidden="true">
+            <div class="insd-bar">
+              <div class="insd-logo"><b>overload</b><span class="mono lbl">OV-1 training instrument</span></div>
+              <div class="keys mono"><span class="key on"><span class="led" style="--c:var(--i-green)"></span>Today</span><span class="key">Lifts</span><span class="key">Log</span><span class="key">Progress</span><span class="key">Insight</span></div>
+              <span class="key go mono"><span class="led" style="--c:var(--i-blue-hi)"></span>Start ▸</span>
+            </div>
+            <div class="insd-grid">
+              <div class="oled insd-oled">
+                <div style="display:flex;justify-content:space-between" class="mono lbl"><span>CH2 · Bench press · e1RM</span><span>12 wk</span></div>
+                <div class="insd-read num">105.0<small>KG</small></div>
+                <div class="mono" style="color:var(--i-orange)">● Flat 4 weeks</div>
+                <div id="ins-chart"></div>
+              </div>
+              <div class="insd-chs" id="ins-chs"></div>
+              <div class="mod insd-vu">
+                <div style="display:flex;justify-content:space-between" class="mono lbl"><span>Hard sets / week 42</span><span>Target 10–20</span></div>
+                <div class="vu" id="ins-vu"></div>
+              </div>
+              <div class="insd-low">
+                <div class="mod">
+                  <div class="mono lbl" style="margin-bottom:6px">Next patch · Push A</div>
+                  <ul class="patch">
+                    <li><span>Bench press</span><span>4×5 102.5</span></li>
+                    <li><span>Incline DB press</span><span>3×8 32</span></li>
+                    <li><span>Overhead press</span><span>3×6 60</span></li>
+                    <li><span>Cable fly</span><span>3×12 18</span></li>
+                    <li><span>Triceps pushdown</span><span>3×12 27</span></li>
+                  </ul>
+                </div>
+                <div class="receipt">
+                  INSIGHT · WK 42<hr>
+                  BENCH E1RM 105.0 KG<br>
+                  CHANGE 4 WK ..... ±0.0<hr>
+                  RUN 3×8 @ 87.5 KG<br>
+                  FOR 3 WEEKS, THEN<br>
+                  RETEST 5RM.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Desktop</b> · Today, 1280 px</figcaption>
+    </figure>
+
+    <figure class="phone-fig">
+      <div class="phone">
+        <div class="screen ins insp">
+          <div class="sb"><span>9:41</span><span>87%</span></div>
+          <div class="pc">
+            <div class="insp-top mono"><span><span class="led" style="--c:var(--i-green)"></span>&nbsp; OV-1 · Push A</span><span class="num">24:18</span></div>
+            <div class="oled insp-oled">
+              <div class="insp-ex"><b>Bench press</b><span class="mono lbl">Set 3/4</span></div>
+              <div class="insp-w num"><span id="ins-w">102.5</span><small>KG</small></div>
+              <div class="insp-sub num"><span><small>REPS</small><span class="r" id="ins-r">5</span></span><span><small>RIR</small><span id="ins-q">2</span></span></div>
+              <div class="mono lbl">Last 100.0 × 5 · RIR 2</div>
+            </div>
+            <div class="insp-knobs">
+              <div class="kcell"><div class="knob k-lg" id="k-w"></div><span class="mono"><span class="led" style="--c:var(--i-blue)"></span>Weight</span></div>
+              <div class="kcol">
+                <div class="kcell"><div class="knob k-sm" id="k-r"></div><span class="mono"><span class="led" style="--c:var(--i-green)"></span>Reps</span></div>
+                <div class="kcell"><div class="knob k-sm" id="k-q"></div><span class="mono"><span class="led" style="--c:#fff"></span>RIR</span></div>
+              </div>
+            </div>
+            <div class="mono insp-hint">1 click = 2.5 kg · 1 rep · 1 RIR</div>
+            <div class="insp-keys">
+              <button type="button" class="key"><span class="led" style="--c:var(--i-orange)"></span>Rest 1:42</button>
+              <button type="button" class="key go" id="ins-log">Log set</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Mobile</b> · drag around a knob; click it, then use arrows or the scroll wheel</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>Palette and type</h3>
+      <div class="swatches">
+        <span class="sw"><i style="background:#d5d5d0"></i>Panel</span>
+        <span class="sw"><i style="background:#0b0c0d"></i>OLED</span>
+        <span class="sw"><i style="background:#2f5bff"></i>Weight</span>
+        <span class="sw"><i style="background:#16a85a"></i>Reps</span>
+        <span class="sw"><i style="background:#f5f5f1"></i>RIR</span>
+        <span class="sw"><i style="background:#ff7a1a"></i>Rest</span>
+      </div>
+      <p class="typespec"><span><b>Schibsted Grotesk</b> for names and headings</span><span><b>Martian Mono</b> for every label and number</span></p>
+    </div>
+    <div>
+      <h3>Entering numbers</h3>
+      <p>Each knob is an endless encoder: one click is one step. Weight moves 2.5 kg per click, reps 1, RIR 1. The colour of a knob matches the colour of its value on the screen.</p>
+      <p>The OLED shows the value at full size because your thumb covers the knob while you turn it.</p>
+    </div>
+    <div>
+      <h3>Trade-offs</h3>
+      <ul class="pros">
+        <li class="up">The most distinctive option, and it looks tactile even in screenshots.</li>
+        <li class="up">Quick for small changes from last session’s numbers.</li>
+        <li class="dn">Circular dragging on glass is unfamiliar and imprecise. Knobs need to be large, and iOS Safari can’t vibrate, so each click needs clear visual feedback.</li>
+        <li class="dn">Designed light-first. A dark version needs its own panel and knob work.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== C ============================== -->
+<section class="dir wrap" id="clock" aria-labelledby="h-c">
+  <div class="dir-head">
+    <span class="dir-letter" aria-hidden="true">C</span>
+    <div>
+      <h2 id="h-c" class="h-clk">Gym Clock</h2>
+      <p class="thesis">Based on the LED interval timer on the gym wall. Every number uses seven-segment digits, red for work and green for rest, readable from across the rack.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <figure class="desk">
+      <div class="browser">
+        <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>overload.app/today</span></div>
+        <div class="desk-scale">
+          <div class="desk-canvas clk" aria-hidden="true">
+            <div class="clkd-bar">
+              <span class="clkd-logo">OVERLOAD</span>
+              <nav><span class="on">TODAY</span><span>EXERCISES</span><span>HISTORY</span><span>PROGRESS</span><span>INSIGHTS</span></nav>
+              <span class="clkd-go">START PUSH A ▸</span>
+              <span class="red" id="clkd-time"></span>
+            </div>
+            <div class="clkd-body">
+              <div class="clkd-scores" id="clk-scores"></div>
+              <div class="clkd-row">
+                <div class="pan">
+                  <div class="lbl" style="display:flex;justify-content:space-between"><span>Bench press · e1RM kg · 12 weeks</span><span class="red">Flat 4 wk</span></div>
+                  <div id="clk-matrix"></div>
+                </div>
+                <div class="pan">
+                  <div class="lbl" style="display:flex;justify-content:space-between"><span>Hard sets · week 42</span><span>Target 10–20</span></div>
+                  <div class="meters" id="clk-meters"></div>
+                </div>
+              </div>
+              <div class="ticker">▲ BENCH E1RM FLAT 4 WEEKS · RUN 3×8 @ 87.5 KG · HAMSTRINGS 6 OF 10 SETS · NEXT: PUSH A · 5 EXERCISES · ~55 MIN</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Desktop</b> · Today, 1280 px</figcaption>
+    </figure>
+
+    <figure class="phone-fig">
+      <div class="phone">
+        <div class="screen clk clkp">
+          <div class="sb"><span>9:41</span><span>87%</span></div>
+          <div class="pc">
+            <div class="clkp-top"><span class="lbl">Push A · elapsed</span><span class="red" id="clk-el"></span></div>
+            <div class="pan clkp-rest">
+              <div class="green" id="clk-rest"></div>
+              <div class="side"><span class="lbl green">Rest</span><span class="lbl">Set 3 next</span></div>
+            </div>
+            <div>
+              <div class="clkp-name">BENCH PRESS</div>
+              <div class="clkp-meta amber">LAST 100.0 × 5 @ RIR 2</div>
+            </div>
+            <div class="drumgrp">
+              <div class="drums" id="clk-wd"></div>
+              <span class="lbl">Weight · kg</span>
+            </div>
+            <div class="drumrow">
+              <div class="drumgrp"><div class="drums" id="clk-rd"></div><span class="lbl">Reps</span></div>
+              <div class="drumgrp"><div class="drums" id="clk-qd"></div><span class="lbl">RIR</span></div>
+            </div>
+            <button type="button" class="clkp-log" id="clk-log">LOG SET 3</button>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Mobile</b> · flick each digit drum up or down</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>Palette and type</h3>
+      <div class="swatches">
+        <span class="sw"><i style="background:#0a0a0b"></i>Board</span>
+        <span class="sw"><i style="background:#ff3b2f"></i>Work</span>
+        <span class="sw"><i style="background:#2bec77"></i>Rest</span>
+        <span class="sw"><i style="background:#ffb21e"></i>Notice</span>
+        <span class="sw"><i style="background:#e8e8e6"></i>Text</span>
+      </div>
+      <p class="typespec"><span><b>Oxanium</b> for labels and prose</span><span><b>Seven-segment</b> numbers are drawn shapes, not a font</span></p>
+    </div>
+    <div>
+      <h3>Entering numbers</h3>
+      <p>Each digit is its own drum, like a combination lock. Flick the tens drum to jump 10 kg, flick the ones drum for small changes, and use the last drum to switch between .0 and .5.</p>
+      <p>There is no step size to set up, and any weight is at most four flicks away.</p>
+    </div>
+    <div>
+      <h3>Trade-offs</h3>
+      <ul class="pros">
+        <li class="up">The easiest to read from a distance and in bright gyms. The rest timer becomes the main element.</li>
+        <li class="up">A strong look that is clearly Overload’s own.</li>
+        <li class="dn">Dark only. Seven-segment digits can’t show prose, so settings and insights fall back to Oxanium and can look like a costume.</li>
+        <li class="dn">Screen readers should hear one weight value, not four separate digits.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== D ============================== -->
+<section class="dir wrap" id="chalk" aria-labelledby="h-d">
+  <div class="dir-head">
+    <span class="dir-letter" aria-hidden="true">D</span>
+    <div>
+      <h2 id="h-d" class="h-chk">Chalk</h2>
+      <p class="thesis">Soft, bright and close to a native app: a chalk-white background, rounded cards, a cobalt accent, and the iOS picker wheel people already know.</p>
+    </div>
+  </div>
+  <div class="stage">
+    <figure class="desk">
+      <div class="browser">
+        <div class="browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>overload.app/today</span></div>
+        <div class="desk-scale">
+          <div class="desk-canvas chk" aria-hidden="true">
+            <div class="chkd">
+              <div class="chkd-side">
+                <div class="chkd-logo">overload</div>
+                <div class="chkd-nav"><span class="on">Today</span><span>Exercises</span><span>History</span><span>Progress</span><span>Insights</span><span>Settings</span></div>
+                <div class="chkd-sync"><i></i>Synced just now</div>
+              </div>
+              <div class="chkd-main">
+                <div class="chkd-hello"><div class="mute" style="font-size:13px">Thursday, 15 October</div><h3>Push day. Bench is first.</h3></div>
+                <div class="chkd-grid">
+                  <div class="chkd-start">
+                    <span style="font-size:13px;opacity:.8">Up next</span>
+                    <span class="t">Push A</span>
+                    <span style="font-size:13px;opacity:.85">5 exercises · about 55 min</span>
+                    <div class="tags"><span>Bench press</span><span>Incline DB</span><span>OHP</span><span>Cable fly</span><span>Pushdown</span></div>
+                    <span class="btn">Start workout</span>
+                  </div>
+                  <div class="card chkd-e1">
+                    <span class="ct">Bench press · estimated 1RM</span>
+                    <div class="big num">105<small>kg</small><span class="flatpill">Flat 4 weeks</span></div>
+                    <div id="chk-chart" style="margin-top:auto"></div>
+                  </div>
+                  <div class="card">
+                    <span class="ct">Estimated 1RM</span>
+                    <div class="liftlist num" id="chk-lifts"></div>
+                  </div>
+                  <div class="card">
+                    <span class="ct">Hard sets this week</span>
+                    <div class="cvol" id="chk-vol"></div>
+                  </div>
+                  <div class="chkd-ins">
+                    <b>Bench has stalled</b>
+                    <span>Four weeks at 105 kg. Try 3 × 8 at 87.5 kg for three weeks, then retest.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Desktop</b> · Today, 1280 px</figcaption>
+    </figure>
+
+    <figure class="phone-fig">
+      <div class="phone">
+        <div class="screen chk chkp">
+          <div class="sb"><span>9:41</span><span>87%</span></div>
+          <div class="pc">
+            <div class="chkp-head"><div><div class="t">Push A</div><div class="s">24:18 · exercise 1 of 5</div></div><button type="button" class="pill">Finish</button></div>
+            <div class="card chkp-card">
+              <div class="chkp-ex"><i></i>Bench press<span>Barbell</span></div>
+              <table class="sets num">
+                <thead><tr><th>Set</th><th>kg</th><th>Reps</th><th>RIR</th><th><span style="position:absolute;left:-9999px">Done</span></th></tr></thead>
+                <tbody>
+                  <tr class="done"><td>1</td><td>100</td><td>5</td><td>2</td><td>✓</td></tr>
+                  <tr class="done"><td>2</td><td>102.5</td><td>5</td><td>1</td><td>✓</td></tr>
+                  <tr class="act"><td>3</td><td id="chk-w">102.5</td><td id="chk-r">5</td><td id="chk-q">2</td><td>○</td></tr>
+                  <tr class="ghost"><td>4</td><td>102.5</td><td>5</td><td>–</td><td>○</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="chkp-sheet">
+              <span class="handle"></span>
+              <div class="chkp-sh"><b>Set 3</b><span>Last time 100 × 5 @ 2</span></div>
+              <div class="wheels">
+                <span class="band" aria-hidden="true"></span>
+                <div class="wcol"><span class="wl">kg</span><div class="wheel" id="chk-ww"></div></div>
+                <div class="wcol"><span class="wl">Reps</span><div class="wheel" id="chk-wr"></div></div>
+                <div class="wcol"><span class="wl">RIR</span><div class="wheel" id="chk-wq"></div></div>
+              </div>
+              <button type="button" class="chkp-log" id="chk-log">Log set</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Mobile</b> · spin the wheels in the sheet</figcaption>
+    </figure>
+  </div>
+
+  <div class="notes">
+    <div>
+      <h3>Palette and type</h3>
+      <div class="swatches">
+        <span class="sw"><i style="background:#eef1f4"></i>Chalk</span>
+        <span class="sw"><i style="background:#0f1a2b"></i>Ink</span>
+        <span class="sw"><i style="background:#2e4bea"></i>Cobalt</span>
+        <span class="sw"><i style="background:#ff8a6b"></i>Chest</span>
+        <span class="sw"><i style="background:#1fb380"></i>Quads</span>
+        <span class="sw"><i style="background:#9b6bff"></i>Shoulders</span>
+      </div>
+      <p class="typespec"><span><b>Bricolage Grotesque</b> at display size for headings</span><span><b>Bricolage Grotesque</b> at text size for everything else</span></p>
+    </div>
+    <div>
+      <h3>Entering numbers</h3>
+      <p>Tap a set and a sheet slides up with three wheels: weight, reps and RIR. The wheels start at last session’s numbers, so repeating a set takes one tap on Log set.</p>
+      <p>This option takes the least learning of the four.</p>
+    </div>
+    <div>
+      <h3>Trade-offs</h3>
+      <ul class="pros">
+        <li class="up">The friendliest option for new lifters, with familiar gestures.</li>
+        <li class="up">Easy to do well in both light and dark themes.</li>
+        <li class="dn">The least distinctive. It looks like many other fitness apps.</li>
+        <li class="dn">The sheet covers part of the set table, so it must close when you tap Log set.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== compare ============================== -->
+<section class="wrap compare" id="compare" aria-labelledby="h-cmp">
+  <h2 id="h-cmp">Side by side</h2>
+  <p>The look and the input control are separate choices. Any direction can use any of the four controls. The pairings below are the ones that fit each look best.</p>
+  <div class="tbl">
+    <table class="cmp">
+      <thead><tr><th></th><th>A+B · Calibrated Dial</th><th>A · Calibrated</th><th>B · Bench Instrument</th><th>C · Gym Clock</th><th>D · Chalk</th></tr></thead>
+      <tbody>
+        <tr><th>Feel</th><td>Heavy, strength sport</td><td>Heavy, strength sport</td><td>Precise, playful hardware</td><td>Loud, high contrast</td><td>Soft, familiar</td></tr>
+        <tr><th>Background</th><td>Dark (rubber floor)</td><td>Dark (rubber floor)</td><td>Light (aluminium)</td><td>Dark only</td><td>Light; dark version is easy</td></tr>
+        <tr><th>Weight entry</th><td>Plate-face dial with a live equipment picture</td><td>Snapping ruler with live plate loading</td><td>Endless knob, 2.5 kg per click</td><td>Per-digit drums</td><td>Picker wheel</td></tr>
+        <tr><th>Reps and RIR</th><td>Number strip and five buttons</td><td>Number strip and five buttons</td><td>Knobs</td><td>Drums</td><td>Wheels</td></tr>
+        <tr><th>Learning curve</th><td>Low to medium</td><td>Low</td><td>Medium</td><td>Low to medium</td><td>Lowest</td></tr>
+        <tr><th>Distinctiveness</th><td>High</td><td>High</td><td>Highest</td><td>High</td><td>Low</td></tr>
+        <tr><th>Main risk</th><td>Circular drag on glass; tap-to-type is the fallback</td><td>Plate visual only works for barbells</td><td>Circular drag is imprecise on glass</td><td>Prose screens and dark-only</td><td>Looks like other fitness apps</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pick">
+    <b class="tag">Chosen</b>
+    <div>
+      <p><strong>A+B · Calibrated Dial</strong>: A’s palette, type and number strip, with B’s rotary control as the one way to set weight on every kind of equipment.</p>
+      <p>The original four stay below for reference.</p>
+    </div>
+  </div>
+</section>
+
+<section class="wrap adopt" aria-labelledby="h-adopt">
+  <h2 id="h-adopt">What adopting one changes in the repo</h2>
+  <ol>
+    <li>New light and dark daisyUI themes in <code>src/styles/theme.css</code> (owned by stream B), replacing <code>overload-paper</code> and <code>overload-ink</code>.</li>
+    <li>New fonts in <code>src/app/layout.tsx</code>. That file is frozen, so this needs a change request.</li>
+    <li>A rewrite of the design rule in <code>CLAUDE.md</code> (“square corners, vermilion…, Instrument Serif never bold”).</li>
+    <li><code>Ruler</code>, <code>Wheel</code> and <code>Knob</code> primitives in <code>src/components/ui</code> beside <code>NumberStepper</code>. Each keeps a tap-to-type fallback and a single <code>spinbutton</code> or <code>slider</code> role, with arrow and Page Up/Down keys.</li>
+    <li>Regenerated visual baselines in <code>e2e/budgets/visual.spec.ts-snapshots</code>.</li>
+  </ol>
+</section>
+</main>
+
+<script>
+(() => {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const el = (t, c) => { const e = document.createElement(t); if (c) e.className = c; return e; };
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const range = (a, b, s) => { const o = []; for (let i = 0; a + i * s <= b + 1e-9; i++) o.push(Math.round((a + i * s) * 100) / 100); return o; };
+const fmt = (v) => String(Math.round(v * 100) / 100);
+const fx1 = (v) => v.toFixed(1);
+
+/* ---------- shared sample data (12 ISO weeks ending W42) ---------- */
+const WEEKS = ["Jul 27","Aug 3","Aug 10","Aug 17","Aug 24","Aug 31","Sep 7","Sep 14","Sep 21","Sep 28","Oct 5","Oct 12"];
+const SERIES = {
+  Squat:    [140,142.5,145,146,148.5,150,152.5,155,156,158.5,160,162.5],
+  Bench:    [98,99.5,101,102,103.5,104,105,105,105.5,105,105.5,105],
+  Deadlift: [172.5,175,175,177.5,180,180,182.5,185,185,187.5,187.5,190],
+  OHP:      [58,58.5,59,60,60.5,61,62,63,64,64.5,65,66],
+};
+const LIFTS = Object.entries(SERIES).map(([name, s]) => ({ name, e1: s[11], d: Math.round((s[11] - s[7]) * 10) / 10, s }));
+const VOL = [["Chest",12],["Back",16],["Quads",11],["Hamstrings",6],["Shoulders",10],["Biceps",9],["Triceps",10]];
+const LO = 10, HI = 20;
+const delta = (d) => d > 0 ? `+${fmt(d)} kg` : d < 0 ? `−${fmt(-d)} kg` : "±0 · flat";
+
+/* ---------- desktop canvas scaling ---------- */
+document.querySelectorAll(".desk-scale").forEach((box) => {
+  const c = box.firstElementChild;
+  const fit = () => { c.style.transform = `scale(${box.clientWidth / 1000})`; };
+  fit();
+  if ("ResizeObserver" in window) new ResizeObserver(fit).observe(box); else addEventListener("resize", fit);
+});
+
+/* ---------- scroller: wheel / ruler / drum ---------- */
+function scroller(host, o) {
+  const { values, axis = "y", size, label, render = fmt, text = fmt, itemClass, onChange } = o;
+  const y = axis === "y";
+  const sc = el("div", `sc sc-${axis}`);
+  sc.style.setProperty("--size", size + "px");
+  sc.tabIndex = 0;
+  sc.setAttribute("role", "spinbutton");
+  sc.setAttribute("aria-label", label);
+  sc.setAttribute("aria-valuemin", values[0]);
+  sc.setAttribute("aria-valuemax", values[values.length - 1]);
+  sc.append(el("div", "sc-pad"));
+  let suppress = false;
+  const items = values.map((v, i) => {
+    const it = el("div", "sc-item" + (itemClass ? " " + itemClass(v) : ""));
+    it.innerHTML = render(v);
+    it.addEventListener("click", () => { if (!suppress) go(i, true); });
+    sc.append(it);
+    return it;
+  });
+  sc.append(el("div", "sc-pad"));
+  host.append(sc);
+
+  const nearest = (v) => values.reduce((b, x, i) => Math.abs(x - v) < Math.abs(values[b] - v) ? i : b, 0);
+  const clamp = (i) => Math.max(0, Math.min(values.length - 1, i));
+  const pos = () => (y ? sc.scrollTop : sc.scrollLeft) / size;
+  let idx = nearest(o.value);
+  let painted = new Set();
+  const announce = () => { sc.setAttribute("aria-valuenow", values[idx]); sc.setAttribute("aria-valuetext", text(values[idx])); };
+  function paint() {
+    const p = pos();
+    const span = Math.ceil((y ? sc.clientHeight : sc.clientWidth) / size / 2) + 2;
+    const next = new Set();
+    for (let i = Math.max(0, Math.floor(p) - span); i <= Math.min(items.length - 1, Math.ceil(p) + span); i++) {
+      const d = i - p;
+      items[i].style.setProperty("--sd", Math.max(-4, Math.min(4, d)).toFixed(3));
+      items[i].style.setProperty("--ad", Math.min(Math.abs(d), 4).toFixed(3));
+      next.add(i);
+    }
+    painted.forEach((i) => { if (!next.has(i)) { items[i].style.setProperty("--ad", "4"); items[i].style.setProperty("--sd", "4"); } });
+    painted = next;
+    const ni = clamp(Math.round(p));
+    if (ni !== idx) {
+      items[idx].classList.remove("is-sel");
+      idx = ni;
+      items[idx].classList.add("is-sel");
+      announce();
+      onChange && onChange(values[idx]);
+    }
+  }
+  function go(i, smooth) {
+    sc.scrollTo({ [y ? "top" : "left"]: clamp(i) * size, behavior: smooth && !reduce ? "smooth" : "auto" });
+  }
+  let raf = 0;
+  sc.addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; paint(); }); }, { passive: true });
+
+  sc.addEventListener("keydown", (e) => {
+    const steps = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 5, PageDown: -5 }[e.key];
+    if (steps) { e.preventDefault(); go(idx + steps, true); }
+    else if (e.key === "Home") { e.preventDefault(); go(0, true); }
+    else if (e.key === "End") { e.preventDefault(); go(values.length - 1, true); }
+  });
+
+  // Mouse drag (touch uses native scrolling).
+  let drag = null;
+  sc.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    drag = { s: y ? e.clientY : e.clientX, p: y ? sc.scrollTop : sc.scrollLeft, moved: false };
+    sc.setPointerCapture(e.pointerId);
+  });
+  sc.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const d = (y ? e.clientY : e.clientX) - drag.s;
+    if (!drag.moved && Math.abs(d) > 3) { drag.moved = true; sc.style.scrollSnapType = "none"; sc.classList.add("dragging"); }
+    if (drag.moved) sc[y ? "scrollTop" : "scrollLeft"] = drag.p - d;
+  });
+  const end = (e) => {
+    if (!drag) return;
+    const moved = drag.moved;
+    drag = null;
+    sc.classList.remove("dragging");
+    if (moved) {
+      sc.style.scrollSnapType = "";
+      suppress = true; setTimeout(() => { suppress = false; }, 60);
+      go(Math.round(pos()), true);
+    } else if (e && e.type === "pointerup") {
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const it = hit && hit.closest(".sc-item");
+      const i = items.indexOf(it);
+      if (i >= 0) { suppress = true; setTimeout(() => { suppress = false; }, 60); go(i, true); }
+    }
+  };
+  sc.addEventListener("pointerup", end);
+  sc.addEventListener("pointercancel", end);
+
+  // Horizontal scrollers: a vertical wheel steps them, but only once focused (never hijacks page scroll).
+  if (!y) {
+    let acc = 0;
+    sc.addEventListener("wheel", (e) => {
+      if (document.activeElement !== sc || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      acc += e.deltaY;
+      const n = Math.trunc(acc / 24);
+      if (n) { acc -= n * 24; go(idx + n, false); }
+    }, { passive: false });
+  }
+
+  items[idx].classList.add("is-sel");
+  sc[y ? "scrollTop" : "scrollLeft"] = idx * size;
+  paint();
+  // Keep the selected value centred if the control is resized (the padding is a percentage of its size).
+  if ("ResizeObserver" in window) {
+    let first = true;
+    new ResizeObserver(() => { if (first) { first = false; return; } if (!drag) sc[y ? "scrollTop" : "scrollLeft"] = idx * size; }).observe(sc);
+  }
+  announce();
+  return { set: (v) => go(nearest(v), true), get: () => values[idx], el: sc };
+}
+
+/* ---------- knob: endless rotary encoder ---------- */
+let knobId = 0;
+function knob(host, o) {
+  const { min, max, step, detent, label, color, ink, onChange, text = fmt } = o;
+  let v = o.value;
+  const id = "kg" + (++knobId);
+  const n = Math.round(360 / detent);
+  let ticks = "";
+  for (let i = 0; i < n; i++) {
+    const a = (i * detent - 90) * Math.PI / 180, major = i % 3 === 0;
+    const r1 = 86, r2 = major ? 98 : 93;
+    ticks += `<line x1="${(Math.cos(a) * r1).toFixed(2)}" y1="${(Math.sin(a) * r1).toFixed(2)}" x2="${(Math.cos(a) * r2).toFixed(2)}" y2="${(Math.sin(a) * r2).toFixed(2)}" stroke-width="${major ? 2.4 : 1.4}"/>`;
+  }
+  let grip = "";
+  for (let i = 0; i < 30; i++) {
+    const a = i * 12 * Math.PI / 180;
+    grip += `<line x1="${(Math.cos(a) * 62).toFixed(2)}" y1="${(Math.sin(a) * 62).toFixed(2)}" x2="${(Math.cos(a) * 70).toFixed(2)}" y2="${(Math.sin(a) * 70).toFixed(2)}"/>`;
+  }
+  host.innerHTML = `<svg viewBox="-100 -100 200 200" aria-hidden="true">
+    <defs><radialGradient id="${id}" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></radialGradient></defs>
+    <g style="stroke:var(--i-ink);opacity:.55">${ticks}</g>
+    <circle r="75" cy="5" fill="#000" opacity=".22"/>
+    <circle r="74" style="fill:${color}"/>
+    <g class="rot"><g style="stroke:${ink}" stroke-opacity=".18" stroke-width="2">${grip}</g>
+      <circle r="56" style="fill:${color}"/><circle r="56" fill="url(#${id})"/>
+      <rect x="-4" y="-68" width="8" height="30" rx="4" style="fill:${ink}"/></g>
+    <circle r="74" fill="none" stroke="#000" stroke-opacity=".18"/>
+  </svg>`;
+  const rot = host.querySelector(".rot");
+  host.tabIndex = 0;
+  host.setAttribute("role", "slider");
+  host.setAttribute("aria-label", label);
+  host.setAttribute("aria-valuemin", min);
+  host.setAttribute("aria-valuemax", max);
+  const paint = () => {
+    rot.setAttribute("transform", `rotate(${((v - min) / step) * detent})`);
+    host.setAttribute("aria-valuenow", v);
+    host.setAttribute("aria-valuetext", text(v));
+  };
+  const setV = (nv) => {
+    nv = Math.max(min, Math.min(max, Math.round(nv / step) * step));
+    if (nv === v) return;
+    v = nv; paint(); onChange && onChange(v);
+  };
+  let c = null, last = 0, acc = 0;
+  const ang = (e) => Math.atan2(e.clientY - c.y, e.clientX - c.x) * 180 / Math.PI;
+  host.addEventListener("pointerdown", (e) => {
+    const r = host.getBoundingClientRect();
+    c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    last = ang(e); acc = 0;
+    host.setPointerCapture(e.pointerId);
+    host.focus({ preventScroll: true });
+    e.preventDefault();
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (!c) return;
+    const a = ang(e);
+    let d = a - last;
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    last = a; acc += d;
+    while (acc >= detent) { setV(v + step); acc -= detent; }
+    while (acc <= -detent) { setV(v - step); acc += detent; }
+  });
+  const up = () => { c = null; };
+  host.addEventListener("pointerup", up);
+  host.addEventListener("pointercancel", up);
+  host.addEventListener("keydown", (e) => {
+    const s = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 4, PageDown: -4 }[e.key];
+    if (s) { e.preventDefault(); setV(v + s * step); }
+    else if (e.key === "Home") { e.preventDefault(); setV(min); }
+    else if (e.key === "End") { e.preventDefault(); setV(max); }
+  });
+  let wacc = 0;
+  host.addEventListener("wheel", (e) => {
+    if (document.activeElement !== host) return;
+    e.preventDefault();
+    wacc -= e.deltaY;
+    const k = Math.trunc(wacc / 30);
+    if (k) { wacc -= k * 30; setV(v + k * step); }
+  }, { passive: false });
+  paint();
+}
+
+/* ---------- seven-segment digits ---------- */
+const SEG = { 0:"abcdef", 1:"bc", 2:"abdeg", 3:"abcdg", 4:"bcfg", 5:"acdfg", 6:"acdefg", 7:"abc", 8:"abcdefg", 9:"abcdfg", "-":"g", " ":"" };
+const poly = (pts) => pts.map((p) => p.map((n) => +n.toFixed(2)).join(",")).join(" ");
+function seven(str, h) {
+  const W = 40, H = 72, T = 8, G = 1.6, GAP = 9;
+  let x = 0, out = "";
+  for (const ch of String(str)) {
+    if (ch === ".") { out += `<rect class="on" x="${x}" y="${H - T}" width="${T}" height="${T}"/>`; x += T + GAP; continue; }
+    if (ch === ":") { out += `<rect class="on" x="${x}" y="${H * .26}" width="${T}" height="${T}"/><rect class="on" x="${x}" y="${H * .62}" width="${T}" height="${T}"/>`; x += T + GAP; continue; }
+    const lit = SEG[ch] || "", t2 = T / 2;
+    const l = x + t2, r = x + W - t2, top = t2, mid = H / 2, bot = H - t2;
+    const hz = (yy) => poly([[l + G, yy], [l + G + t2, yy - t2], [r - G - t2, yy - t2], [r - G, yy], [r - G - t2, yy + t2], [l + G + t2, yy + t2]]);
+    const vt = (xx, y0, y1) => poly([[xx, y0 + G], [xx + t2, y0 + G + t2], [xx + t2, y1 - G - t2], [xx, y1 - G], [xx - t2, y1 - G - t2], [xx - t2, y0 + G + t2]]);
+    const s = { a: hz(top), g: hz(mid), d: hz(bot), f: vt(l, top, mid), b: vt(r, top, mid), e: vt(l, mid, bot), c: vt(r, mid, bot) };
+    for (const k in s) out += `<polygon class="${lit.includes(k) ? "on" : "off"}" points="${s[k]}"/>`;
+    x += W + GAP;
+  }
+  const w = x - GAP + 8;
+  return `<svg class="seg" viewBox="0 0 ${w} ${H}" width="${(w * h / H).toFixed(1)}" height="${h}" aria-hidden="true"><g transform="translate(7.6 0) skewX(-6)">${out}</g></svg>`;
+}
+const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+/* ---------- log button feedback ---------- */
+function wireLog(btn, label, done = "Logged ✓") {
+  let t = 0;
+  const refresh = () => { if (!btn.classList.contains("logged")) btn.textContent = label(); };
+  btn.addEventListener("click", () => {
+    clearTimeout(t);
+    btn.classList.add("logged"); btn.textContent = done;
+    t = setTimeout(() => { btn.classList.remove("logged"); refresh(); }, 1300);
+  });
+  refresh();
+  return refresh;
+}
+
+/* ---------- plate math (shared by A and A+B) ---------- */
+const PLATES = [[25,"--p25",86,13],[20,"--p20",86,11],[15,"--p15",74,10],[10,"--p10",60,9],[5,"--p5",44,7],[2.5,"--p2",36,6],[1.25,"--p1",30,5]];
+const loadOut = (w) => { let s = Math.max(0, (w - 20) / 2); const o = []; for (const p of PLATES) while (s >= p[0] - 1e-9) { o.push(p); s -= p[0]; } return o; };
+const barbell = (w) => {
+  let g = `<rect x="96" y="44" width="108" height="4" rx="1" style="fill:#8c9196"/>
+    <rect x="0" y="41" width="92" height="10" rx="2" style="fill:#b5babf"/><rect x="208" y="41" width="92" height="10" rx="2" style="fill:#b5babf"/>
+    <rect x="90" y="35" width="7" height="22" rx="1.5" style="fill:#d4d8dc"/><rect x="203" y="35" width="7" height="22" rx="1.5" style="fill:#d4d8dc"/>`;
+  let xr = 211, xl = 89;
+  for (const [, c, h, pw] of loadOut(w)) {
+    const yy = 46 - h / 2;
+    g += `<rect x="${xr}" y="${yy}" width="${pw}" height="${h}" rx="2" style="fill:var(${c});stroke:var(--c-line)" stroke-width="1"/>`;
+    xl -= pw;
+    g += `<rect x="${xl}" y="${yy}" width="${pw}" height="${h}" rx="2" style="fill:var(${c});stroke:var(--c-line)" stroke-width="1"/>`;
+    xr += pw + 1.5; xl -= 1.5;
+  }
+  return `<svg viewBox="0 0 300 92" width="100%" height="92" role="img" aria-label="Barbell loaded to ${fmt(w)} kilograms">${g}</svg>`;
+};
+const perSide = (w) => {
+  const ps = loadOut(w);
+  if (!ps.length) return "Empty bar · 20 kg";
+  return "Per side " + ps.map((p) => `<span class="pl"><i style="background:var(${p[1]})"></i>${fmt(p[0])}</span>`).join(`<span aria-hidden="true">+</span>`);
+};
+/* ================= A · CALIBRATED ================= */
+(() => {
+  const st = { w: 102.5, r: 5, q: 2 };
+  const wBtn = $("#cal-w"), rOut = $("#cal-r"), bar = $("#cal-bar"), side = $("#cal-side");
+  const refreshLog = wireLog($("#cal-log"), () => `Log set 3 · ${fmt(st.w)} × ${st.r}`);
+  const paint = () => {
+    wBtn.textContent = fmt(st.w); rOut.textContent = st.r;
+    bar.innerHTML = barbell(st.w); side.innerHTML = perSide(st.w); refreshLog();
+  };
+  const ruler = scroller($("#cal-ruler"), {
+    values: range(20, 300, 2.5), value: st.w, axis: "x", size: 14, label: "Weight in kilograms",
+    render: (v) => (v % 10 === 0 ? `<b>${v}</b>` : "") + `<span class="tk"></span>`,
+    itemClass: (v) => v % 10 === 0 ? "maj" : v % 5 === 0 ? "mid" : "",
+    text: (v) => `${fmt(v)} kilograms`,
+    onChange: (v) => { st.w = v; paint(); },
+  });
+  scroller($("#cal-reps"), { values: range(1, 30, 1), value: st.r, axis: "x", size: 46, label: "Reps", text: (v) => `${v} reps`, onChange: (v) => { st.r = v; paint(); } });
+  const rir = $("#cal-rir");
+  ["0","1","2","3","4+"].forEach((t, i) => {
+    const b = el("button"); b.type = "button"; b.textContent = t;
+    b.setAttribute("aria-pressed", String(i === st.q));
+    b.setAttribute("aria-label", `RIR ${t}`);
+    b.addEventListener("click", () => { st.q = i; rir.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", String(j === i))); });
+    rir.append(b);
+  });
+  wBtn.addEventListener("click", () => {
+    const inp = el("input", "cal-type");
+    inp.type = "text"; inp.inputMode = "decimal"; inp.id = "cal-type"; inp.value = fmt(st.w);
+    inp.setAttribute("aria-label", "Type weight in kilograms");
+    wBtn.hidden = true; wBtn.after(inp); inp.focus(); inp.select();
+    const done = (commit, refocus) => {
+      if (!inp.isConnected) return;
+      if (commit) {
+        const v = parseFloat(inp.value.replace(",", "."));
+        if (!Number.isNaN(v)) ruler.set(Math.min(300, Math.max(20, Math.round(v / 2.5) * 2.5)));
+      }
+      inp.remove(); wBtn.hidden = false;
+      if (refocus) wBtn.focus();
+    };
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); done(true, true); }
+      if (e.key === "Escape") { e.preventDefault(); done(false, true); }
+    });
+    inp.addEventListener("blur", () => done(true, false));
+  });
+  paint();
+
+  // desktop
+  const colors = { Squat: "--p25", Bench: "--p20", Deadlift: "--p15", OHP: "--p10" };
+  const names = { Squat: "Back squat", Bench: "Bench press", Deadlift: "Deadlift", OHP: "Overhead press" };
+  $("#cal-lifts").innerHTML = LIFTS.map((l) => `<div class="cald-lift" style="--c:var(${colors[l.name]})"><span class="n">${names[l.name]}</span><span class="v disp num">${fmt(l.e1)}<small>kg</small></span><span class="d num ${l.d === 0 ? "flat" : ""}">${delta(l.d)}</span></div>`).join("");
+  const max = 24;
+  $("#cal-vol").innerHTML = VOL.map(([m, c]) => `<div class="vrow"><span>${m}</span><span class="vtrack"><span class="vband" style="left:${LO / max * 100}%;width:${(HI - LO) / max * 100}%"></span><span class="vfill ${c < LO ? "low" : ""}" style="width:${c / max * 100}%"></span></span><span class="c num">${c}</span></div>`).join("");
+  // chart: 340 x 236
+  const W = 340, H = 236, L = 34, R = 10, T = 22, B = 24, y0 = 95, y1 = 110;
+  const xs = (i) => L + (W - L - R) * i / 11, ys = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+  const s = SERIES.Bench;
+  let g = `<rect x="${xs(7)}" y="${T}" width="${xs(11) - xs(7)}" height="${H - T - B}" style="fill:var(--p15)" opacity=".13"/>
+    <text x="${xs(7) + 6}" y="${T - 8}" style="fill:var(--p15)" font-size="11" font-weight="700" letter-spacing="1">FLAT 4 WK</text>`;
+  [95, 100, 105, 110].forEach((v) => { g += `<line x1="${L}" x2="${W - R}" y1="${ys(v)}" y2="${ys(v)}" style="stroke:var(--c-line)"/><text x="${L - 8}" y="${ys(v) + 4}" text-anchor="end" font-size="11" style="fill:var(--c-mute)">${v}</text>`; });
+  [[0, "start"], [6, "middle"], [11, "end"]].forEach(([i, a]) => { g += `<text x="${xs(i)}" y="${H - 6}" text-anchor="${a}" font-size="11" style="fill:var(--c-mute)">${WEEKS[i]}</text>`; });
+  g += `<path d="${s.map((v, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).join("")}" fill="none" style="stroke:var(--p20)" stroke-width="3" stroke-linejoin="round"/>`;
+  s.forEach((v, i) => { g += `<circle cx="${xs(i)}" cy="${ys(v)}" r="${i === 11 ? 5 : 3}" style="fill:${i === 11 ? "var(--p20)" : "var(--c-panel)"};stroke:var(--p20)" stroke-width="2"/>`; });
+  $("#cal-chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:Archivo,sans-serif">${g}</svg>`;
+})();
+
+/* ================= B · BENCH INSTRUMENT ================= */
+(() => {
+  const st = { w: 102.5, r: 5, q: 2 };
+  const wOut = $("#ins-w"), rOut = $("#ins-r"), qOut = $("#ins-q");
+  const refreshLog = wireLog($("#ins-log"), () => "Log set 3", "Logged ✓");
+  const paint = () => { wOut.textContent = fx1(st.w); rOut.textContent = st.r; qOut.textContent = st.q === 4 ? "4+" : st.q; refreshLog(); };
+  knob($("#k-w"), { min: 0, max: 400, step: 2.5, detent: 12, value: st.w, label: "Weight in kilograms", color: "var(--i-blue)", ink: "#ffffff", text: (v) => `${fmt(v)} kilograms`, onChange: (v) => { st.w = v; paint(); } });
+  knob($("#k-r"), { min: 1, max: 50, step: 1, detent: 20, value: st.r, label: "Reps", color: "var(--i-green)", ink: "#ffffff", text: (v) => `${v} reps`, onChange: (v) => { st.r = v; paint(); } });
+  knob($("#k-q"), { min: 0, max: 4, step: 1, detent: 30, value: st.q, label: "Reps in reserve", color: "var(--i-white)", ink: "#1a1b1d", text: (v) => v === 4 ? "4 or more" : String(v), onChange: (v) => { st.q = v; paint(); } });
+  paint();
+
+  // desktop: OLED chart 398 x 158
+  const W = 398, H = 158, L = 30, R = 6, T = 8, B = 20, y0 = 95, y1 = 110;
+  const xs = (i) => L + (W - L - R) * i / 11, ys = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+  let g = `<rect x="${xs(7)}" y="${T}" width="${xs(11) - xs(7)}" height="${H - T - B}" style="fill:var(--i-orange)" opacity=".14"/>`;
+  [95, 100, 105, 110].forEach((v) => { g += `<line x1="${L}" x2="${W - R}" y1="${ys(v)}" y2="${ys(v)}" style="stroke:var(--i-oled-mute)" stroke-opacity=".35" stroke-dasharray="1 4"/><text x="${L - 6}" y="${ys(v) + 3}" text-anchor="end" font-size="8.5" style="fill:var(--i-oled-mute)">${v}</text>`; });
+  [[0, "start"], [6, "middle"], [11, "end"]].forEach(([i, a]) => { g += `<text x="${xs(i)}" y="${H - 4}" text-anchor="${a}" font-size="8.5" style="fill:var(--i-oled-mute)">${WEEKS[i].toUpperCase()}</text>`; });
+  g += `<path d="${SERIES.Bench.map((v, i) => `${i ? "L" : "M"}${xs(i).toFixed(1)},${ys(v).toFixed(1)}`).join("")}" fill="none" style="stroke:var(--i-blue-hi)" stroke-width="1.6"/>`;
+  SERIES.Bench.forEach((v, i) => { g += `<rect x="${xs(i) - 3}" y="${ys(v) - 3}" width="6" height="6" style="fill:${i === 11 ? "var(--i-orange)" : "var(--i-blue-hi)"}"/>`; });
+  $("#ins-chart").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="font-family:'Martian Mono',monospace">${g}</svg>`;
+
+  const spark = (s, color) => {
+    const w = 110, h = 26, lo = Math.min(...s), hi = Math.max(...s);
+    const pts = s.map((v, i) => `${(w * i / 11).toFixed(1)},${(h - 2 - (h - 4) * (v - lo) / (hi - lo)).toFixed(1)}`).join(" ");
+    return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}"><polyline points="${pts}" fill="none" style="stroke:${color}" stroke-width="1.6"/></svg>`;
+  };
+  const names = { Squat: "Squat", Bench: "Bench", Deadlift: "Deadlift", OHP: "OHP" };
+  $("#ins-chs").innerHTML = LIFTS.map((l, i) => `<div class="mod ch"><div class="ch-top mono lbl"><span>CH${i + 1} · ${names[l.name]}</span><span class="led" style="--c:${l.d === 0 ? "var(--i-orange)" : "var(--i-green)"}"></span></div><div class="ch-v num">${fx1(l.e1)}<small>KG</small></div><div class="mono lbl">${l.d === 0 ? "±0.0 · flat" : "+" + fx1(l.d) + " · 4 wk"}</div>${spark(l.s, i === 1 ? "var(--i-orange)" : "var(--i-ink)")}</div>`).join("");
+  const SHORT = { Chest: "Chest", Back: "Back", Quads: "Quads", Hamstrings: "Hams", Shoulders: "Delts", Biceps: "Bis", Triceps: "Tris" };
+  $("#ins-vu").innerHTML = VOL.map(([m, c]) => {
+    let cells = "";
+    for (let i = 1; i <= 20; i++) cells += `<i class="${i <= c ? "on" : ""} ${c < LO ? "low" : ""} ${i === LO + 1 ? "tg" : ""}"></i>`;
+    return `<div class="vu-col"><span class="mono num" style="font-size:11px">${c}</span><div class="vu-cells">${cells}</div><span class="mono lbl">${SHORT[m]}</span></div>`;
+  }).join("");
+})();
+
+/* ================= C · GYM CLOCK ================= */
+(() => {
+  const st = { h: 1, t: 0, o: 2, f: 5, rt: 0, ro: 5, q: 2 };
+  const weight = () => st.h * 100 + st.t * 10 + st.o + st.f / 10;
+  const reps = () => st.rt * 10 + st.ro;
+  const refreshLog = wireLog($("#clk-log"), () => `LOG SET 3 · ${fx1(weight())} × ${reps()}`, "LOGGED ✓");
+  const drum = (host, key, vals, label, green) => {
+    const d = el("div", "drum" + (green ? " g" : ""));
+    host.append(d);
+    scroller(d, { values: vals, value: st[key], axis: "y", size: 56, label, render: (v) => seven(v, 40), text: String, onChange: (v) => { st[key] = v; refreshLog(); } });
+  };
+  const wd = $("#clk-wd");
+  drum(wd, "h", range(0, 3, 1), "Weight, hundreds digit");
+  drum(wd, "t", range(0, 9, 1), "Weight, tens digit");
+  drum(wd, "o", range(0, 9, 1), "Weight, ones digit");
+  wd.append(el("span", "ddot"));
+  drum(wd, "f", [0, 5], "Weight, tenths digit");
+  drum($("#clk-rd"), "rt", range(0, 5, 1), "Reps, tens digit");
+  drum($("#clk-rd"), "ro", range(0, 9, 1), "Reps, ones digit");
+  drum($("#clk-qd"), "q", range(0, 5, 1), "Reps in reserve", true);
+
+  let rest = 102, elapsed = 24 * 60 + 18;
+  const tick = () => {
+    $("#clk-rest").innerHTML = seven(clock(rest), 62);
+    $("#clk-el").innerHTML = seven(clock(elapsed), 18);
+  };
+  tick();
+  setInterval(() => { rest = rest > 0 ? rest - 1 : 120; elapsed++; tick(); }, 1000);
+
+  // desktop
+  $("#clkd-time").innerHTML = seven("18:42", 26);
+  const names = { Squat: "Squat", Bench: "Bench", Deadlift: "Deadlift", OHP: "Overhead" };
+  $("#clk-scores").innerHTML = LIFTS.map((l) => `<div class="pan score"><div class="score-top"><span class="lbl">${names[l.name]} · e1RM</span><span class="lbl ${l.d === 0 ? "amber" : "green"}">${l.d === 0 ? "FLAT" : "+" + fmt(l.d)}</span></div><div class="red">${seven(fx1(l.e1), 52)}</div></div>`).join("");
+  // LED matrix: 12 weeks x 2 dot columns, 15 rows (96..110 kg)
+  const P = 12.5, GW = 10, rows = 15, base = 95;
+  let g = "", x = 34;
+  for (let r = 0; r < rows; r++) { const v = base + r + 1; if (v % 5 === 0) g += `<text x="0" y="${(rows - 1 - r) * P + 4 + 6}" font-size="10" font-weight="600" style="fill:var(--k-mute)">${v}</text>`; }
+  SERIES.Bench.forEach((val, wk) => {
+    const lit = Math.round(val - base);
+    for (let c = 0; c < 2; c++) {
+      for (let r = 0; r < rows; r++) {
+        const on = r < lit;
+        const col = wk >= 7 ? "var(--k-red)" : "var(--k-amber)";
+        g += `<circle cx="${x + c * P + 4}" cy="${(rows - 1 - r) * P + 6}" r="4" style="fill:${on ? col : "rgba(255,255,255,.06)"}"/>`;
+      }
+    }
+    if (wk === 0 || wk === 6 || wk === 11) g += `<text x="${x + P / 2 + 4}" y="${rows * P + 14}" text-anchor="middle" font-size="10" font-weight="600" letter-spacing="1" style="fill:var(--k-mute)">${WEEKS[wk].toUpperCase()}</text>`;
+    x += 2 * P + GW;
+  });
+  $("#clk-matrix").innerHTML = `<svg viewBox="0 0 ${x} ${rows * P + 18}" width="100%" style="font-family:Oxanium,sans-serif;filter:drop-shadow(0 0 3px rgba(255,178,30,.35))">${g}</svg>`;
+  $("#clk-meters").innerHTML = VOL.map(([m, c]) => {
+    let cells = "";
+    for (let i = 1; i <= 20; i++) cells += `<i class="${i <= c ? "on" : ""} ${c < LO ? "low" : ""} ${i === LO + 1 ? "tg" : ""}"></i>`;
+    return `<div class="meter"><span>${m.toUpperCase()}</span><span class="cells">${cells}</span><span class="c num ${c < LO ? "amber" : "green"}">${c}</span></div>`;
+  }).join("");
+})();
+
+/* ================= D · CHALK ================= */
+(() => {
+  const st = { w: 102.5, r: 5, q: 2 };
+  const wOut = $("#chk-w"), rOut = $("#chk-r"), qOut = $("#chk-q");
+  const refreshLog = wireLog($("#chk-log"), () => `Log set · ${fmt(st.w)} kg × ${st.r}`);
+  const paint = () => { wOut.textContent = fmt(st.w); rOut.textContent = st.r; qOut.textContent = st.q === 4 ? "4+" : st.q; refreshLog(); };
+  scroller($("#chk-ww"), { values: range(20, 250, 2.5), value: st.w, size: 32, label: "Weight in kilograms", text: (v) => `${fmt(v)} kilograms`, onChange: (v) => { st.w = v; paint(); } });
+  scroller($("#chk-wr"), { values: range(1, 30, 1), value: st.r, size: 32, label: "Reps", text: (v) => `${v} reps`, onChange: (v) => { st.r = v; paint(); } });
+  scroller($("#chk-wq"), { values: range(0, 4, 1), value: st.q, size: 32, label: "Reps in reserve", render: (v) => v === 4 ? "4+" : String(v), text: (v) => v === 4 ? "4 or more" : String(v), onChange: (v) => { st.q = v; paint(); } });
+  paint();
+
+  // desktop: smooth area chart 420 x 118
+  const W = 420, H = 118, T = 8, B = 18, y0 = 96, y1 = 107;
+  const xs = (i) => W * i / 11, ys = (v) => T + (H - T - B) * (1 - (v - y0) / (y1 - y0));
+  const P = SERIES.Bench.map((v, i) => [xs(i), ys(v)]);
+  let d = `M${P[0][0]},${P[0][1]}`;
+  for (let i = 0; i < P.length - 1; i++) {
+    const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2;
+    const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  const base = H - B;
+  $("#chk-chart").innerHTML = `<svg viewBox="-6 0 ${W + 12} ${H}" width="100%" style="font-family:'Bricolage Grotesque',sans-serif">
+    <defs><linearGradient id="chkfill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style="stop-color:var(--h-cobalt)" stop-opacity=".22"/><stop offset="1" style="stop-color:var(--h-cobalt)" stop-opacity="0"/></linearGradient></defs>
+    <path d="${d} L${W},${base} L0,${base} Z" fill="url(#chkfill)"/>
+    <path d="${d}" fill="none" style="stroke:var(--h-cobalt)" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="${P[11][0]}" cy="${P[11][1]}" r="5" style="fill:var(--h-card);stroke:var(--h-cobalt)" stroke-width="2.5"/>
+    <text x="0" y="${H - 3}" font-size="11" style="fill:var(--h-mute)">${WEEKS[0]}</text>
+    <text x="${W}" y="${H - 3}" font-size="11" text-anchor="end" style="fill:var(--h-mute)">${WEEKS[11]}</text>
+  </svg>`;
+  const names = { Squat: "Back squat", Bench: "Bench press", Deadlift: "Deadlift", OHP: "Overhead press" };
+  $("#chk-lifts").innerHTML = LIFTS.map((l) => `<div><span>${names[l.name]}</span><span><b>${fmt(l.e1)}</b> kg<em class="${l.d === 0 ? "flat" : ""}">${l.d === 0 ? "flat" : "+" + fmt(l.d)}</em></span></div>`).join("");
+  const tint = { Chest: "--m-chest", Back: "--m-back", Quads: "--m-quads", Hamstrings: "--m-ham", Shoulders: "--m-sh", Biceps: "--m-bi", Triceps: "--m-tri" };
+  $("#chk-vol").innerHTML = VOL.map(([m, c]) => `<div class="cv"><span>${m}</span><span class="tr"><i style="--c:var(${tint[m]});width:${c / 20 * 100}%"></i></span><b class="num">${c}</b></div>`).join("");
+})();
+/* ================= A+B · CALIBRATED DIAL ================= */
+(() => {
+  // Haptics: intended feel only (untested on devices). Silent where unsupported.
+  let lastTick = 0;
+  const haptic = (pattern) => {
+    const now = performance.now();
+    if (now - lastTick < 35) return;
+    lastTick = now;
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* not available */ }
+  };
+
+  const KB_COLORS = { 4:"#c7c9cc", 6:"#f2b7cc", 8:"#ec6fa3", 10:"#8cc6ea", 12:"#2f6fd8", 14:"#8d9399", 16:"#efbd2a", 20:"#8a5cc9", 24:"#2f9a4f", 28:"#ef7c22", 32:"#d8262d", 36:"#5f6369", 40:"#ecebe6", 44:"#b9bdc2", 48:"#c9a646" };
+  const EQ = {
+    barbell:    { label: "Barbell",    name: "Bench press",      meta: "Barbell · 20 kg bar · set 3 of 4 · last 100 × 5", values: range(20, 300, 2.5), start: 102.5, reps: 5, unit: "KG" },
+    dumbbell:   { label: "Dumbbell",   name: "Incline DB press", meta: "Dumbbells · set 2 of 3 · last 30 × 8 per hand", values: range(2, 60, 2), start: 32, reps: 8, unit: "KG / HAND" },
+    kettlebell: { label: "Kettlebell", name: "Goblet squat",     meta: "Kettlebell · set 1 of 3 · last 20 × 10", values: Object.keys(KB_COLORS).map(Number), start: 24, reps: 10, unit: "KG" },
+    machine:    { label: "Machine",    name: "Seated leg curl",  meta: "Selectorized · 5 kg pin step · last 40 × 12", values: range(5, 100, 5), start: 45, reps: 12, unit: "KG" },
+  };
+  const st = { eq: "barbell", w: 102.5, r: 5, q: 2 };
+
+  /* ---- equipment pictures: persistent SVGs, updated in place so CSS transitions run ---- */
+  const vis = $("#ab-vis");
+  const pics = {};
+  // barbell: re-rendered (plates appear/disappear)
+  pics.barbell = el("div"); vis.append(pics.barbell);
+  // dumbbells: heads drawn at 60 kg size and scaled down
+  const dbOne = (c) => {
+    const head = (x, cls) => { const w = 34, h = 92, k = 9; return `<g class="${cls}"><polygon points="${x},${60 - h / 2 + k} ${x + k},${60 - h / 2} ${x + w - k},${60 - h / 2} ${x + w},${60 - h / 2 + k} ${x + w},${60 + h / 2 - k} ${x + w - k},${60 + h / 2} ${x + k},${60 + h / 2} ${x},${60 + h / 2 - k}" style="fill:#2b2e33;stroke:#4d535a" stroke-width="1.5"/><line x1="${x + w / 2}" x2="${x + w / 2}" y1="${60 - h / 2 + 6}" y2="${60 + h / 2 - 6}" style="stroke:#4d535a" stroke-width="1"/></g>`; };
+    return `<rect x="${c - 24}" y="56" width="48" height="8" rx="2" style="fill:#b5babf"/>` + head(c - 24 - 34, "ab-db-l") + head(c + 24, "ab-db-r");
+  };
+  pics.dumbbell = el("div");
+  pics.dumbbell.innerHTML = `<svg viewBox="0 0 288 120" width="100%" height="120" aria-hidden="true">${dbOne(72)}${dbOne(216)}</svg>`;
+  vis.append(pics.dumbbell);
+  // kettlebell: drawn at 48 kg size, scaled from its base
+  pics.kettlebell = el("div");
+  pics.kettlebell.innerHTML = `<svg viewBox="0 0 288 120" width="100%" height="120" aria-hidden="true"><g class="ab-kb">
+      <path d="M116 64 V24 Q116 6 134 6 H154 Q172 6 172 24 V64" fill="none" style="stroke:#2b2e33" stroke-width="12" stroke-linecap="round"/>
+      <path class="kb-body" d="M144 22 A48 48 0 0 1 182 100 L178 116 H110 L106 100 A48 48 0 0 1 144 22 Z" style="stroke:#00000040" stroke-width="1"/>
+      <text class="kb-num" x="144" y="82" text-anchor="middle" font-size="24" font-weight="850" font-style="italic" style="font-stretch:62%">24</text>
+    </g></svg>`;
+  vis.append(pics.kettlebell);
+  // machine stack: 20 plates, selected ones lift onto the carriage
+  pics.machine = el("div");
+  let stack = `<line x1="76" x2="76" y1="2" y2="118" style="stroke:var(--c-line)" stroke-width="2"/><line x1="212" x2="212" y1="2" y2="118" style="stroke:var(--c-line)" stroke-width="2"/>`;
+  for (let i = 0; i < 20; i++) stack += `<rect class="ab-plate" x="82" y="${14 + i * 5.2}" width="124" height="4" rx="1"/>`;
+  stack += `<g class="ab-pin"><rect x="206" y="${14 - 1}" width="16" height="6" rx="2" style="fill:var(--p20)"/><circle cx="224" cy="${14 + 2}" r="4" style="fill:var(--p20)"/></g>
+    <text x="236" y="58" font-size="10" font-weight="700" letter-spacing="1.5" style="fill:var(--c-mute)">PIN</text>
+    <text class="pin-n" x="236" y="84" font-size="28" font-weight="850" font-style="italic" style="fill:var(--c-fg);font-stretch:62%">9</text>
+    <text x="8" y="58" font-size="10" font-weight="700" letter-spacing="1.5" style="fill:var(--c-mute)">STACK</text>
+    <text x="8" y="76" font-size="12" font-weight="600" style="fill:var(--c-fg)">20 × 5 kg</text>`;
+  pics.machine.innerHTML = `<svg viewBox="0 0 288 120" width="100%" height="120" aria-hidden="true" style="font-family:Archivo,sans-serif">${stack}</svg>`;
+  vis.append(pics.machine);
+  const plates = [...pics.machine.querySelectorAll(".ab-plate")];
+  let lifted = 0;
+
+  const kbInk = (w) => ["#ecebe6", "#c7c9cc", "#b9bdc2", "#efbd2a", "#8cc6ea", "#f2b7cc", "#c9a646"].includes(KB_COLORS[w]) ? "#16181a" : "#ffffff";
+  const cap = $("#ab-cap");
+  function drawPicture() {
+    const w = st.w;
+    for (const k in pics) pics[k].hidden = k !== st.eq;
+    if (st.eq === "barbell") {
+      pics.barbell.innerHTML = barbell(w);
+      cap.innerHTML = perSide(w);
+    } else if (st.eq === "dumbbell") {
+      const k = (26 + 66 * Math.sqrt((w - 2) / 58)) / 92;
+      pics.dumbbell.querySelectorAll(".ab-db-l, .ab-db-r").forEach((g) => { g.style.transform = `scale(${k.toFixed(3)})`; });
+      cap.innerHTML = `Pair of <span class="pl">${fmt(w)} kg</span> · ${fmt(w * 2)} kg total`;
+    } else if (st.eq === "kettlebell") {
+      const k = 0.42 + 0.58 * Math.sqrt((w - 4) / 44);
+      pics.kettlebell.querySelector(".ab-kb").style.transform = `scale(${k.toFixed(3)})`;
+      pics.kettlebell.querySelector(".kb-body").style.fill = KB_COLORS[w];
+      const num = pics.kettlebell.querySelector(".kb-num");
+      num.textContent = fmt(w); num.style.fill = kbInk(w);
+      cap.innerHTML = `<span class="pl"><i style="background:${KB_COLORS[w]}"></i>${fmt(w)} kg bell</span> · size and colour follow the weight`;
+    } else {
+      const n = Math.round(w / 5);
+      plates.forEach((p, i) => {
+        const on = i < n, was = i < lifted;
+        if (on !== was) p.style.transitionDelay = `${Math.abs(i - (on ? lifted : n)) * 22}ms`;
+        p.classList.toggle("on", on);
+      });
+      lifted = n;
+      pics.machine.querySelector(".ab-pin").style.transform = `translateY(${(n - 1) * 5.2 - 10}px)`;
+      pics.machine.querySelector(".pin-n").textContent = n;
+      cap.innerHTML = `Pin ${n} of 20 · <span class="pl">${fmt(w)} kg</span> · 5 kg per plate`;
+    }
+  }
+
+  /* ---- the plate-face dial ---- */
+  const DETENT = 12;
+  const dialHost = $("#ab-dial");
+  let ticks = "";
+  for (let i = 0; i < 360 / DETENT; i++) {
+    const a = (i * DETENT - 90) * Math.PI / 180, major = i % 5 === 0;
+    const r1 = major ? 78 : 84, r2 = 93;
+    ticks += `<line x1="${(Math.cos(a) * r1).toFixed(2)}" y1="${(Math.sin(a) * r1).toFixed(2)}" x2="${(Math.cos(a) * r2).toFixed(2)}" y2="${(Math.sin(a) * r2).toFixed(2)}" stroke-width="${major ? 3 : 1.6}"/>`;
+  }
+  dialHost.innerHTML = `<svg viewBox="-112 -112 224 224" aria-hidden="true">
+    <defs>
+      <radialGradient id="ab-shade" cx="40%" cy="32%" r="80%"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></radialGradient>
+      <radialGradient id="ab-hub" cx="38%" cy="34%" r="75%"><stop offset="0" stop-color="#eef0f2"/><stop offset="1" stop-color="#8e9399"/></radialGradient>
+    </defs>
+    <circle r="100" cy="7" fill="#000" opacity=".4"/>
+    <g class="ab-rot">
+      <circle class="ab-rim" r="100"/>
+      <circle r="100" fill="url(#ab-shade)"/>
+      <g class="ab-ticks">${ticks}</g>
+      <circle r="70" fill="#000" opacity=".16"/>
+      <circle r="70" fill="none" stroke="#000" stroke-opacity=".25" stroke-width="2"/>
+      <text class="ab-stamp" y="-42" text-anchor="middle" font-size="13" font-weight="800" letter-spacing="3" style="font-family:Archivo,sans-serif;font-stretch:62%">OVERLOAD</text>
+      <text class="ab-stamp" y="58" text-anchor="middle" font-size="18" font-weight="850" font-style="italic" style="font-family:Archivo,sans-serif;font-stretch:62%">KG</text>
+      <rect x="-3" y="-68" width="6" height="16" rx="3" class="ab-mark"/>
+      <circle r="32" fill="url(#ab-hub)"/>
+      <circle r="12" fill="#121314"/>
+    </g>
+    <polygon points="-9,-112 9,-112 0,-96" style="fill:var(--c-fg)"/>
+  </svg>`;
+  const rot = dialHost.querySelector(".ab-rot");
+  const rim = dialHost.querySelector(".ab-rim");
+  const inkParts = dialHost.querySelectorAll(".ab-ticks, .ab-stamp, .ab-mark");
+  dialHost.tabIndex = 0;
+  dialHost.setAttribute("role", "slider");
+  dialHost.setAttribute("aria-label", "Weight");
+  let values = EQ.barbell.values, idx = values.indexOf(st.w);
+  const nearest = (v) => values.reduce((b, x, i) => Math.abs(x - v) < Math.abs(values[b] - v) ? i : b, 0);
+  function paintDial() {
+    rot.setAttribute("transform", `rotate(${idx * DETENT})`);
+    let color = "var(--p20)", ink = "#ffffff";
+    if (st.eq === "barbell") {
+      const top = loadOut(st.w)[0];
+      color = top ? `var(${top[1]})` : "#8c9196";
+      ink = top && (top[0] === 5 || top[0] === 15 || top[0] === 1.25) ? "#16181a" : "#ffffff";
+    }
+    rim.style.fill = color;
+    inkParts.forEach((n) => { n.style.stroke = ink; n.style.fill = ink; n.style.opacity = ".75"; });
+    dialHost.setAttribute("aria-valuemin", values[0]);
+    dialHost.setAttribute("aria-valuemax", values[values.length - 1]);
+    dialHost.setAttribute("aria-valuenow", st.w);
+    dialHost.setAttribute("aria-valuetext", `${fmt(st.w)} kilograms${st.eq === "dumbbell" ? " per hand" : ""}`);
+  }
+  function setIndex(i, fromUser) {
+    i = Math.max(0, Math.min(values.length - 1, i));
+    if (i === idx) return;
+    idx = i; st.w = values[idx];
+    if (fromUser) haptic(6);
+    paint();
+  }
+  let c = null, last = 0, acc = 0;
+  const ang = (e) => Math.atan2(e.clientY - c.y, e.clientX - c.x) * 180 / Math.PI;
+  dialHost.addEventListener("pointerdown", (e) => {
+    const r = dialHost.getBoundingClientRect();
+    c = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    last = ang(e); acc = 0;
+    dialHost.setPointerCapture(e.pointerId);
+    dialHost.focus({ preventScroll: true });
+    e.preventDefault();
+  });
+  dialHost.addEventListener("pointermove", (e) => {
+    if (!c) return;
+    const a = ang(e);
+    let d = a - last;
+    if (d > 180) d -= 360; if (d < -180) d += 360;
+    last = a; acc += d;
+    while (acc >= DETENT) { setIndex(idx + 1, true); acc -= DETENT; }
+    while (acc <= -DETENT) { setIndex(idx - 1, true); acc += DETENT; }
+  });
+  const up = () => { c = null; };
+  dialHost.addEventListener("pointerup", up);
+  dialHost.addEventListener("pointercancel", up);
+  dialHost.addEventListener("keydown", (e) => {
+    const s = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1, PageUp: 4, PageDown: -4 }[e.key];
+    if (s) { e.preventDefault(); setIndex(idx + s, true); }
+    else if (e.key === "Home") { e.preventDefault(); setIndex(0, true); }
+    else if (e.key === "End") { e.preventDefault(); setIndex(values.length - 1, true); }
+  });
+  let wacc = 0;
+  dialHost.addEventListener("wheel", (e) => {
+    if (document.activeElement !== dialHost) return;
+    e.preventDefault();
+    wacc -= e.deltaY;
+    const k = Math.trunc(wacc / 30);
+    if (k) { wacc -= k * 30; setIndex(idx + k, true); }
+  }, { passive: false });
+
+  /* ---- readout, reps, RIR, log ---- */
+  const wBtn = $("#ab-w"), rOut = $("#ab-r"), uOut = $("#ab-u");
+  const refreshLog = wireLog($("#ab-log"), () => `Log set · ${fmt(st.w)} kg × ${st.r}`);
+  $("#ab-log").addEventListener("click", () => haptic([12, 60, 12]));
+  function paint() {
+    wBtn.textContent = fmt(st.w); rOut.textContent = st.r; uOut.textContent = EQ[st.eq].unit;
+    drawPicture(); paintDial(); refreshLog();
+  }
+  const reps = scroller($("#ab-reps"), { values: range(1, 30, 1), value: st.r, axis: "x", size: 46, label: "Reps", text: (v) => `${v} reps`, onChange: (v) => { st.r = v; paint(); } });
+  const rir = $("#ab-rir");
+  ["0", "1", "2", "3", "4+"].forEach((t, i) => {
+    const b = el("button"); b.type = "button"; b.textContent = t;
+    b.setAttribute("aria-pressed", String(i === st.q));
+    b.setAttribute("aria-label", `RIR ${t}`);
+    b.addEventListener("click", () => { st.q = i; haptic(6); rir.querySelectorAll("button").forEach((x, j) => x.setAttribute("aria-pressed", String(j === i))); });
+    rir.append(b);
+  });
+  wBtn.addEventListener("click", () => {
+    const inp = el("input", "cal-type");
+    inp.type = "text"; inp.inputMode = "decimal"; inp.id = "ab-type"; inp.value = fmt(st.w);
+    inp.setAttribute("aria-label", "Type weight in kilograms");
+    wBtn.hidden = true; wBtn.after(inp); inp.focus(); inp.select();
+    const done = (commit, refocus) => {
+      if (!inp.isConnected) return;
+      if (commit) { const v = parseFloat(inp.value.replace(",", ".")); if (!Number.isNaN(v)) setIndex(nearest(v), false); }
+      inp.remove(); wBtn.hidden = false;
+      if (refocus) wBtn.focus();
+    };
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); done(true, true); }
+      if (e.key === "Escape") { e.preventDefault(); done(false, true); }
+    });
+    inp.addEventListener("blur", () => done(true, false));
+  });
+
+  /* ---- equipment switcher ---- */
+  const eqBox = $("#ab-eq");
+  function choose(key) {
+    st.eq = key;
+    const cfg = EQ[key];
+    values = cfg.values; idx = values.indexOf(cfg.start); st.w = cfg.start; st.r = cfg.reps;
+    if (key === "machine") lifted = Math.round(st.w / 5);
+    $("#ab-name").textContent = cfg.name;
+    $("#ab-meta").textContent = cfg.meta;
+    eqBox.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.k === key)));
+    reps.set(cfg.reps);
+    paint();
+  }
+  Object.entries(EQ).forEach(([k, cfg]) => {
+    const b = el("button"); b.type = "button"; b.textContent = cfg.label; b.dataset.k = k;
+    b.addEventListener("click", () => { haptic(6); choose(k); });
+    eqBox.append(b);
+  });
+  choose("barbell");
+
+  /* ---- desktop: A's Today with equipment glyphs ---- */
+  const src = $("#calibrated .desk-canvas"), dst = $("#ab-desk");
+  dst.innerHTML = src.innerHTML;
+  dst.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+  const G = {
+    bar: `<svg width="22" height="12" viewBox="0 0 22 12"><line x1="1" y1="6" x2="21" y2="6"/><rect x="4" y="1.5" width="3" height="9"/><rect x="15" y="1.5" width="3" height="9"/></svg>`,
+    db: `<svg width="22" height="12" viewBox="0 0 22 12"><line x1="6" y1="6" x2="16" y2="6"/><rect x="2" y="2.5" width="4" height="7"/><rect x="16" y="2.5" width="4" height="7"/></svg>`,
+    stack: `<svg width="22" height="12" viewBox="0 0 22 12"><line x1="6" y1="2" x2="16" y2="2"/><line x1="6" y1="5" x2="16" y2="5"/><line x1="6" y1="8" x2="16" y2="8"/><line x1="6" y1="11" x2="16" y2="11"/></svg>`,
+  };
+  dst.querySelector(".cald-list").innerHTML = [
+    ["bar", "Bench press", "4 × 5 · 102.5"], ["db", "Incline DB press", "3 × 8 · 32"], ["bar", "Overhead press", "3 × 6 · 60"],
+    ["stack", "Cable fly", "3 × 12 · 18"], ["stack", "Triceps pushdown", "3 × 12 · 27"],
+  ].map(([g, n, v]) => `<li><span class="gl">${G[g]}${n}</span><span>${v}</span></li>`).join("");
+})();
+})();
+</script>

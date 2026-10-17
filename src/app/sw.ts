@@ -60,3 +60,16 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+// The shell asks which build this worker is (PwaClient warms the /workout and /today caches once per version, not on every mount).
+// The precache manifest changes with every build, so a hash of it is a version.
+function manifestVersion(): string {
+  const text = JSON.stringify(self.__SW_MANIFEST ?? []);
+  let hash = 5381;
+  for (let i = 0; i < text.length; i++) hash = ((hash << 5) + hash + text.charCodeAt(i)) | 0;
+  return (hash >>> 0).toString(36);
+}
+const SW_VERSION = manifestVersion();
+self.addEventListener("message", (event) => {
+  if ((event.data as { type?: string } | null)?.type === "GET_VERSION") event.ports[0]?.postMessage(SW_VERSION);
+});

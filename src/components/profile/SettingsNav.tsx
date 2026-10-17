@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/settings/profile", label: "Profile" },
-  { href: "/settings/machines", label: "Machines" },
+  { href: "/settings/machines", label: "Machines and gear" },
   { href: "/settings/security", label: "Security" },
   { href: "/settings/account", label: "Account" },
 ] as const;
@@ -12,7 +12,7 @@ const TABS = [
 export function SettingsNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Settings" className="settings-nav">
+    <nav aria-label="Settings" className="settings-nav" data-no-swipe>
       {TABS.map((tab) => (
         <Link key={tab.href} href={tab.href} aria-current={pathname.startsWith(tab.href) ? "page" : undefined}>
           {tab.label}

@@ -1,5 +1,6 @@
 // /insights: this week's review (narrative + rule cards), regenerate, and the history of earlier weeks.
 import Link from "next/link";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { weekRangeLabel } from "@/components/insights/labels";
 import { RegenerateButton } from "@/components/insights/RegenerateButton";
 import { ReportView } from "@/components/insights/ReportView";
@@ -9,6 +10,7 @@ import { PageIntro } from "@/components/ui/PageIntro";
 import { requireUser } from "@/server/auth/session";
 import { MAX_ON_DEMAND_PER_WEEK } from "@/server/insights/constants";
 import { loadInsightsOverview } from "@/server/insights/current";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Insights" };
 // The regenerate Server Action runs under this route's limit; Hobby allows up to 60 s.
@@ -16,11 +18,13 @@ export const maxDuration = 60;
 
 export default async function InsightsPage() {
   const ctx = await requireUser();
+  const syncVersion = await pageSyncVersion(ctx); // before the first synced row is read (src/server/sync/page-version.ts)
   const { weekStart, current, preview, history, remaining } = await loadInsightsOverview(ctx);
   const facts = current?.facts ?? preview!;
 
   return (
     <>
+      <SyncVersionStamp version={syncVersion} />
       <PageHeader
         title="Insights"
         meta={["Weekly review", weekRangeLabel(weekStart)]}

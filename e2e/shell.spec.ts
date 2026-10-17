@@ -3,6 +3,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test as base, type BrowserContext } from "@playwright/test";
 import { createUser } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 const PROD = process.env.E2E_PROD === "1";
 
@@ -75,11 +76,11 @@ test.describe("shell (signed in)", () => {
     const box = (await dock.boundingBox())!;
     const viewport = page.viewportSize()!;
     expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
-    // The dock's offset is `bottom: calc(env(safe-area-inset-bottom) + .25rem)`; WebKit emulation reports 0 for env(), so assert the rule.
+    // The dock's offset is `bottom: calc(var(--sab) + .25rem)` (--sab wraps env(safe-area-inset-bottom)); emulation reports 0 for env(), so assert the rule.
     const rule = await page.evaluate(() =>
       [...document.styleSheets].flatMap((s) => [...s.cssRules]).map((r) => r.cssText).find((t) => t.startsWith(".shell-dock {")) ?? "",
     );
-    expect(rule).toContain("safe-area-inset-bottom");
+    expect(rule).toContain("--sab");
     // Content is never hidden behind it: main pads for the dock.
     const pad = await page.locator("main").evaluate((el) => parseFloat(getComputedStyle(el).paddingBottom));
     expect(pad).toBeGreaterThan(box.height);
@@ -90,13 +91,13 @@ test.describe("shell (signed in)", () => {
     for (const name of ["History", "Insights", "Settings"]) await expect(sheet.getByRole("link", { name })).toBeVisible();
   });
 
-  test("desktop: the frame navbar uses the asymmetric vermilion border and the dock is hidden", async ({ page, isMobile }) => {
+  test("desktop: the navbar is a flat bar with a hairline (no frame border) and the dock is hidden", async ({ page, isMobile }) => {
     test.skip(isMobile, "desktop-only");
-    const widths = await page.locator(".shell-frame").evaluate((el) => {
+    const widths = await page.locator(".shell-header").evaluate((el) => {
       const s = getComputedStyle(el);
       return [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth];
     });
-    expect(widths).toEqual(["1px", "4px", "8px", "2px"]);
+    expect(widths).toEqual(["0px", "0px", "1px", "0px"]);
     await expect(page.locator(".shell-dock")).toBeHidden();
   });
 
@@ -121,10 +122,10 @@ test.describe("shell (signed in)", () => {
     await toggle.click();
     const after = await html.getAttribute("data-theme");
     expect(after).not.toBe(before);
-    expect(["overload-paper", "overload-ink"]).toContain(after);
+    expect(["overload-daylight", "overload-floor"]).toContain(after);
     await page.reload();
     await expect(html).toHaveAttribute("data-theme", after!);
-    expect(await page.evaluate(() => localStorage.getItem("overload-theme"))).toBe(after === "overload-ink" ? "ink" : "paper");
+    expect(await page.evaluate(() => localStorage.getItem("overload-theme"))).toBe(after === "overload-floor" ? "ink" : "paper");
   });
 
   test("iOS Safari: the Add to Home Screen hint shows once and stays dismissed", async ({ page, browserName }) => {
@@ -155,7 +156,7 @@ test.describe("public pages", () => {
     await page.goto("/");
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.getByRole("link", { name: "Create account" }).first()).toBeVisible();
-    expect(await page.locator("body").evaluate((el) => getComputedStyle(el).fontFamily)).toContain("Newsreader");
+    expect(await page.locator("body").evaluate((el) => getComputedStyle(el).fontFamily)).toContain("Archivo");
     await expect(page.locator(".shell-backdrop")).toHaveCount(1);
   });
 
@@ -176,7 +177,7 @@ test.describe("axe: /styleguide (every primitive and UI component)", () => {
     test(`no violations in the ${theme} theme`, async ({ page }) => {
       await page.addInitScript((t) => localStorage.setItem("overload-theme", t), theme);
       await page.goto("/styleguide");
-      await expect(page.locator("html")).toHaveAttribute("data-theme", `overload-${theme}`);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", THEME_NAMES[theme]);
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
       expect(results.violations.map((v) => ({ id: v.id, nodes: v.nodes.map((n) => n.target.join(" ")).slice(0, 5) }))).toEqual([]);
     });
@@ -184,7 +185,7 @@ test.describe("axe: /styleguide (every primitive and UI component)", () => {
 
   test("open sheet and toasts have no violations", async ({ page }) => {
     await page.goto("/styleguide");
-    const surface = page.locator('.sg-surface[data-theme="overload-paper"]');
+    const surface = page.locator('.sg-surface[data-theme="overload-daylight"]');
     await surface.getByRole("button", { name: "Open sheet" }).click();
     await expect(page.getByRole("dialog", { name: "Rest timer" })).toBeVisible();
     await page.waitForTimeout(400); // let the open transition finish before measuring contrast

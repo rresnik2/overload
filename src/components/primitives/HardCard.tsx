@@ -2,8 +2,8 @@ import clsx from "clsx";
 import type { HTMLAttributes, ReactNode } from "react";
 
 /**
- * The signature surface: paper, square corners, a 6px vermilion hard shadow.
- * Props are FROZEN (CONTRACTS.md). `interactive` adds the press state (moves translate(2px,2px), shadow shrinks to 4px);
+ * The base surface: a base-200 panel with a 1px hairline border and the theme's small radius, no shadow.
+ * Props are FROZEN (CONTRACTS.md). `interactive` adds the press state (the border firms up on hover, the card drops 1px);
  * for a card that is a link, wrap/compose it with <Link> and keep this as the visual shell.
  */
 export interface HardCardProps extends HTMLAttributes<HTMLElement> {

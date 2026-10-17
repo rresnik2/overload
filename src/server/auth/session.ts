@@ -8,6 +8,7 @@ import "server-only";
 // `proxy.ts` only redirects early on cookie presence; THIS is the check. A UserCtx never comes from a request body.
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { auth } from "./auth";
 import { mintUserCtx, type UserCtx } from "./ctx";
 
@@ -33,9 +34,8 @@ export interface SessionInfo {
   user: SessionUser;
 }
 
-/** The current session (ctx + user) or null. Never redirects. */
-export async function getSessionInfo(requestHeaders?: Headers): Promise<SessionInfo | null> {
-  const session = await auth.api.getSession({ headers: requestHeaders ?? (await headers()) });
+async function lookupSession(requestHeaders: Headers): Promise<SessionInfo | null> {
+  const session = await auth.api.getSession({ headers: requestHeaders });
   if (!session) return null;
   return {
     ctx: mintUserCtx(session.user.id),
@@ -47,6 +47,15 @@ export async function getSessionInfo(requestHeaders?: Headers): Promise<SessionI
       image: session.user.image ?? null,
     },
   };
+}
+
+// One lookup per server render: the (app) layout, the page and the guards all call getSessionInfo() with the ambient request
+// headers, and React `cache()` shares the result between them. Route handlers pass their own `request.headers` and are not cached.
+const ambientSession = cache(async () => lookupSession(await headers()));
+
+/** The current session (ctx + user) or null. Never redirects. */
+export async function getSessionInfo(requestHeaders?: Headers): Promise<SessionInfo | null> {
+  return requestHeaders ? lookupSession(requestHeaders) : ambientSession();
 }
 
 /** ctx or null. Never redirects. */

@@ -1,36 +1,177 @@
-/* /today layout (stream W3): the start card on top, volume and body cards side by side from tablet width up. */
+/* /today (stream DIAL, part TODAY): the Calibrated Dial home screen. 6px panels on base-200, display type from the type-*
+   utilities, plate colours only on lifts and data. Layout per spec section 04:
+     < 768 px     one column: Next up, templates, e1RM tiles, hard sets, insight, bodyweight, chart
+     768-1023 px  two columns [Next up + templates + bodyweight] [e1RM tiles + chart], then hard sets and insight side by side
+     >= 1024 px   three columns 290px / 1fr / 270px, gap --space-7 */
+
+.today {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+}
+.today-head {
+  margin-bottom: var(--space-5);
+}
+.today-title {
+  margin: 0;
+  font-size: 52px;
+  line-height: 1;
+}
+.today-label {
+  margin: 0;
+  color: var(--color-muted);
+}
+.today-muted {
+  margin: 0;
+  font-size: var(--type-body-size-dense);
+  color: var(--color-muted);
+}
+.today .page-intro {
+  margin-bottom: var(--space-6);
+}
+
+/* ---- grid: columns are wrappers that disappear on mobile so the cards can be re-ordered ---- */
 .today-grid {
   display: grid;
-  gap: 1.25rem;
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
 }
+.today-col {
+  display: contents;
+}
+.today-cell {
+  min-width: 0;
+}
+.today-cell--start {
+  order: 1;
+}
+.today-cell--templates {
+  order: 2;
+}
+.today-cell--tiles {
+  order: 3;
+}
+.today-cell--sets {
+  order: 4;
+}
+.today-cell--insight {
+  order: 5;
+}
+.today-cell--body {
+  order: 6;
+}
+.today-cell--chart {
+  order: 7;
+}
+.today-cell--tiles > .today-label {
+  margin-bottom: var(--space-3);
+}
+
 @media (min-width: 768px) {
+  .today-title {
+    font-size: var(--type-display-xl-size);
+  }
   .today-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-7);
+    align-items: start;
   }
-  .today-grid__start,
-  .today-grid__insight {
+  .today-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+  .today-cell {
+    order: 0;
+  }
+  .today-col--c {
+    display: grid;
     grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-7);
+    align-items: start;
+  }
+}
+@media (min-width: 1024px) {
+  .today-grid {
+    grid-template-columns: 290px minmax(0, 1fr) 270px;
+  }
+  .today-col--c {
+    display: flex;
+    grid-column: auto;
+    gap: var(--space-5);
   }
 }
 
-/* The cards' text links ("Body metrics", "All progress", "Open insights") must look like links before hover: an underline in
-   vermilion (a rule, not text colour) and a 44px touch target. Replaces the hover-only animated underline inside this grid. */
-.today-grid a.link,
-.today-grid a.link-underline {
+/* ---- panels ---- */
+.today-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-6);
+  background-color: var(--color-base-200);
+  color: var(--color-base-content);
+  border-radius: 6px;
+}
+.today-panel p {
+  margin: 0;
+}
+.today-empty__title {
+  margin: 0;
+}
+.today-link {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  align-self: flex-start;
+  min-height: var(--tap-target);
+  font-size: var(--type-body-size-dense);
+  font-weight: 600;
   text-decoration: underline;
-  text-decoration-color: var(--color-vermilion);
+  text-decoration-color: var(--color-primary);
   text-decoration-thickness: 2px;
   text-underline-offset: 0.25em;
 }
-.today-grid a.link-underline::after {
-  display: none;
+
+/* Next up */
+.today-next__title {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.today-next__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--type-body-size-dense);
+}
+.today-next__list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: 7px 0;
+  border-top: 1px solid var(--color-base-300);
+}
+.today-next__list li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.today-next__list li > span:last-child {
+  flex: none;
+  color: var(--color-muted);
+}
+.today-next__go {
+  min-height: 48px;
 }
 
-/* "Your templates" card (stream UX). */
+/* "Your templates" card */
+/* The card renders before the local database answers. Without a reserved height it grew by 71 px when the answer arrived and pushed
+   every card below it down (Lighthouse CLS 0.144 on /today). 155 px is the height of the loaded card with no templates. */
+.today-templates--loading {
+  min-height: 155px;
+}
 .today-templates__head {
   display: flex;
   align-items: center;
@@ -38,13 +179,11 @@
 }
 .today-templates__title {
   margin: 0;
-  font-size: 1.5rem;
-  line-height: 1.1;
 }
 .today-templates__list {
   display: grid;
-  gap: 0.5rem;
-  margin: 0.75rem 0;
+  gap: var(--space-3);
+  margin: 0;
   padding: 0;
   list-style: none;
 }
@@ -52,10 +191,289 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--space-3);
 }
 .today-templates__name {
   display: grid;
-  flex: 1 1 10rem;
+  flex: 1 1 8rem;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- e1RM tiles ---- */
+.today-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.today-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--space-5) 14px;
+  background-color: var(--color-base-200);
+  border-left: 6px solid var(--lift);
+  border-radius: 6px;
+}
+.today-tile__name {
+  font-size: var(--type-body-size-dense);
+  font-weight: 600;
+}
+.today-tile__value {
+  font-size: 40px;
+  line-height: 1.12;
+}
+.today-tile__value small {
+  margin-left: 3px;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  color: var(--color-muted);
+}
+.today-tile__value--empty {
+  color: var(--color-muted);
+}
+.today-tile__delta {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.today-tile__delta--up {
+  color: var(--color-up);
+}
+.today-tile__delta--down {
+  color: var(--color-base-content);
+}
+.today-tile__delta--flat {
+  color: var(--color-accent-ink);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.today-tile__delta--none {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+@media (min-width: 1024px) {
+  .today-tile__value {
+    font-size: 52px;
+  }
+}
+
+/* ---- e1RM chart (ChartFrame supplies the title, the table view and the empty state) ---- */
+.today .today-chart-frame {
+  margin: 0;
+  padding: var(--space-6);
+  border: 0;
+  border-radius: 6px;
+  background-color: var(--color-base-200);
+}
+.today .today-chart-frame .chart-frame__title {
+  font-family: var(--font-body);
+  font-size: var(--type-label-size);
+  font-weight: 700;
+  line-height: var(--type-label-lh);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+/* The text summary stays for screen readers (aria-describedby); the chart and its table carry it visually. */
+.today .today-chart-frame .chart-frame__summary {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.today .today-chart-frame .chart-frame__empty {
+  padding: var(--space-6) 0;
+  text-align: left;
+}
+.today .today-chart-frame .chart-frame__empty-title {
+  font-family: var(--font-body);
+  font-style: normal;
+  font-weight: 700;
+  font-size: var(--type-body-size);
+}
+.today .today-chart-frame .chart-frame__empty-text {
+  margin: 4px 0 0;
+  max-width: none;
+  font-size: var(--type-body-size-dense);
+  color: var(--color-muted);
+}
+.today .today-chart-frame .chart-frame__table {
+  border-top-color: var(--color-base-300);
+}
+.today .today-chart-frame .chart-frame__table > summary {
+  text-decoration-color: var(--color-primary);
+}
+
+.today-chart {
+  position: relative;
+  height: 232px;
+  margin-top: var(--space-3);
+  --chart-line: var(--color-info);
+}
+.today-chart[data-lift="SQUAT"] {
+  --chart-line: var(--plate-red);
+}
+.today-chart[data-lift="DEADLIFT"] {
+  --chart-line: var(--color-accent-ink);
+}
+.today-chart[data-lift="OVERHEAD_PRESS"] {
+  --chart-line: var(--color-success);
+}
+.today-chart__area {
+  position: absolute;
+  inset: 22px 8px 26px 38px;
+}
+.today-chart__svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.today-chart__grid {
+  stroke: var(--color-base-300);
+  stroke-width: 1;
+}
+.today-chart__band {
+  fill: var(--color-accent);
+  fill-opacity: 0.16;
+}
+.today-chart__line {
+  fill: none;
+  stroke: var(--chart-line);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.today-chart__ytick {
+  position: absolute;
+  right: 100%;
+  margin-right: 8px;
+  transform: translateY(-50%);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-muted);
+}
+.today-chart__bandlabel {
+  position: absolute;
+  top: -18px;
+  white-space: nowrap;
+  color: var(--color-accent-ink);
+}
+.today-chart__dot {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--chart-line);
+  border-radius: 50%;
+  background-color: var(--color-base-200);
+}
+.today-chart__dot--deload {
+  border-style: dashed;
+}
+.today-chart__dot--last {
+  width: 12px;
+  height: 12px;
+  background-color: var(--chart-line);
+}
+.today-chart__xaxis {
+  position: absolute;
+  inset: auto 8px 0 38px;
+  height: 18px;
+}
+.today-chart__xtick {
+  position: absolute;
+  top: 0;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--color-muted);
+}
+.today-chart__xtick--middle {
+  transform: translateX(-50%);
+}
+.today-chart__xtick--end {
+  transform: translateX(-100%);
+}
+
+/* ---- hard sets this week ---- */
+.today-sets__list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.today-sets__row {
+  display: grid;
+  grid-template-columns: 5.25rem minmax(0, 1fr) 2rem;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 12.5px;
+}
+.today-sets__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.today-sets__track {
+  position: relative;
+  height: 10px;
+  border-radius: 2px;
+  background-color: var(--color-base-100);
+}
+.today-sets__band {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  box-sizing: border-box;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 2px;
+}
+.today-sets__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background-color: var(--color-base-content);
+}
+.today-sets__row[data-status="below"] .today-sets__fill {
+  background-color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent-ink);
+}
+.today-sets__count {
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ---- insight and bodyweight ---- */
+.today-insight {
+  gap: var(--space-2);
+  border-left: 6px solid var(--color-accent);
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.today-insight b {
+  font-weight: 700;
+}
+.today-body__line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-3);
+}
+.today-body__value {
+  font-size: 44px;
 }

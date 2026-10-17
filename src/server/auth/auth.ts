@@ -68,6 +68,12 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // refresh once a day
+    // Signed session snapshot in a cookie, so server renders and /api/sync skip the session + user queries (two Neon round
+    // trips on every navigation) for up to `maxAge` seconds. TRADE-OFF: a session revoked from another device ("sign out other
+    // sessions", a password change with revokeOtherSessions, account deletion) stays valid on a device that still holds an
+    // unexpired snapshot, for at most `maxAge` (5 minutes). On THIS device sign-out clears the cookie at once, and
+    // `disableCookieCache` forces a database read where it matters. The snapshot is also what shows the name in the avatar.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
   },
   // Serverless: in-memory rate limiting does not work across instances. Stored in the `rateLimit` table.
   rateLimit: {

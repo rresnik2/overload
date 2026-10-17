@@ -92,7 +92,7 @@ export function TemplatesView() {
       </div>
       {folders.map((folder) => (
         <section key={folder || "root"} aria-label={folder || "Templates"}>
-          {folder ? <h2 className="wk-group">{folder}</h2> : null}
+          {folder ? <h2 className="wk-group">{folder}</h2> : <h2 className="sr-only">Templates</h2>}
           <ul className="wk-list">
             {templates
               .filter((t) => (t.folder ?? "") === folder)

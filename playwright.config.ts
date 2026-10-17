@@ -21,6 +21,8 @@ if (!process.env.CI) {
 const port = Number(process.env.PORT ?? 3000);
 const baseURL = process.env.E2E_BASE_URL ?? `http://localhost:${port}`;
 const prod = process.env.E2E_PROD === "1";
+// The `perf` project (e2e/perf, see docs/perf/baseline.md) is opt-in: it only exists when PERF=1, and the other projects ignore its specs.
+const perf = process.env.PERF === "1";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -33,8 +35,24 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "webkit-iphone", use: { ...devices["iPhone 15"] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: "**/perf/**" },
+    { name: "webkit-iphone", use: { ...devices["iPhone 15"] }, testIgnore: "**/perf/**" },
+    // Chrome on a Pixel: touch, mobile UA, 412x915. The Android viewport and scroll fixes (e2e/mobile-viewport.spec.ts) run here.
+    { name: "android-chrome", use: { ...devices["Pixel 7"] }, testIgnore: "**/perf/**" },
+    ...(perf
+      ? [
+          {
+            name: "perf",
+            testMatch: "perf/**/*.spec.ts",
+            // One measurement at a time: parallel workers would distort each other's timings.
+            fullyParallel: false,
+            workers: 1,
+            timeout: 300_000,
+            // Pixel 7 on Chromium; each spec adds CDP CPU (4x) and network (about 1.6 Mbps, 150 ms RTT) throttling.
+            use: { ...devices["Pixel 7"], trace: "off" as const },
+          },
+        ]
+      : []),
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined

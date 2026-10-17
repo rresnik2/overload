@@ -16,10 +16,14 @@ const suffix = newId().slice(-12);
 const userA = `sync-a-${suffix}`;
 const userB = `sync-b-${suffix}`;
 const userC = `sync-c-${suffix}`;
+const userD = `sync-d-${suffix}`; // a bystander for the scoped GC test
+const userE = `sync-e-${suffix}`; // personal records vs GC
 const ctxA = mintUserCtx(userA);
 const ctxB = mintUserCtx(userB);
 const ctxC = mintUserCtx(userC);
-const users = [userA, userB, userC];
+const ctxD = mintUserCtx(userD);
+const ctxE = mintUserCtx(userE);
+const users = [userA, userB, userC, userD, userE];
 
 beforeAll(async () => {
   for (const id of users) await prisma.user.create({ data: { id, name: id, email: `${id}@example.test` } });
@@ -347,6 +351,29 @@ describe("concurrency and paging", () => {
   });
 });
 
+describe("a request without mutations", () => {
+  it("only pulls what other devices pushed: no version bump, no row lock, no change for a user without any state", async () => {
+    const pusher = new FakeDevice(ctxA, "devPullOnlyPush");
+    const { mutations } = tree(pusher);
+    const pushed = await pusher.push(mutations, 0);
+    const before = await prisma.syncState.findUniqueOrThrow({ where: { userId: userA } });
+
+    const pulled = await applySyncSlots(ctxA, { deviceId: "devPullOnlyRead", cursor: 0, clientHlc: pusher.clock.now() }, []);
+    expect(pulled.results).toEqual([]);
+    expect(pulled.newPrs).toEqual([]);
+    expect(pulled.reset).toBe(false);
+    expect(pulled.cursor).toBe(before.version);
+    expect(pulled.changes.workout.length).toBeGreaterThan(0);
+    expect(pushed.cursor).toBe(before.version);
+    expect((await prisma.syncState.findUniqueOrThrow({ where: { userId: userA } })).version).toBe(before.version);
+
+    // a user who never synced: an empty answer, and no SyncState row is created just to look
+    const nobody = await applySyncSlots(mintUserCtx(`${userA}-never`), { deviceId: "devNobody", cursor: 0, clientHlc: pusher.clock.now() }, []);
+    expect(nobody).toMatchObject({ results: [], reset: false, cursor: 0, hasMore: false });
+    expect(await prisma.syncState.count({ where: { userId: `${userA}-never` } })).toBe(0);
+  });
+});
+
 describe("garbage collection", () => {
   it("hard-deletes old tombstones children-first, raises the floor, and tells stale clients to reset", async () => {
     const dev = new FakeDevice(ctxA, "devAgc");
@@ -356,7 +383,7 @@ describe("garbage collection", () => {
     const del = await dev.push([dev.mutation("workout", ids.workout, { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
 
     // not old enough yet
-    const early = await collectTombstones(new Date(), 90);
+    const early = await collectTombstones(new Date(), 90, { userIds: [userA] });
     expect(early.deleted.workout).toBe(0);
     expect(await prisma.workout.count({ where: { id: ids.workout } })).toBe(1);
 
@@ -364,7 +391,7 @@ describe("garbage collection", () => {
 
     // 91 days later
     const later = new Date(Date.now() + 91 * 24 * 3600 * 1000);
-    const summary = await collectTombstones(later, 90);
+    const summary = await collectTombstones(later, 90, { userIds: [userA] });
     expect(summary.deadLetters).toBeGreaterThanOrEqual(1); // dead letters expire with the tombstones
     expect(await prisma.syncDeadLetter.count({ where: { userId: userA, mutationId: "m-old" } })).toBe(0);
     expect(summary.deleted.workoutSet).toBeGreaterThanOrEqual(1);
@@ -395,10 +422,129 @@ describe("garbage collection", () => {
     const { ids, mutations } = tree(dev);
     await dev.push(mutations, 0);
     await dev.push([dev.mutation("exercise", ids.exercise, { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
-    await collectTombstones(new Date(Date.now() + 120 * 24 * 3600 * 1000), 90);
+    await collectTombstones(new Date(Date.now() + 120 * 24 * 3600 * 1000), 90, { userIds: [userB] });
     expect(await prisma.exercise.count({ where: { id: ids.exercise } })).toBe(1);
     expect(await prisma.workoutSet.count({ where: { id: { in: ids.sets } } })).toBe(ids.sets.length);
     void catalogExerciseId;
+  });
+
+  it("a scoped run leaves every other user's old tombstones, dead letters and gc floor alone", async () => {
+    // userD is the bystander: an old tombstone, a dead letter and a gc floor that a run for someone else must not touch.
+    const bystander = new FakeDevice(ctxD, "devDgc");
+    const oldNews = newId();
+    await bystander.push([bystander.mutation("template", oldNews, { name: "old news", position: "a0" })], 0);
+    await bystander.push([bystander.mutation("template", oldNews, { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
+    await prisma.syncDeadLetter.create({ data: { userId: userD, mutationId: "m-bystander", entity: "template", entityId: "x", reason: "NOT_OWNER", payload: {} } });
+    const floorBefore = (await prisma.syncState.findUniqueOrThrow({ where: { userId: userD } })).gcFloorVersion;
+
+    const mine = new FakeDevice(ctxA, "devAscope");
+    const mineId = newId();
+    await mine.push([mine.mutation("template", mineId, { name: "mine", position: "a0" })], 0);
+    await mine.push([mine.mutation("template", mineId, { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
+
+    const later = new Date(Date.now() + 91 * 24 * 3600 * 1000); // the cutoff is tomorrow: both tombstones are old enough
+    const scoped = await collectTombstones(later, 90, { userIds: [userA] });
+    expect(scoped.users).toBe(1);
+    expect(await prisma.template.count({ where: { id: mineId } })).toBe(0);
+    expect(await prisma.template.count({ where: { id: oldNews } })).toBe(1);
+    expect(await prisma.syncDeadLetter.count({ where: { userId: userD, mutationId: "m-bystander" } })).toBe(1);
+    expect((await prisma.syncState.findUniqueOrThrow({ where: { userId: userD } })).gcFloorVersion).toBe(floorBefore);
+
+    // an empty scope means nobody, not everybody
+    const nobody = await collectTombstones(later, 90, { userIds: [] });
+    expect(nobody).toMatchObject({ users: 0, deadLetters: 0 });
+    expect(await prisma.template.count({ where: { id: oldNews } })).toBe(1);
+
+    // control: the bystander's tombstone was collectable all along, so the checks above are not vacuous
+    const own = await collectTombstones(later, 90, { userIds: [userD] });
+    expect(own.users).toBe(1);
+    expect(await prisma.template.count({ where: { id: oldNews } })).toBe(0);
+    expect(await prisma.syncDeadLetter.count({ where: { userId: userD, mutationId: "m-bystander" } })).toBe(0);
+    expect((await prisma.syncState.findUniqueOrThrow({ where: { userId: userD } })).gcFloorVersion).toBeGreaterThan(floorBefore);
+  });
+});
+
+describe("garbage collection and personal records", () => {
+  const LATER = () => new Date(Date.now() + 91 * 24 * 3600 * 1000);
+
+  /** One exercise, a heavy workout (100 x 5) and a lighter one (80 x 5): every record of the series points at the heavy one. */
+  async function heavyAndLight(dev: FakeDevice) {
+    const ids = { exercise: newId(), heavy: { workout: newId(), we: newId(), set: newId() }, light: { workout: newId(), we: newId(), set: newId() } };
+    await dev.push(
+      [
+        dev.mutation("exercise", ids.exercise, exerciseFields({ slug: `pr-gc-${ids.exercise.slice(-12)}` })),
+        dev.mutation("workout", ids.heavy.workout, workoutFields()),
+        dev.mutation("workoutExercise", ids.heavy.we, { workoutId: ids.heavy.workout, exerciseId: ids.exercise, position: "a0" }),
+        dev.mutation("workoutSet", ids.heavy.set, setFields(ids.heavy.we, { weightKg: 100, reps: 5 })),
+        dev.mutation("workout", ids.light.workout, workoutFields({ localDate: "2026-10-13", startedAt: "2026-10-13T17:00:00.000Z" })),
+        dev.mutation("workoutExercise", ids.light.we, { workoutId: ids.light.workout, exerciseId: ids.exercise, position: "a1" }),
+        dev.mutation("workoutSet", ids.light.set, setFields(ids.light.we, { weightKg: 80, reps: 5, completedAt: "2026-10-13T17:30:00.000Z" })),
+      ],
+      0,
+    );
+    return ids;
+  }
+  const records = (exerciseId: string) => prisma.personalRecord.findMany({ where: { userId: userE, seriesKey: exerciseId } });
+
+  it("sentinel: PersonalRecord.workout cascades, so a hard-deleted workout takes the records that still point at it", async () => {
+    const dev = new FakeDevice(ctxE, "devEcascade");
+    const ids = await heavyAndLight(dev);
+    expect((await records(ids.exercise)).length).toBeGreaterThan(0);
+    await prisma.workoutSet.deleteMany({ where: { id: ids.heavy.set } });
+    await prisma.workoutExercise.deleteMany({ where: { id: ids.heavy.we } });
+    await prisma.workout.delete({ where: { id: ids.heavy.workout } });
+    // The light workout's set is still live, yet the series now has no records: this is the loss the GC rebuild and guard prevent.
+    expect(await records(ids.exercise)).toHaveLength(0);
+  });
+
+  it("rebuilds the records of a series before collecting a workout they still point at, and keeps them", async () => {
+    const dev = new FakeDevice(ctxE, "devEstale");
+    const ids = await heavyAndLight(dev);
+    // A stale state the sync path cannot produce: the heavy workout tree is tombstoned behind its back (no PR rebuild).
+    const when = new Date(Date.now() - 1000);
+    await prisma.workoutSet.update({ where: { id: ids.heavy.set }, data: { deletedAt: when } });
+    await prisma.workoutExercise.update({ where: { id: ids.heavy.we }, data: { deletedAt: when } });
+    await prisma.workout.update({ where: { id: ids.heavy.workout }, data: { deletedAt: when } });
+    const stale = await records(ids.exercise);
+    expect(stale.length).toBeGreaterThan(0);
+    expect(stale.every((p) => p.workoutId === ids.heavy.workout)).toBe(true);
+
+    const summary = await collectTombstones(LATER(), 90, { userIds: [userE] });
+    expect(summary.prSeriesRebuilt).toBe(1);
+    expect(await prisma.workout.count({ where: { id: ids.heavy.workout } })).toBe(0); // collected
+    expect(await prisma.workout.count({ where: { id: ids.light.workout } })).toBe(1);
+
+    const after = await records(ids.exercise);
+    expect(after.map((p) => `${p.type}:${p.reps}`).sort()).toEqual(stale.map((p) => `${p.type}:${p.reps}`).sort());
+    expect(after.every((p) => p.workoutId === ids.light.workout)).toBe(true);
+    const maxLoad = after.find((p) => p.type === "MAX_LOAD");
+    expect(Number(maxLoad?.value)).toBe(80);
+    expect(maxLoad?.setId).toBe(ids.light.set);
+  });
+
+  it("rebuilds the records of a series whose best set was tombstoned and is being collected", async () => {
+    const dev = new FakeDevice(ctxE, "devEset");
+    const { ids, mutations } = tree(dev, { exerciseOver: { slug: `pr-gc-set-${suffix}` }, sets: [{ weightKg: 100, reps: 5 }, { weightKg: 90, reps: 5 }] });
+    await dev.push(mutations, 0);
+    const [best, next] = ids.sets as [string, string];
+    expect(Number((await records(ids.exercise)).find((p) => p.type === "MAX_LOAD")?.value)).toBe(100);
+
+    await prisma.workoutSet.update({ where: { id: best }, data: { deletedAt: new Date(Date.now() - 1000) } }); // no PR rebuild
+    const summary = await collectTombstones(LATER(), 90, { userIds: [userE] });
+    expect(summary.prSeriesRebuilt).toBe(1);
+    expect(await prisma.workoutSet.count({ where: { id: best } })).toBe(0);
+    const maxLoad = (await records(ids.exercise)).find((p) => p.type === "MAX_LOAD");
+    expect(Number(maxLoad?.value)).toBe(90);
+    expect(maxLoad?.setId).toBe(next);
+  });
+
+  it("does nothing to the records of live data", async () => {
+    const dev = new FakeDevice(ctxE, "devElive");
+    const ids = await heavyAndLight(dev);
+    const before = await records(ids.exercise);
+    const summary = await collectTombstones(LATER(), 90, { userIds: [userE] });
+    expect(summary.prSeriesRebuilt).toBe(0);
+    expect(await records(ids.exercise)).toEqual(before);
   });
 });
 
@@ -490,9 +636,9 @@ describe("exerciseFavorite", () => {
     const live = catalogExerciseId("Leg_Press");
     await dev.push([dev.mutation("exerciseFavorite", favoriteId(userC, dead), { exerciseId: dead, position: "b0" }), dev.mutation("exerciseFavorite", favoriteId(userC, live), { exerciseId: live, position: "b1" })], 0);
     await dev.push([dev.mutation("exerciseFavorite", favoriteId(userC, dead), { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
-    const early = await collectTombstones(new Date(), 90);
+    const early = await collectTombstones(new Date(), 90, { userIds: [userC] });
     expect(early.deleted.exerciseFavorite).toBe(0);
-    const later = await collectTombstones(new Date(Date.now() + 91 * 24 * 3600 * 1000), 90);
+    const later = await collectTombstones(new Date(Date.now() + 91 * 24 * 3600 * 1000), 90, { userIds: [userC] });
     expect(later.deleted.exerciseFavorite).toBeGreaterThanOrEqual(1);
     expect(await prisma.exerciseFavorite.count({ where: { id: favoriteId(userC, dead) } })).toBe(0);
     expect(await prisma.exerciseFavorite.count({ where: { id: favoriteId(userC, live) } })).toBe(1);
@@ -506,9 +652,110 @@ describe("exerciseFavorite", () => {
     await dev.push([dev.mutation("exercise", custom, exerciseFields({ slug: `gc-${suffix}`, name: "Doomed Press" })), dev.mutation("exerciseFavorite", starred, { exerciseId: custom, position: "d0" })], 0);
     await dev.push([dev.mutation("exercise", custom, { deletedAt: "2026-10-14T10:00:00.000Z" })], 0);
     const later = new Date(Date.now() + 91 * 24 * 3600 * 1000);
-    const summary = await collectTombstones(later, 90);
+    const summary = await collectTombstones(later, 90, { userIds: [userC] });
     expect(summary.deleted.exerciseFavorite).toBeGreaterThanOrEqual(1);
     expect(await prisma.exerciseFavorite.count({ where: { id: starred } })).toBe(0);
     expect(await prisma.exercise.count({ where: { id: custom } })).toBe(0); // collected in the same pass, after the favorite
+  });
+});
+
+describe("machineProfile.equipment (gear profiles)", () => {
+  it("round-trips a dumbbell step and a kettlebell set through apply and pull; machines keep a null equipment", async () => {
+    const dev = new FakeDevice(ctxB, "devBgear");
+    const dumbbells = newId();
+    const bells = newId();
+    const machine = newId();
+    const owned = [8, 12, 16, 24];
+
+    const pushed = await dev.push(
+      [
+        dev.mutation("machineProfile", dumbbells, { name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 2.5 }),
+        dev.mutation("machineProfile", bells, { name: "Kettlebells", equipment: "KETTLEBELL", platesKg: owned }),
+        dev.mutation("machineProfile", machine, { name: "Leg press" }),
+      ],
+      0,
+    );
+    expect(statuses(pushed)).toEqual(["applied", "applied", "applied"]);
+    expect(rowOf(pushed, "machineProfile", dumbbells)).toMatchObject({ equipment: "DUMBBELL", pinStepKg: 2.5, gymName: null, exerciseId: null });
+    expect(rowOf(pushed, "machineProfile", bells)).toMatchObject({ equipment: "KETTLEBELL", platesKg: owned });
+    expect(rowOf(pushed, "machineProfile", machine)).toMatchObject({ equipment: null });
+
+    const stored = await prisma.machineProfile.findUniqueOrThrow({ where: { id: bells } });
+    expect(stored.equipment).toBe("KETTLEBELL");
+    expect(stored.platesKg.map((d) => d.toNumber())).toEqual(owned);
+
+    const pulled = await pullChanges(ctxB, 0);
+    const byId = new Map((pulled.changes.machineProfile as unknown as { id: string; equipment: string | null }[]).map((r) => [r.id, r]));
+    expect(byId.get(dumbbells)?.equipment).toBe("DUMBBELL");
+    expect(byId.get(bells)?.equipment).toBe("KETTLEBELL");
+    expect(byId.get(machine)?.equipment).toBeNull();
+  });
+
+  it("merges the gear step per field by HLC and rejects an unknown equipment value", async () => {
+    const dev = new FakeDevice(ctxB, "devBgear2");
+    const other = new FakeDevice(ctxB, "devBgear3");
+    const id = newId();
+    await dev.push([dev.mutation("machineProfile", id, { name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 2 })], 0);
+
+    const staleHlc = other.clock.tick();
+    const newer = await dev.push([dev.mutation("machineProfile", id, { pinStepKg: 1.25 })], 0);
+    expect(rowOf(newer, "machineProfile", id)).toMatchObject({ equipment: "DUMBBELL", pinStepKg: 1.25 });
+    const stale = await other.push([other.mutation("machineProfile", id, { pinStepKg: 5 }, staleHlc)], 0);
+    expect(statuses(stale)).toEqual(["noop"]);
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id } })).pinStepKg?.toNumber()).toBe(1.25);
+
+    const bad = await dev.push([dev.mutation("machineProfile", newId(), { name: "Nope", equipment: "SPACESHIP" })], 0);
+    expect(statuses(bad)).not.toContain("applied");
+  });
+});
+
+describe("machineProfile.platesKg (plate inventory)", () => {
+  it("round-trips an array field through apply and pull, and treats null as the empty list", async () => {
+    const dev = new FakeDevice(ctxB, "devBplates");
+    const id = newId();
+    const bare = newId();
+    const plates = [25, 20, 15, 10, 5, 2.5, 1.25, 0.5];
+
+    const pushed = await dev.push(
+      [
+        dev.mutation("machineProfile", id, { name: "Home bar", baseLoadKg: 15, platesKg: plates }),
+        dev.mutation("machineProfile", bare, { name: "No inventory" }),
+      ],
+      0,
+    );
+    expect(statuses(pushed)).toEqual(["applied", "applied"]);
+    expect(rowOf(pushed, "machineProfile", id)).toMatchObject({ baseLoadKg: 15, platesKg: plates });
+    expect(rowOf(pushed, "machineProfile", bare)).toMatchObject({ platesKg: null });
+
+    const stored = await prisma.machineProfile.findUniqueOrThrow({ where: { id } });
+    expect(stored.platesKg.map((d) => d.toNumber())).toEqual(plates);
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id: bare } })).platesKg).toEqual([]);
+
+    // A second device pulling from scratch sees the same wire rows.
+    const pulled = await pullChanges(ctxB, 0);
+    const byId = new Map((pulled.changes.machineProfile as unknown as { id: string; platesKg: number[] | null }[]).map((r) => [r.id, r]));
+    expect(byId.get(id)?.platesKg).toEqual(plates);
+    expect(byId.get(bare)?.platesKg).toBeNull();
+  });
+
+  it("merges platesKg per field by HLC: a newer replacement wins, a stale one is a noop, null clears it", async () => {
+    const dev = new FakeDevice(ctxB, "devBplates2");
+    const other = new FakeDevice(ctxB, "devBplates3");
+    const id = newId();
+    await dev.push([dev.mutation("machineProfile", id, { name: "Gym bar", platesKg: [20, 10, 5] })], 0);
+
+    const staleHlc = other.clock.tick();
+    const newer = await dev.push([dev.mutation("machineProfile", id, { platesKg: [25, 20, 10, 5, 2.5] })], 0);
+    expect(statuses(newer)).toEqual(["applied"]);
+    expect(rowOf(newer, "machineProfile", id)).toMatchObject({ platesKg: [25, 20, 10, 5, 2.5] });
+
+    const stale = await other.push([other.mutation("machineProfile", id, { platesKg: [1.25] }, staleHlc)], 0);
+    expect(statuses(stale)).toEqual(["noop"]);
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id } })).platesKg.map((d) => d.toNumber())).toEqual([25, 20, 10, 5, 2.5]);
+
+    const cleared = await dev.push([dev.mutation("machineProfile", id, { platesKg: null })], 0);
+    expect(statuses(cleared)).toEqual(["applied"]);
+    expect(rowOf(cleared, "machineProfile", id)).toMatchObject({ platesKg: null });
+    expect((await prisma.machineProfile.findUniqueOrThrow({ where: { id } })).platesKg).toEqual([]);
   });
 });

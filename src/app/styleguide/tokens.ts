@@ -1,95 +1,112 @@
 // Token mirror for the /styleguide page and its test (tokens.test.ts verifies these against src/styles/theme.css).
+// "paper" is the light theme (overload-daylight) and "ink" the dark one (overload-floor): the keys are the values users
+// already have stored (src/lib/theme.ts), so they stay.
 export type ThemeKey = "paper" | "ink";
 
-export const THEME_NAME: Record<ThemeKey, string> = { paper: "overload-paper", ink: "overload-ink" };
+export const THEME_NAME: Record<ThemeKey, string> = { paper: "overload-daylight", ink: "overload-floor" };
 
 export const COLORS: Record<ThemeKey, Record<string, string>> = {
   paper: {
-    "base-100": "#f4f2ed",
-    "base-200": "#eae7df",
-    "base-300": "#dcd8ce",
-    "base-content": "#141414",
-    primary: "#c8321f",
-    "primary-content": "#f4f2ed",
-    secondary: "#3d6b9e",
-    "secondary-content": "#f4f2ed",
-    accent: "#8a5a00",
-    "accent-content": "#f4f2ed",
-    neutral: "#141414",
-    "neutral-content": "#f4f2ed",
-    info: "#2f5d8a",
-    "info-content": "#f4f2ed",
-    success: "#2f6b3f",
-    "success-content": "#f4f2ed",
-    warning: "#8a5a00",
-    "warning-content": "#f4f2ed",
+    "base-100": "#f2f2ef",
+    "base-200": "#e5e5e0",
+    "base-300": "#c4c6c0",
+    "base-content": "#16181a",
+    muted: "#565b62",
+    "line-strong": "#80868d",
+    primary: "#2556c4",
+    "primary-content": "#ffffff",
+    secondary: "#c21f26",
+    "secondary-content": "#ffffff",
+    accent: "#efbd2a",
+    "accent-content": "#16181a",
+    "accent-ink": "#735200",
+    neutral: "#16181a",
+    "neutral-content": "#f2f2ef",
+    info: "#2556c4",
+    "info-content": "#ffffff",
+    success: "#1f7a3c",
+    "success-content": "#ffffff",
+    up: "#1a6e36",
+    warning: "#735200",
+    "warning-content": "#f2f2ef",
     error: "#b3261e",
-    "error-content": "#f4f2ed",
-    vermilion: "#e4402b",
+    "error-content": "#ffffff",
   },
   ink: {
-    "base-100": "#1c1b19",
-    "base-200": "#232220",
-    "base-300": "#2e2c29",
-    "base-content": "#edeae3",
-    primary: "#f26a55",
-    "primary-content": "#141414",
-    secondary: "#6fa3dc",
-    "secondary-content": "#141414",
-    accent: "#e0a94a",
-    "accent-content": "#141414",
-    neutral: "#edeae3",
-    "neutral-content": "#141414",
-    info: "#8fb8e8",
-    "info-content": "#141414",
-    success: "#8ccb98",
-    "success-content": "#141414",
-    warning: "#e8b84f",
-    "warning-content": "#141414",
-    error: "#ff8f85",
-    "error-content": "#141414",
-    vermilion: "#f26a55",
+    "base-100": "#16181a",
+    "base-200": "#1f2225",
+    "base-300": "#31363b",
+    "base-content": "#ecebe6",
+    muted: "#a2a8ae",
+    "line-strong": "#6b7279",
+    primary: "#2f63d6",
+    "primary-content": "#ffffff",
+    secondary: "#d8262d",
+    "secondary-content": "#ffffff",
+    accent: "#efbd2a",
+    "accent-content": "#16181a",
+    "accent-ink": "#efbd2a",
+    neutral: "#ecebe6",
+    "neutral-content": "#16181a",
+    info: "#7d9bff",
+    "info-content": "#16181a",
+    success: "#2f9a4f",
+    "success-content": "#ffffff",
+    up: "#62cc80",
+    warning: "#efbd2a",
+    "warning-content": "#16181a",
+    error: "#ff7a6e",
+    "error-content": "#16181a",
   },
 };
 
-/** Data-viz palette (validated with the dataviz skill; see theme.css). */
+/** Data-viz palette: validated with the dataviz skill on the base-200 panel (see the comment in theme.css). */
 export const CHART: Record<ThemeKey, Record<string, string>> = {
   paper: {
-    "chart-free-weight": "#e4402b",
-    "chart-machine": "#555350",
-    "chart-cable": "#4a7fb8",
-    "chart-bodyweight": "#a8730a",
-    "chart-forecast": "#6b6862",
-    "chart-pr": "#e4402b",
+    "chart-free-weight": "#2556c4",
+    "chart-machine": "#454a50",
+    "chart-cable": "#1f7a3c",
+    "chart-bodyweight": "#a67c00",
+    "chart-forecast": "#6b7279",
+    "chart-pr": "#c21f26",
   },
   ink: {
-    "chart-free-weight": "#e8573f",
-    "chart-machine": "#8a867f",
-    "chart-cable": "#4f8fe0",
-    "chart-bodyweight": "#c28410",
-    "chart-forecast": "#a8a49a",
-    "chart-pr": "#f26a55",
+    "chart-free-weight": "#3a6ee0",
+    "chart-machine": "#b5babf",
+    "chart-cable": "#2f9a4f",
+    "chart-bodyweight": "#efbd2a",
+    "chart-forecast": "#8c9196",
+    "chart-pr": "#ff5a52",
   },
 };
 
-/** [text token, background token, minimum WCAG ratio] pairs that must hold in both themes. */
+/** [text token, background token, minimum WCAG ratio] pairs that must hold in both themes (spec section 03). */
 export const TEXT_PAIRS: [string, string, number][] = [
   ["base-content", "base-100", 7],
   ["base-content", "base-200", 7],
+  ["muted", "base-100", 4.5],
+  ["muted", "base-200", 4.5],
   ["primary-content", "primary", 4.5],
   ["secondary-content", "secondary", 4.5],
   ["accent-content", "accent", 4.5],
   ["neutral-content", "neutral", 4.5],
   ["info-content", "info", 4.5],
-  ["success-content", "success", 4.5],
   ["warning-content", "warning", 4.5],
   ["error-content", "error", 4.5],
-  // semantic colours used as TEXT on the page surface (field errors, sync pip, toasts)
+  // Success green with white text is 3.59:1 on the floor: large or bold (19 px+) only, so it is checked at 3:1.
+  ["success-content", "success", 3],
+  // semantic colours used as TEXT on the page surface (field errors, sync pip, toasts, deltas)
   ["error", "base-100", 4.5],
   ["warning", "base-100", 4.5],
   ["info", "base-100", 4.5],
   ["success", "base-100", 4.5],
+  ["up", "base-200", 4.5],
+  ["accent-ink", "base-100", 4.5],
+  ["accent-ink", "base-200", 4.5],
 ];
+
+/** Pairs that mark a control's edge or an icon: non-text contrast of at least 3:1. */
+export const EDGE_PAIRS: [string, string][] = [["line-strong", "base-100"]];
 
 const channel = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 function luminance(hex: string): number {

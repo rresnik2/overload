@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { SyncProvider } from "@/client/sync";
+import { EdgeSwipeBack } from "@/components/shell/EdgeSwipeBack";
 import { PwaClient } from "@/components/shell/PwaClient";
 import { SyncPip } from "@/components/ui/SyncPip";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -36,6 +37,7 @@ export default async function WorkoutLayout({ children }: { children: ReactNode 
               {children}
             </main>
           </div>
+          <EdgeSwipeBack />
           <PwaClient />
         </PrefsProvider>
       </ToastProvider>

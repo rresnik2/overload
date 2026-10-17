@@ -1,7 +1,7 @@
 // FROZEN after Phase 0. Three projects:
 //   unit        node, *.test.ts(x)            -> `pnpm test`
 //   dom         jsdom, *.dom.test.tsx          -> `pnpm test`
-//   integration node, *.integration.test.ts    -> `pnpm test:integration` (needs a Neon branch in .env.local)
+//   integration node, *.integration.test.ts    -> `pnpm test:integration` (needs a Neon branch in .env.local; refuses to run in the main checkout)
 import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { config as loadEnv } from "dotenv";
@@ -51,6 +51,8 @@ export default defineConfig({
         test: {
           name: "integration",
           environment: "node",
+          // Refuses to start in the main checkout, whose .env.local is production. The unit and dom projects do not load it.
+          globalSetup: ["src/test/refuse-main-checkout.ts"],
           include: ["src/**/*.integration.test.ts", "prisma/**/*.integration.test.ts"],
           fileParallelism: false,
           testTimeout: 30_000,

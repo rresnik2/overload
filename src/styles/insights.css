@@ -1,5 +1,6 @@
-/* Insight cards, the weekly review and /learn articles. Owner: stream G.
-   Square corners; vermilion only for borders, shadows and rules (never small text); numbers use the `num` utility. */
+/* Insight cards, the weekly review and /learn articles. Panels on base-200 with the 6px radius; the severity edge uses
+   plate colours for meaning only (accent = stall / below target, success = good news, primary = suggestion);
+   numbers use the `num` utility. */
 
 /* ── report layout ── */
 .report {
@@ -9,13 +10,14 @@
 .report__notice {
   margin: 0;
   padding: 0.9rem 1rem;
-  border: 1px dashed var(--color-base-content);
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-box);
   background: var(--color-base-200);
 }
 .report__meta {
   margin: 1.25rem 0 0;
   font-size: 0.85rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .report__cards {
   display: grid;
@@ -28,9 +30,12 @@
 /* ── narrative ── */
 .narrative__headline {
   font-family: var(--font-display);
-  font-weight: 400;
-  font-size: clamp(1.7rem, 1.3rem + 1.6vw, 2.4rem);
-  line-height: 1.1;
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: clamp(1.9rem, 1.4rem + 2vw, 2.75rem);
+  line-height: 1.12;
   margin: 0 0 0.75rem;
 }
 .narrative__summary {
@@ -74,34 +79,28 @@
 .narrative__refs li {
   padding: 0.05rem 0.45rem;
   border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-field);
   font-size: 0.78rem;
   line-height: 1.4;
 }
 
 /* ── insight card ── */
 .insight-card {
-  --severity: var(--color-info);
-  --severity-content: var(--color-info-content);
-  border: 1px solid var(--color-base-content);
+  --severity: var(--color-line-strong);
+  border: 1px solid var(--color-base-300);
   border-left: 6px solid var(--severity);
-  border-radius: 0;
-  background: var(--color-base-100);
+  border-radius: var(--radius-box);
+  background: var(--color-base-200);
   color: var(--color-base-content);
 }
 .insight-card--suggestion {
-  --severity: var(--color-secondary);
-  --severity-content: var(--color-secondary-content);
+  --severity: var(--color-primary);
 }
 .insight-card--warning {
-  --severity: var(--color-warning);
-  --severity-content: var(--color-warning-content);
+  --severity: var(--color-accent);
 }
 .insight-card--celebration {
   --severity: var(--color-success);
-  --severity-content: var(--color-success-content);
-}
-.insight-card[open] {
-  box-shadow: var(--shadow-hard);
 }
 .insight-card__summary {
   display: flex;
@@ -116,14 +115,16 @@
   display: none;
 }
 .insight-card__summary:focus-visible {
-  outline: 2px solid var(--color-vermilion);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-base-content);
+  outline-offset: -2px;
 }
+/* The badge names the severity in words, so it stays neutral: plate green and blue are not small-text colours. */
 .insight-card__badge {
   flex: none;
   padding: 0.1rem 0.5rem;
-  background: var(--severity, var(--color-info));
-  color: var(--severity-content, var(--color-info-content));
+  border-radius: var(--radius-field);
+  background: var(--color-base-300);
+  color: var(--color-base-content);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -139,8 +140,8 @@
   flex: none;
   width: 0.6rem;
   height: 0.6rem;
-  border-right: 2px solid var(--color-vermilion);
-  border-bottom: 2px solid var(--color-vermilion);
+  border-right: 2px solid var(--color-muted);
+  border-bottom: 2px solid var(--color-muted);
   transform: rotate(45deg);
   transition: transform 160ms var(--ease-out);
 }
@@ -169,7 +170,7 @@
 }
 .insight-card__fact dt {
   font-size: 0.78rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .insight-card__fact dd {
   margin: 0;
@@ -177,7 +178,7 @@
 }
 .insight-card__unit {
   font-weight: 400;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .insight-card__sources {
   font-size: 0.85rem;
@@ -234,12 +235,13 @@
   flex-wrap: wrap;
   gap: 0.25rem 1rem;
   padding: 0.7rem 0.9rem;
-  border: 1px solid var(--color-base-content);
-  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
+  background: var(--color-base-200);
   min-height: 2.75rem;
 }
 .insight-history__item:hover {
-  box-shadow: var(--shadow-hard-pressed);
+  border-color: var(--color-line-strong);
 }
 .insight-history__week {
   font-weight: 700;
@@ -248,15 +250,20 @@
 /* ── latest insight (today) ── */
 .insight-latest__label {
   margin: 0 0 0.4rem;
-  font-size: 0.8rem;
+  font-size: var(--type-label-size);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
+  color: var(--color-muted);
 }
 .insight-latest__headline {
   font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.5rem;
-  line-height: 1.15;
+  line-height: 1.12;
   margin: 0 0 0.5rem;
 }
 .insight-latest__top {
@@ -278,12 +285,14 @@
 .learn__section h2 {
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 400;
-  font-size: clamp(1.4rem, 1.15rem + 1vw, 1.8rem);
-  line-height: 1.15;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: clamp(1.5rem, 1.25rem + 1vw, 1.9rem);
+  line-height: 1.12;
   margin: 0 0 0.6rem;
   padding-bottom: 0.3rem;
-  border-bottom: 1px solid var(--color-vermilion);
+  border-bottom: 1px solid var(--color-base-300);
 }
 .learn__section p,
 .learn__section li {
@@ -301,7 +310,7 @@
 }
 .learn__cite {
   text-decoration: underline;
-  text-decoration-color: var(--color-vermilion);
+  text-decoration-color: var(--color-line-strong);
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
   white-space: nowrap;
@@ -314,15 +323,17 @@
   display: inline-block;
   margin-right: 0.3ch;
   padding: 0 0.35rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.03em;
 }
 .learn__inapp {
   padding: 1rem 1.1rem;
-  border: 1px solid var(--color-base-content);
-  border-left: 6px solid var(--color-vermilion);
+  border: 1px solid var(--color-base-300);
+  border-left: 6px solid var(--color-accent);
+  border-radius: var(--radius-box);
   background: var(--color-base-200);
 }
 .learn__inapp p {
@@ -330,22 +341,23 @@
   line-height: 1.6;
 }
 .learn__inapp-label {
-  font-size: 0.75rem;
+  font-size: var(--type-label-size);
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--type-label-tracking);
   text-transform: uppercase;
+  color: var(--color-muted);
   margin-bottom: 0.3rem !important;
 }
 .learn__sources ul {
   font-size: 0.92rem;
 }
 .learn__source-kind {
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .learn__disclaimer {
   margin-top: 1rem !important;
   font-size: 0.85rem;
-  opacity: 0.8;
+  color: var(--color-muted);
 }
 .learn-index {
   display: grid;
@@ -360,8 +372,11 @@
 .learn-index__card h2 {
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 400;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.6rem;
+  line-height: 1.12;
   margin: 0 0 0.3rem;
 }
 .learn-index__card p {

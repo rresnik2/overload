@@ -5,25 +5,32 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Sheet } from "@/components/ui/Sheet";
-import { DOCK_ITEMS, isActive, MORE_ITEMS, START_WORKOUT } from "./nav";
+import { LinkPending } from "./LinkPending";
+import { dockTransition, DOCK_ITEMS, isActive, MORE_ITEMS, START_WORKOUT } from "./nav";
+import { announceDirection } from "./nav-direction";
 import { NavIcon } from "./NavIcon";
 import { ThemeToggle } from "./ThemeToggle";
+import { neighbourTabs, useTabPrefetchReady } from "./useTabPrefetch";
 
 /**
- * Mobile bottom dock (daisyUI `dock` with the asymmetric vermilion frame), above env(safe-area-inset-bottom).
+ * Mobile bottom dock (daisyUI `dock` as a base-200 panel), above the --sab inset.
  * Today · Exercises · [Start workout] · Progress · More (Templates, History, Insights, Settings, theme).
  */
 export function Dock() {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = MORE_ITEMS.some((i) => isActive(pathname, i.href));
+  // Once the page is idle, the tabs a swipe can reach are prefetched in full (see useTabPrefetch.ts); the others keep the default.
+  const prefetchReady = useTabPrefetchReady(true, pathname);
+  const neighbours = neighbourTabs(pathname);
 
   const link = (item: (typeof DOCK_ITEMS)[number]) => {
     const active = isActive(pathname, item.href);
     return (
-      <Link key={item.href} href={item.href} className={clsx(active && "dock-active")} aria-current={active ? "page" : undefined} transitionTypes={["nav-forward"]}>
+      <Link key={item.href} href={item.href} prefetch={prefetchReady && neighbours.includes(item.href) ? true : undefined} className={clsx(active && "dock-active")} aria-current={active ? "page" : undefined} transitionTypes={[dockTransition(pathname, item.href)]} onClick={() => announceDirection(dockTransition(pathname, item.href))}>
         <NavIcon name={item.icon} />
         <span className="dock-label">{item.label}</span>
+        <LinkPending />
       </Link>
     );
   };

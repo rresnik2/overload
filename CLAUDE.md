@@ -40,7 +40,7 @@ When you need a frozen file or another stream's file changed:
 * **Server Actions** only for online forms (profile, settings, body metrics, regenerate insight). **Sync and the catalog are route handlers** (action ids change every deploy; an offline client on an older bundle must keep working).
 * Server-only modules start with `import "server-only"` (not in files the Better Auth CLI or seed scripts load, e.g. `db.ts`, `auth.ts`).
 * Weights are kg in the database and in analytics; convert with `src/lib/units.ts` at the UI edge. Group by `Workout.localDate`, ISO weeks (Monday to Sunday). Numbers in the UI use the `num` utility (tabular figures). Text inputs are at least 16px (iOS zoom).
-* Design: square corners, vermilion for borders/shadows/display type/icons (never small body text), Instrument Serif never bold. Tokens live in `src/styles/theme.css`.
+* Design ("Calibrated Dial", spec `docs/design/calibrated-dial-handoff.html`): Archivo only (variable `wght` and `wdth`; display type is `font-stretch: 62%`, italic 850, via the `type-*` utilities), the `overload-floor` (dark) and `overload-daylight` (light) themes, 4 px (`--radius-field`) and 6 px (`--radius-box`) radii, no hard shadows. Plate colours (`--plate-*`, and primary/secondary/accent/success) appear on plates, lifts and data only, never as decoration, and plate blue is never small text on dark. Borders that mark a control's edge use `--color-line-strong`. Tokens live in `src/styles/theme.css`; reference them, never hex values.
 
 ## Commands
 

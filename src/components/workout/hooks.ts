@@ -1,6 +1,6 @@
 "use client";
 // Small browser hooks for the logging screens: a ticking clock, the rest timer, the Screen Wake Lock.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { adjustRest, loadRest, pauseRest, restRemainingMs, restStatus, resumeRest, saveRest, startRest, type RestState, type RestStatus } from "./rest";
 
 /** Epoch ms that re-renders every `intervalMs` while `enabled`, and immediately when the tab becomes visible again. */
@@ -64,8 +64,6 @@ export function restDoneCue(): void {
 
 export interface RestTimerApi {
   state: RestState | null;
-  status: RestStatus;
-  remainingMs: number;
   start: (seconds: number) => void;
   pause: () => void;
   resume: () => void;
@@ -73,19 +71,61 @@ export interface RestTimerApi {
   clear: () => void;
 }
 
-/** The persisted rest timer of a workout: absolute `endsAt` in localStorage, recomputed on every tick/visibility change. */
+/**
+ * The persisted rest timer of a workout: absolute `endsAt` in localStorage. This hook holds the state and the commands and does
+ * NOT tick (a ticking hook here would re-render the whole workout screen four times a second); `useRestClock` does, inside the
+ * rest bar. `state` changes only on a command, and the commands keep their identity for the life of the screen.
+ */
 export function useRestTimer(workoutId: string | null): RestTimerApi {
   // Read once on mount (the caller keys the screen by workout id); SSR never renders this because Dexie data gates the screen.
   const [state, setState] = useState<RestState | null>(() => (workoutId ? loadRest(workoutId) : null));
-  const running = state !== null && state.endsAt !== null;
-  const now = useNow(250, running);
-  const notified = useRef<number | null>(null);
+  // The commands read the latest state through a ref so they can stay referentially stable.
+  const latest = useRef(state);
+  useEffect(() => {
+    latest.current = state;
+  });
 
   const commit = useCallback((next: RestState | null) => {
+    latest.current = next;
     setState(next);
     saveRest(next);
   }, []);
 
+  const start = useCallback(
+    (seconds: number) => {
+      if (!workoutId) return;
+      primeAudio();
+      commit(startRest(workoutId, Date.now(), seconds));
+    },
+    [workoutId, commit],
+  );
+  const pause = useCallback(() => {
+    if (latest.current) commit(pauseRest(latest.current, Date.now()));
+  }, [commit]);
+  const resume = useCallback(() => {
+    if (latest.current) commit(resumeRest(latest.current, Date.now()));
+  }, [commit]);
+  const adjust = useCallback(
+    (deltaSec: number) => {
+      if (latest.current) commit(adjustRest(latest.current, Date.now(), deltaSec));
+    },
+    [commit],
+  );
+  const clear = useCallback(() => commit(null), [commit]);
+
+  return useMemo(() => ({ state, start, pause, resume, adjust, clear }), [state, start, pause, resume, adjust, clear]);
+}
+
+export interface RestClock {
+  status: RestStatus;
+  remainingMs: number;
+}
+
+/** The countdown of a rest timer: ticks every 250 ms while it runs (and when the tab returns), and rings once when it ends. Call it from the rest bar only. */
+export function useRestClock(state: RestState | null): RestClock {
+  const running = state !== null && state.endsAt !== null;
+  const now = useNow(250, running);
+  const notified = useRef<number | null>(null);
   const status = restStatus(state, now);
   const remainingMs = restRemainingMs(state, now);
 
@@ -97,20 +137,7 @@ export function useRestTimer(workoutId: string | null): RestTimerApi {
     if (!stale) restDoneCue();
   }, [status, state]);
 
-  return {
-    state,
-    status,
-    remainingMs,
-    start: (seconds) => {
-      if (!workoutId) return;
-      primeAudio();
-      commit(startRest(workoutId, Date.now(), seconds));
-    },
-    pause: () => state && commit(pauseRest(state, Date.now())),
-    resume: () => state && commit(resumeRest(state, Date.now())),
-    adjust: (deltaSec) => state && commit(adjustRest(state, Date.now(), deltaSec)),
-    clear: () => commit(null),
-  };
+  return { status, remainingMs };
 }
 
 interface WakeLockSentinelLike {

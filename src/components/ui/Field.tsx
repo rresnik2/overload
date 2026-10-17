@@ -29,7 +29,7 @@ const KIND_ATTRS: Record<FieldKind, Pick<InputHTMLAttributes<HTMLInputElement>, 
   rir: { type: "text", inputMode: "numeric", pattern: "[0-9]*" },
 };
 
-/** Labelled text input. Always at least 16px (iOS does not zoom), 44px tall, vermilion focus ring. Server-renderable. */
+/** Labelled text input. Always at least 16px (iOS does not zoom), 44px tall, blue focus border. Server-renderable. */
 export function Field({ label, kind = "text", unit, hint, labelHint, error, hideLabel = false, className, id, ...rest }: FieldProps) {
   const auto = useId();
   const inputId = id ?? auto;

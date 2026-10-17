@@ -113,6 +113,26 @@ describe("entity schemas", () => {
     ).toBe(false);
   });
 
+  it("machine profile platesKg: an optional list of up to 20 plate weights (0-100 kg), null by default", () => {
+    const base = { name: "Home bar" };
+    expect(entities.machineProfileFieldsSchema.parse(base).platesKg).toBeNull();
+    expect(entities.machineProfileFieldsSchema.parse({ ...base, platesKg: [25, 1.25, 0.5] }).platesKg).toEqual([25, 1.25, 0.5]);
+    expect(entities.machineProfileFieldsSchema.parse({ ...base, platesKg: null }).platesKg).toBeNull();
+    expect(entities.machineProfileFieldsSchema.safeParse({ ...base, platesKg: Array.from({ length: 21 }, () => 5) }).success).toBe(false);
+    expect(entities.machineProfileFieldsSchema.safeParse({ ...base, platesKg: [101] }).success).toBe(false);
+    expect(entities.machineProfileFieldsSchema.safeParse({ ...base, platesKg: [-1] }).success).toBe(false);
+    expect(entities.machineProfilePatchSchema.parse({ platesKg: [20] })).toEqual({ platesKg: [20] });
+    expect(entities.machineProfilePatchSchema.parse({})).toEqual({});
+  });
+
+  it("machine profile equipment: an optional gear marker, null by default, only real equipment values", () => {
+    const base = { name: "Dumbbells" };
+    expect(entities.machineProfileFieldsSchema.parse(base).equipment).toBeNull();
+    expect(entities.machineProfileFieldsSchema.parse({ ...base, equipment: "DUMBBELL", pinStepKg: 2.5 }).equipment).toBe("DUMBBELL");
+    expect(entities.machineProfileFieldsSchema.safeParse({ ...base, equipment: "SPACESHIP" }).success).toBe(false);
+    expect(entities.machineProfilePatchSchema.parse({ equipment: "KETTLEBELL" })).toEqual({ equipment: "KETTLEBELL" });
+  });
+
   it("profile updates are strict and have no userId", () => {
     expect(profileUpdateSchema.safeParse({ unitPreference: "LB", heightCm: 180 }).success).toBe(true);
     expect(profileUpdateSchema.safeParse({ userId: "someone-else" }).success).toBe(false);

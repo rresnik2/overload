@@ -1,4 +1,4 @@
-/* Auth, onboarding and settings screens. Owner: stream A. */
+/* Auth, onboarding and settings screens. Calibrated Dial: 4px control radius, control edges in --color-line-strong. */
 
 /* Grayscale backdrop on the auth and onboarding pages only (never the logging screens). Layered gradients stand in for
    the photo; set --auth-backdrop-image: url(...) on .auth-backdrop to swap in a real one. */
@@ -14,16 +14,27 @@
   background-size: cover;
   filter: grayscale(1);
 }
+/* body paints its own base-100 background, which would cover a z-index:-1 layer (same fix as .shell-backdrop). */
+body:has(.auth-backdrop) {
+  background: transparent;
+}
 
 .auth-page {
   margin-inline: auto;
   display: flex;
-  min-height: 100dvh;
+  min-height: 100svh;
   max-width: 28rem;
   flex-direction: column;
-  justify-content: center;
+  /* "safe" falls back to flex-start when the form is taller than the page, so the top is never cut off and the rest scrolls. */
+  justify-content: safe center;
   gap: 1.5rem;
-  padding: max(1.5rem, env(safe-area-inset-top)) 1.5rem max(1.5rem, env(safe-area-inset-bottom));
+  padding: max(1.5rem, var(--sat)) 1.5rem max(1.5rem, var(--sab));
+}
+@media (max-height: 700px) {
+  .auth-page {
+    justify-content: flex-start;
+    padding-top: max(1.5rem, var(--sat));
+  }
 }
 .auth-page--wide {
   max-width: 40rem;
@@ -44,7 +55,7 @@
 }
 .auth-field__hint {
   font-size: 0.9rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .auth-field__error {
   font-size: 0.9rem;
@@ -60,26 +71,37 @@
   width: 100%;
   font-size: max(1rem, 16px);
   min-height: var(--tap-target);
-  border-color: var(--color-base-content);
+  border-color: var(--color-line-strong);
+  border-radius: var(--radius-field);
 }
 .auth-form .btn,
 .settings-form .btn {
   min-height: var(--tap-target);
-  border-radius: 0;
+  border-radius: var(--radius-field);
+}
+/* The form's primary action is display type, like every primary button. */
+.auth-form .btn-primary,
+.settings-form .btn-primary {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  font-size: 1.375rem;
+  line-height: 1.12;
 }
 .auth-divider {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   font-size: 0.9rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .auth-divider::before,
 .auth-divider::after {
   content: "";
   flex: 1;
-  border-top: 1px solid currentColor;
-  opacity: 0.4;
+  border-top: 1px solid var(--color-base-300);
 }
 .auth-links {
   display: flex;
@@ -91,7 +113,7 @@
 .auth-links a,
 .settings-link {
   text-decoration: underline;
-  text-decoration-color: var(--color-vermilion);
+  text-decoration-color: var(--color-line-strong);
   text-underline-offset: 3px;
   text-decoration-thickness: 2px;
 }
@@ -107,17 +129,21 @@
 .wizard-progress__step {
   flex: 1;
   height: 4px;
+  border-radius: 2px;
   background: var(--color-base-300);
 }
 .wizard-progress__step[data-state="done"],
 .wizard-progress__step[data-state="current"] {
-  background: var(--color-vermilion);
+  background: var(--color-primary);
 }
 .wizard-step__title {
   font-family: var(--font-display);
-  font-weight: 400;
   font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.75rem;
+  line-height: 1.12;
   margin: 0 0 0.25rem;
 }
 .wizard-choices {
@@ -130,16 +156,18 @@
   cursor: pointer;
   align-items: flex-start;
   gap: 0.6rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   padding: 0.75rem;
   min-height: var(--tap-target);
 }
 .wizard-choice:has(input:checked) {
-  box-shadow: 4px 4px 0 var(--color-vermilion);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
   background: var(--color-base-200);
 }
 .wizard-choice:has(input:focus-visible) {
-  outline: 2px solid var(--color-vermilion);
+  outline: 2px solid var(--color-base-content);
   outline-offset: 2px;
 }
 .wizard-choice__text {
@@ -148,7 +176,7 @@
 }
 .wizard-choice__hint {
   font-size: 0.85rem;
-  opacity: 0.75;
+  color: var(--color-muted);
 }
 .wizard-actions {
   display: flex;
@@ -166,7 +194,7 @@
 .settings-nav {
   display: flex;
   gap: 0.25rem;
-  border-bottom: 2px solid var(--color-vermilion);
+  border-bottom: 1px solid var(--color-base-300);
   overflow-x: auto;
 }
 .settings-nav a {
@@ -177,7 +205,8 @@
   white-space: nowrap;
 }
 .settings-nav a[aria-current="page"] {
-  box-shadow: inset 0 -4px 0 var(--color-vermilion);
+  box-shadow: inset 0 -3px 0 var(--color-primary);
+  font-weight: 700;
 }
 .settings-section {
   display: flex;
@@ -218,7 +247,6 @@
 }
 .settings-danger {
   border-color: var(--color-error);
-  box-shadow: 6px 6px 0 var(--color-error);
 }
 
 /* Sign out of this device (settings layout footer). */
@@ -228,7 +256,7 @@
   justify-items: start;
   margin-top: 1rem;
   padding-top: 1.5rem;
-  border-top: 2px solid var(--color-base-content);
+  border-top: 1px solid var(--color-base-300);
 }
 
 .auth-links a {

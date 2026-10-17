@@ -26,7 +26,7 @@ afterEach(() => {
 });
 
 describe("Dexie migrations", () => {
-  it("v1 -> v2 adds the exerciseFavorite table, keeps every existing row and the outbox, and re-pulls once (cursor 0)", async () => {
+  it("v1 -> v3 adds the exerciseFavorite table, keeps every existing row and the outbox, and re-pulls once (cursor 0)", async () => {
     const options = { indexedDB: new IDBFactory(), IDBKeyRange };
     const v1 = new Dexie("overload-user-1", options);
     v1.version(1).stores(V1_STORES);
@@ -46,7 +46,7 @@ describe("Dexie migrations", () => {
     const db = new OverloadDb("user-1", options);
     open = db;
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     expect(db.tables.map((t) => t.name)).toContain("exerciseFavorite");
     expect(await db.exerciseFavorite.count()).toBe(0);
 
@@ -60,6 +60,8 @@ describe("Dexie migrations", () => {
     expect(await getMeta(db, META_KEYS.catalogVersion)).toBe(4);
     // favorites written by another device while this one ran the old bundle are pulled again
     expect(await getMeta(db, META_KEYS.cursor)).toBe(0);
+    // v3 computed the active-workout pointer for the workout that was already there (it has no endedAt)
+    expect(await getMeta(db, META_KEYS.activeWorkout)).toBe("w1");
 
     // the new table is usable, indexed by exerciseId
     await db.exerciseFavorite.put({ id: "f1", exerciseId: "e1", position: "a0", hlc: "h", fieldHlc: {}, version: 0, deletedAt: null, createdAt: "x", updatedAt: "x" });
@@ -71,8 +73,9 @@ describe("Dexie migrations", () => {
     const db = new OverloadDb("user-9", { indexedDB: new IDBFactory(), IDBKeyRange });
     open = db;
     await db.open();
-    expect(db.verno).toBe(2);
+    expect(db.verno).toBe(3);
     expect(await getMeta(db, META_KEYS.cursor)).toBeUndefined();
+    expect(await getMeta(db, META_KEYS.activeWorkout)).toBe(""); // nothing is active yet
   });
 
   it("opening v2 again is a no-op (data and cursor untouched)", async () => {

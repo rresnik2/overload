@@ -5,6 +5,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { createUser } from "./_support/user";
+import { THEME_NAMES } from "@/lib/theme";
 
 const LEG_PRESS = "Leg Press";
 
@@ -77,8 +78,11 @@ test("star in the library, find it under Favorites in the picker, unstar offline
 
   // 4. Back online: the tombstone syncs, and the library's Favorites filter no longer lists it.
   await context.setOffline(false);
-  await expect.poll(() => dbFavorites(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toEqual([{ name: LEG_PRESS, deleted: true }]);
+  // A workout is active, so reconnecting does not sync by itself within five minutes: close the picker and tap "Sync now".
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: /^Sync now/ }).click();
+  await expect(page.getByRole("button", { name: "Sync now: Synced" })).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => dbFavorites(email), { timeout: 90_000, intervals: [1000, 2000, 3000] }).toEqual([{ name: LEG_PRESS, deleted: true }]);
   await page.goto("/exercises?fav=1");
   await expect(page.getByRole("heading", { name: "No favorites yet" })).toBeVisible();
   await expect(page.locator(".exercise-card")).toHaveCount(0);
@@ -108,7 +112,7 @@ for (const theme of ["paper", "ink"] as const) {
     await page.addInitScript((t) => localStorage.setItem("overload-theme", t), theme);
     await createUser(page, { tag: `favaxe${theme}`, name: "Fav Axe" });
     const audit = async (label: string) => {
-      await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", `overload-${theme}`);
+      await expect(page.locator("html"), `theme attribute on ${label}`).toHaveAttribute("data-theme", THEME_NAMES[theme]);
       await page.waitForTimeout(300); // let entry transitions finish: axe reads mid-fade colours otherwise
       const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"]).analyze();
       expect(

@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
-import { afterEach, describe, expect, it } from "vitest";
+import { liveQuery } from "dexie";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RepoError, type Repo } from "@/contracts/repo";
 import { catalogExerciseId } from "@/lib/ids";
 import { HLC_REGEX } from "@/contracts/sync";
@@ -149,6 +150,41 @@ describe("derived set columns, cascades and queries", () => {
     expect(pullSet.effectiveLoadKg).toBe(90);
     await repo.machineProfiles.update(machine.id, { baseLoadKg: 20 });
     expect((await repo.sets.get(legSet.id))?.effectiveLoadKg).toBe(220);
+  });
+
+  it("a machine profile's platesKg list is stamped, queued as one field, replaced whole and clearable", async () => {
+    const { repo } = fresh();
+    const bar = await repo.machineProfiles.create({ name: "Home bar", baseLoadKg: 15, platesKg: [20, 10, 5, 2.5] });
+    expect(bar.platesKg).toEqual([20, 10, 5, 2.5]);
+    expect(bar.fieldHlc.platesKg).toMatch(HLC_REGEX);
+    expect((await repo.machineProfiles.create({ name: "No inventory" })).platesKg).toBeNull();
+
+    await repo.machineProfiles.update(bar.id, { platesKg: [25, 20, 10, 5, 2.5, 1.25] });
+    expect((await repo.machineProfiles.get(bar.id))?.platesKg).toEqual([25, 20, 10, 5, 2.5, 1.25]);
+    await repo.machineProfiles.update(bar.id, { platesKg: null });
+    expect((await repo.machineProfiles.get(bar.id))?.platesKg).toBeNull();
+
+    const queued = (await outbox()).filter((q) => q.entity === "machineProfile" && q.id === bar.id);
+    expect(queued.at(-2)?.fields).toEqual({ platesKg: [25, 20, 10, 5, 2.5, 1.25] });
+    expect(queued.at(-1)?.fields).toEqual({ platesKg: null });
+    await rejects(repo.machineProfiles.update(bar.id, { platesKg: [500] }), "INVALID");
+  });
+
+  it("gear(): finds the user-wide dumbbell or kettlebell profile, never a machine, and prefers a gym's own when asked", async () => {
+    const { repo } = fresh();
+    expect(await repo.machineProfiles.gear("DUMBBELL")).toBeUndefined();
+    const machine = await repo.machineProfiles.create({ name: "Leg press", pinStepKg: 5 });
+    const dumbbells = await repo.machineProfiles.create({ name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 2.5 });
+    const bells = await repo.machineProfiles.create({ name: "Kettlebells", equipment: "KETTLEBELL", platesKg: [8, 12, 16] });
+    expect((await repo.machineProfiles.gear("DUMBBELL"))?.id).toBe(dumbbells.id);
+    expect((await repo.machineProfiles.gear("KETTLEBELL"))?.platesKg).toEqual([8, 12, 16]);
+    expect((await repo.machineProfiles.gear("DUMBBELL", "Downtown gym"))?.id).toBe(dumbbells.id); // falls back to the user-wide one
+    const local = await repo.machineProfiles.create({ name: "Dumbbells", equipment: "DUMBBELL", pinStepKg: 5, gymName: "Downtown gym" });
+    expect((await repo.machineProfiles.gear("DUMBBELL", "Downtown gym"))?.id).toBe(local.id);
+    expect((await repo.machineProfiles.gear("DUMBBELL"))?.id).toBe(dumbbells.id);
+    await repo.machineProfiles.remove(bells.id);
+    expect(await repo.machineProfiles.gear("KETTLEBELL")).toBeUndefined();
+    expect(machine.equipment).toBeNull();
   });
 
   it("deleting a workout tombstones its exercises and sets (and queues those tombstones); a template takes its exercises", async () => {
@@ -313,6 +349,48 @@ describe("catalog and exercise search", () => {
   });
 });
 
+describe("exercise search keeps the exercise list in memory", () => {
+  const row = (name: string): ExerciseRow =>
+    ({ id: catalogExerciseId(name), isCustom: false, sourceId: name, slug: name.toLowerCase(), name, aliases: [], modality: "FREE_WEIGHT", equipment: "BARBELL", loadType: "TOTAL", tracking: "LOAD_REPS", bodyweightFactor: null, isUnilateral: false, mechanic: null, force: null, level: null, category: "STRENGTH", standardLift: null, instructions: [], images: [], muscles: [], hlc: "", fieldHlc: {}, version: 0, deletedAt: null, createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }) as ExerciseRow;
+
+  it("reads the tables once for a run of keystrokes, and again after the catalog or a custom exercise changes", async () => {
+    const { repo, db } = fresh();
+    await repo.catalog.replace({ version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat"), row("Squid")] });
+    let reads = 0;
+    db.catalog.hook("reading", (r) => {
+      reads += 1;
+      return r;
+    });
+    for (const text of ["s", "sq", "squ", "squa"]) await repo.exercises.search({ text });
+    expect(reads).toBe(2); // loaded once (2 rows), not once per keystroke
+
+    const custom = await repo.exercises.create(exerciseInput({ slug: "squash", name: "Squash" }));
+    reads = 0;
+    expect((await repo.exercises.search({ text: "squ" })).map((e) => e.name).sort()).toEqual(["Squash", "Squat", "Squid"]);
+    expect(reads).toBe(2);
+
+    await repo.exercises.remove(custom.id);
+    expect((await repo.exercises.search({ text: "squ" })).map((e) => e.name).sort()).toEqual(["Squat", "Squid"]);
+
+    await repo.catalog.replace({ version: 2, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat")] });
+    expect((await repo.exercises.search({ text: "squ" })).map((e) => e.name)).toEqual(["Squat"]);
+  });
+
+  it("a live search still re-runs when the catalog or a custom exercise changes, although the list came from memory", async () => {
+    const { repo } = fresh();
+    await repo.catalog.replace({ version: 1, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat")] });
+    await repo.exercises.search({ text: "squ" }); // fills the cache
+    const seen: string[][] = [];
+    const subscription = liveQuery(() => repo.exercises.search({ text: "squ" })).subscribe((rows) => seen.push(rows.map((e) => e.name)));
+    await vi.waitFor(() => expect(seen.at(-1)).toEqual(["Squat"]));
+    await repo.catalog.replace({ version: 2, generatedAt: "2026-10-14T00:00:00.000Z", exercises: [row("Squat"), row("Squid")] });
+    await vi.waitFor(() => expect(seen.at(-1)).toEqual(["Squat", "Squid"]));
+    await repo.exercises.create(exerciseInput({ slug: "squash", name: "Squash" }));
+    await vi.waitFor(() => expect(seen.at(-1)?.sort()).toEqual(["Squash", "Squat", "Squid"]));
+    subscription.unsubscribe();
+  });
+});
+
 describe("every method of the Repo contract", () => {
   const methodPaths = (obj: object, prefix = ""): string[] =>
     Object.entries(obj).flatMap(([k, v]) => (typeof v === "function" ? [prefix + k] : v && typeof v === "object" ? methodPaths(v, `${prefix}${k}.`) : []));
@@ -345,6 +423,7 @@ describe("every method of the Repo contract", () => {
       "machineProfiles.remove": (r) => r.machineProfiles.remove(machine.id),
       "machineProfiles.forExercise": (r) => r.machineProfiles.forExercise(exercise.id),
       "machineProfiles.lastUsedFor": (r) => r.machineProfiles.lastUsedFor(exercise.id),
+      "machineProfiles.gear": (r) => r.machineProfiles.gear("DUMBBELL"),
       "bodyMetrics.get": (r) => r.bodyMetrics.get(bm.id),
       "bodyMetrics.list": (r) => r.bodyMetrics.list(),
       "bodyMetrics.create": (r) => r.bodyMetrics.create({ measuredAt: "2026-10-13T07:00:00.000Z", localDate: "2026-10-13" }),

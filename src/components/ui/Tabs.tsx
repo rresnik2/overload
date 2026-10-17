@@ -25,7 +25,7 @@ export interface TabsProps {
 }
 
 /**
- * WAI-ARIA tabs: roving tabindex, ArrowLeft/Right + Home/End, vermilion bar under the selected tab (selected, focus,
+ * WAI-ARIA tabs: roving tabindex, ArrowLeft/Right + Home/End, plate-blue bar under the selected tab (selected, focus,
  * disabled states). Tabs without a `panel` still get role=tab; the parent owns the content.
  */
 export function Tabs({ items, value, defaultValue, onChange, label, className }: TabsProps) {
@@ -55,7 +55,7 @@ export function Tabs({ items, value, defaultValue, onChange, label, className }:
 
   const active = items.find((t) => t.id === selected);
   return (
-    <div className={clsx("tabs-o", className)}>
+    <div className={clsx("tabs-o", className)} data-no-swipe>
       <div role="tablist" aria-label={label} className="tabs-o__list" onKeyDown={onKeyDown}>
         {items.map((t) => (
           <button

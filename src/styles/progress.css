@@ -1,6 +1,6 @@
-/* Charts, progress and body pages. Owner: stream F.
-   Colours come only from the --chart-* variables (theme.css, validated in both themes). Square corners; vermilion for marks and
-   rules, never for small body text. Numbers use the `num` utility (tabular figures). */
+/* Charts, progress and body pages.
+   Colours come only from the --chart-* variables (theme.css, validated in both themes on the base-200 panel). Chart
+   frames are panels (base-200, 6px radius, hairline). Numbers use the `num` utility (tabular figures). */
 
 /* ── page rhythm ── */
 .progress-section {
@@ -9,8 +9,11 @@
 .progress-subhead {
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 400;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.5rem;
+  line-height: 1.12;
   margin: 0 0 0.75rem;
 }
 .progress-stats {
@@ -23,7 +26,7 @@
   margin: 0.75rem 0 0;
   font-size: 0.95rem;
   line-height: 1.45;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
   max-width: 62ch;
 }
 .progress-charts {
@@ -34,8 +37,9 @@
 .chart-frame {
   margin: 1.25rem 0 0;
   padding: 1rem;
-  border: 1px solid var(--chart-grid);
-  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
+  background: var(--color-base-200);
   min-width: 0;
 }
 .chart-frame__head {
@@ -45,14 +49,17 @@
   gap: 1rem;
 }
 .chart-frame__title {
-  font-weight: 600;
-  font-size: 1rem;
+  font-weight: 700;
+  font-size: var(--type-label-size);
+  letter-spacing: var(--type-label-tracking);
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 .chart-frame__summary {
   margin: 0.25rem 0 0.75rem;
   font-size: 0.9rem;
   line-height: 1.4;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
 }
 .chart-frame__plot {
   min-width: 0;
@@ -97,7 +104,11 @@
   margin: 0;
   font-family: var(--font-display);
   font-style: italic;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.5rem;
+  line-height: 1.12;
 }
 .chart-frame__empty-text {
   margin: 0.4rem auto 0;
@@ -112,13 +123,14 @@
   gap: 0.6rem;
   margin-top: 0.75rem;
   padding: 0.75rem 0.9rem;
-  border: 1px dashed var(--color-base-content);
-  background: var(--color-base-200);
+  border: 1px dashed var(--color-line-strong);
+  border-radius: var(--radius-field);
+  background: var(--color-base-100);
 }
 .chart-frame__lowdata-icon {
   flex: none;
   margin-top: 0.2rem;
-  color: var(--color-base-content);
+  color: var(--color-muted);
 }
 .chart-frame__lowdata-title {
   margin: 0;
@@ -192,12 +204,12 @@
 /* tooltip */
 .chart-tooltip {
   padding: 0.5rem 0.65rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   background: var(--color-base-100);
   color: var(--color-base-content);
   font-size: 0.85rem;
   line-height: 1.4;
-  box-shadow: var(--shadow-hard-sm);
 }
 .chart-tooltip__title {
   font-weight: 600;
@@ -207,7 +219,7 @@
 /* table fallback */
 .chart-frame__table {
   margin-top: 0.9rem;
-  border-top: 1px solid var(--chart-grid);
+  border-top: 1px solid var(--color-base-300);
   padding-top: 0.6rem;
 }
 .chart-frame__table > summary {
@@ -218,7 +230,7 @@
   font-weight: 600;
   font-size: 0.9rem;
   text-decoration: underline;
-  text-decoration-color: var(--color-vermilion);
+  text-decoration-color: var(--color-line-strong);
   text-underline-offset: 0.25em;
 }
 .chart-frame__table-scroll {
@@ -236,12 +248,12 @@
   padding: 0.35rem 0.6rem;
   text-align: right;
   white-space: nowrap;
-  border-bottom: 1px solid var(--chart-grid);
+  border-bottom: 1px solid var(--color-base-300);
 }
 .chart-table thead th {
   position: sticky;
   top: 0;
-  background: var(--color-base-100);
+  background: var(--color-base-200);
   font-weight: 600;
 }
 .chart-table th:first-child,
@@ -270,7 +282,8 @@
   gap: 0.6rem;
   min-height: 44px;
   padding: 0.45rem 0.9rem;
-  border: 1px solid var(--color-base-content);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-field);
   background: var(--color-base-100);
   color: var(--color-base-content);
   text-decoration: none;
@@ -279,12 +292,12 @@
   background: var(--color-base-200);
 }
 .series-picker__item:focus-visible {
-  outline: 2px solid var(--color-vermilion);
+  outline: 2px solid var(--color-base-content);
   outline-offset: 2px;
 }
 .series-picker__item--active {
-  border-width: 1px 3px 5px 2px;
-  border-color: var(--color-vermilion);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
   background: var(--color-base-200);
 }
 .series-picker__swatch,
@@ -316,7 +329,7 @@
 }
 .series-picker__meta {
   font-size: 0.8rem;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
 }
 
 /* ── overview cards ── */
@@ -334,8 +347,9 @@
   text-decoration: none;
 }
 .series-card-link:focus-visible {
-  outline: 2px solid var(--color-vermilion);
+  outline: 2px solid var(--color-base-content);
   outline-offset: 4px;
+  border-radius: var(--radius-box);
 }
 .series-card__name {
   margin: 0;
@@ -348,7 +362,7 @@
   gap: 0.45rem;
   margin: 0.25rem 0 0.75rem;
   font-size: 0.85rem;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
 }
 .bigthree {
   margin-top: 1.5rem;
@@ -377,7 +391,8 @@
 .weekly-sets__track {
   position: relative;
   height: 1.1rem;
-  background: var(--color-base-200);
+  border-radius: var(--radius-field);
+  background: var(--color-base-100);
 }
 .weekly-sets__band {
   position: absolute;
@@ -392,7 +407,7 @@
   bottom: 0.3rem;
   left: 0;
   background: var(--chart-free-weight);
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-field) var(--radius-field) 0;
 }
 .weekly-sets__value {
   text-align: right;
@@ -402,7 +417,7 @@
   display: block;
   font-weight: 400;
   font-size: 0.78rem;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
 }
 @media (min-width: 640px) {
   .weekly-sets__status {
@@ -413,7 +428,7 @@
 .weekly-sets__note {
   margin: 0.6rem 0 0;
   font-size: 0.8rem;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
 }
 
 /* ── training calendar ── */
@@ -460,6 +475,7 @@
   display: block;
   aspect-ratio: 1;
   min-height: 0.9rem;
+  border-radius: 2px;
   background: var(--chart-grid);
 }
 .heatmap__cell[data-level="1"] {
@@ -500,7 +516,7 @@
 .pr-recent__prev,
 .pr-recent__date {
   font-size: 0.85rem;
-  color: color-mix(in srgb, var(--color-base-content) 78%, var(--color-base-100));
+  color: var(--color-muted);
 }
 .pr-by-lift {
   margin-top: 2rem;
@@ -525,15 +541,19 @@
   display: grid;
   gap: 1rem;
   padding: 1rem;
-  border: 1px solid var(--color-base-content);
-  background: var(--color-base-100);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-box);
+  background: var(--color-base-200);
 }
 .body-form__title {
   margin: 0;
   font-family: var(--font-display);
   font-style: italic;
-  font-weight: 400;
+  font-weight: 850;
+  font-stretch: 62%;
+  text-transform: uppercase;
   font-size: 1.5rem;
+  line-height: 1.12;
 }
 .body-form__grid {
   display: grid;
@@ -544,7 +564,7 @@
   margin: 0;
   padding: 0.75rem 0 0;
   border: 0;
-  border-top: 1px solid var(--chart-grid);
+  border-top: 1px solid var(--color-base-300);
   min-width: 0;
 }
 .body-form__group > legend {
@@ -591,4 +611,8 @@
 .week-volume-card {
   display: grid;
   gap: 0.75rem;
+}
+
+.chart-plot > .chart-frame__skeleton {
+  height: 100%;
 }

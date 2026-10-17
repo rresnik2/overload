@@ -23,6 +23,26 @@ describe("parseSyncBody", () => {
     expect(first?.kind === "invalid" && first.mutationId).toBe(FIXTURE_IDS.mutation);
   });
 
+  it("marks a machine profile mutation with an invalid platesKg as invalid, and a valid one as ok", () => {
+    const hlc = exampleSyncRequest.clientHlc;
+    const make = (platesKg: unknown) => ({
+      mutationId: FIXTURE_IDS.mutation,
+      entity: "machineProfile",
+      id: FIXTURE_IDS.machineProfile,
+      fields: { platesKg },
+      fieldHlc: { platesKg: hlc },
+    });
+    const kinds = (platesKg: unknown) => {
+      const parsed = parseSyncBody({ ...exampleSyncRequest, mutations: [make(platesKg)] });
+      return parsed.ok ? parsed.slots.map((s) => s.kind) : [];
+    };
+    expect(kinds([25, 20, 1.25])).toEqual(["ok"]);
+    expect(kinds(null)).toEqual(["ok"]);
+    expect(kinds([150])).toEqual(["invalid"]);
+    expect(kinds(Array.from({ length: 21 }, () => 5))).toEqual(["invalid"]);
+    expect(kinds("25,20")).toEqual(["invalid"]);
+  });
+
   it("rejects a bad envelope outright", () => {
     expect(parseSyncBody({ ...exampleSyncRequest, cursor: -1 }).ok).toBe(false);
     expect(parseSyncBody({ ...exampleSyncRequest, userId: "x" }).ok).toBe(false);

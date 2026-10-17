@@ -1,4 +1,4 @@
-import { BodyFatChart, WeightTrendChart } from "@/components/charts/BodyTrendChart";
+import { BodyFatChart, WeightTrendChart } from "@/components/charts/lazy";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { formatDate, METHOD_LABEL, plural, unitLabel, weightText } from "@/components/charts/format";
 import { SectionHeader } from "@/components/primitives/SectionHeader";

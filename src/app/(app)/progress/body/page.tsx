@@ -1,5 +1,6 @@
 // Body: weight trend, body fat (with its method), FFMI as a range, circumferences and the logging form with the Navy calculator.
 import Link from "next/link";
+import { SyncVersionStamp } from "@/client/sync/SyncVersionStamp";
 import { BodyLog } from "@/components/body/BodyLog";
 import { BodySections } from "@/components/body/BodySections";
 import { PageHeader } from "@/components/primitives/PageHeader";
@@ -8,13 +9,19 @@ import { PageIntro } from "@/components/ui/PageIntro";
 import { Term } from "@/components/ui/Term";
 import { requireUser } from "@/server/auth/session";
 import { loadBodyView } from "@/server/queries/body";
+import { loadToday } from "@/server/queries/progress";
+import { pageSyncVersion } from "@/server/sync/page-version";
 
 export const metadata = { title: "Body" };
 
 export default async function BodyPage() {
-  const view = await loadBodyView(await requireUser());
+  const ctx = await requireUser();
+  // The sync version is read beside the profile, before any synced row is (src/server/sync/page-version.ts).
+  const [today, syncVersion] = await Promise.all([loadToday(ctx), pageSyncVersion(ctx)]);
+  const view = await loadBodyView(ctx, { today });
   return (
     <>
+      <SyncVersionStamp version={syncVersion} />
       <PageHeader
         title="Body"
         meta={["Progress", "Last 12 months"]}

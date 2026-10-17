@@ -2,7 +2,7 @@
 // SVG marks shared by the charts: shaped markers (a second channel next to colour), the PR star and the deload (hollow) marker.
 import type { MarkerShape } from "./format";
 
-export const SURFACE = "var(--color-base-100)";
+export const SURFACE = "var(--color-base-200)";
 
 /** Five-point star centred on (cx, cy) with outer radius r. */
 export function starPoints(cx: number, cy: number, r: number): string {
@@ -42,7 +42,7 @@ export function Mark({ cx, cy, color, shape, hollow = false, r = 4.5 }: MarkProp
   }
 }
 
-/** Filled vermilion star: a personal record. */
+/** Filled plate-red star: a personal record. */
 export function PrStar({ cx, cy, r = 8 }: { cx: number; cy: number; r?: number }) {
   return <polygon points={starPoints(cx, cy, r)} fill="var(--chart-pr)" stroke={SURFACE} strokeWidth={2} paintOrder="stroke" strokeLinejoin="round" />;
 }

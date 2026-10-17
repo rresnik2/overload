@@ -23,9 +23,18 @@ export function unitForSet(set: Pick<WorkoutSetRow, "inputUnit"> | null, machine
   return set?.inputUnit ?? machine?.labelUnit ?? preference;
 }
 
-/** Weight stepper increment (in the row's unit): a machine's pin step wins, else the equipment default. */
-export function weightStep(unit: WeightUnit, exercise: Pick<ExerciseRow, "equipment">, machine: Pick<MachineProfileRow, "pinStepKg"> | null): number {
-  return defaultIncrement(unit, exercise.equipment, { pinStepKg: machine?.pinStepKg ?? null });
+/**
+ * Weight stepper increment (in the row's unit): a machine's pin step wins, then the user's dumbbell step (gear profile, dumbbell
+ * exercises only), else the equipment default.
+ */
+export function weightStep(
+  unit: WeightUnit,
+  exercise: Pick<ExerciseRow, "equipment">,
+  machine: Pick<MachineProfileRow, "pinStepKg"> | null,
+  gear: Pick<MachineProfileRow, "pinStepKg"> | null = null,
+): number {
+  const gearStep = exercise.equipment === "DUMBBELL" ? (gear?.pinStepKg ?? null) : null;
+  return defaultIncrement(unit, exercise.equipment, { pinStepKg: machine?.pinStepKg ?? gearStep });
 }
 
 /** Typed value (in `unit`) -> stored kg; the entry unit rides along as `inputUnit`. null clears the weight. */
@@ -40,7 +49,7 @@ export function shownWeight(kg: number | null, unit: WeightUnit): number | null 
 
 // ───────────────────────────── "last time" ghosts ─────────────────────────────
 
-type GhostSource = Pick<WorkoutSetRow, "weightKg" | "reps" | "inputUnit" | "durationSec" | "distanceM">;
+type GhostSource = Pick<WorkoutSetRow, "weightKg" | "reps" | "inputUnit" | "durationSec" | "distanceM"> & Partial<Pick<WorkoutSetRow, "rir">>;
 
 /** The set of the previous session this one lines up with: the n-th warm-up for the n-th warm-up, the n-th other set for the rest. */
 export function ghostSet(last: LastTimeEntry | undefined, sets: WorkoutSetRow[], set: WorkoutSetRow): GhostSource | null {

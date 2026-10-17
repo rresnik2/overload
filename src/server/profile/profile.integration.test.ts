@@ -7,6 +7,7 @@ import { buildAccountExport, loadAccountExportSource } from "./export";
 import { isOnboarded } from "./guard";
 import { completeOnboarding } from "./onboarding";
 import { getProfileRow, updateProfile } from "./profile";
+import { loadProfileRowCached } from "./row";
 
 const suffix = newId().slice(-12);
 const userA = `pf-a-${suffix}`;
@@ -79,6 +80,14 @@ describe("onboarding + profile (real Postgres)", () => {
     expect(result.ok).toBe(true);
     expect(await getProfileRow(ctxB)).toMatchObject({ defaultRestSec: 45, unitPreference: "LB", insightsEnabled: false });
     expect(await getProfileRow(ctxA)).toMatchObject({ defaultRestSec: 120, unitPreference: "KG", insightsEnabled: true });
+  });
+
+  it("the per-request profile loader returns the caller's row, and nothing for a user without one", async () => {
+    const mine = await loadProfileRowCached(ctxA);
+    expect(mine?.userId).toBe(userA);
+    expect(mine?.onboardedAt).not.toBeNull();
+    expect((await loadProfileRowCached(ctxB))?.userId).toBe(userB);
+    expect(await loadProfileRowCached(mintUserCtx(`pf-none-${suffix}`))).toBeNull();
   });
 
   it("exports the caller's data only, without userId or Decimals", async () => {
