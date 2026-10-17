@@ -1,8 +1,9 @@
 "use client";
 import clsx from "clsx";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
+import { memo, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, Ref } from "react";
 import type { TermId } from "@/lib/glossary";
+import { ECHO_MS, STEP_COMMIT_MS, useFlushOnLeave, type CommitHandle } from "./commit";
 import { InfoHint } from "./InfoHint";
 
 export interface DialProps {
@@ -14,7 +15,15 @@ export interface DialProps {
   values: readonly number[];
   /** Selected value, or null when nothing is chosen yet (the dial rests at restIndex). */
   value: number | null;
+  /**
+   * The value as it turns. Without `onCommit` this fires once per detent and is the only callback (store it). With `onCommit` it is
+   * the LIVE value for a readout and a picture: do not write it to storage.
+   */
   onChange: (next: number) => void;
+  /** Fires once when a turn settles (drag released, 250 ms after the last key or wheel step, blur, page hidden, unmount). Write the value here. */
+  onCommit?: (next: number) => void;
+  /** Gives the parent `flush()` for committing a pending value early. */
+  ref?: Ref<CommitHandle>;
   /** Spoken value: "102.5 kilograms total", "Pin 9, 45 kilograms". */
   valueText: (v: number) => string;
   /** Rim fill and the ink for ticks and stamps on it (token names). Default: primary / primary-content. */
@@ -78,15 +87,22 @@ function ticksFor(detentDeg: number): { x1: number; y1: number; x2: number; y2: 
  * truth (arrow keys, Page Up/Down = 4 steps, Home/End, VoiceOver swipes) and the SVG is decorative. The mouse wheel
  * steps it only while it has focus. At either end extra rotation is discarded and the dial plays a short bump.
  * Drag snaps with no tween; keyboard and wheel steps tween 80 ms; reduced motion turns all of it off (primitives.css).
+ *
+ * Two ways to use the value. With only `onChange`, every detent reports (and a parent that stores it gets one write per detent).
+ * With `onCommit` too, `onChange` is the LIVE value for a readout and a picture, and `onCommit` fires once per turn: on release of
+ * a drag, 250 ms after the last key or wheel step, on blur, when the page is hidden and on unmount. The dial keeps its own
+ * position until the stored value comes back, so it never snaps back between the release and the write.
  */
-export function Dial({ label, labelHint, values, value, onChange, valueText, rim, ink, stamp, restIndex = 0, detentDeg = 12, disabled, onDetent, className }: DialProps) {
+export const Dial = memo(function Dial({ label, labelHint, values, value, onChange, onCommit, valueText, rim, ink, stamp, restIndex = 0, detentDeg = 12, disabled, onDetent, className, ref }: DialProps) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const count = values.length;
   const rest = clampIndex(restIndex, count);
   const propIdx = value === null ? rest : nearestIndex(values, value);
-  // While a drag is running the dial shows its own index: an incoming value (sync) must not yank it away mid-turn.
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const idx = dragIdx ?? propIdx;
+  // What the dial shows while a turn is open, or between its commit and the stored value coming back. `base` is the prop index the
+  // turn started from: once the prop moves (the echo, or an outside change) the prop wins again.
+  const [turn, setTurn] = useState<{ idx: number; base: number; open: boolean } | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const idx = turn && (turn.open || turn.base === propIdx) ? turn.idx : propIdx;
   const [tween, setTween] = useState(false);
   const [bump, setBump] = useState<{ dir: 1 | -1; n: number } | null>(null);
 
@@ -95,26 +111,64 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
   const idxRef = useRef(idx);
   const drag = useRef<{ id: number; cx: number; cy: number; last: number; acc: number } | null>(null);
   const wheelAcc = useRef(0);
-  const latest = useRef({ count, values, value, onChange, onDetent, disabled });
+  const latest = useRef({ count, values, value, onChange, onCommit, onDetent, disabled, propIdx });
+  const openRef = useRef(false);
+  const pending = useRef<number | null>(null);
+  const stepTimer = useRef(0);
+  const echoTimer = useRef(0);
 
-  // Indices this dial reported through onChange that the `value` prop has not echoed yet. The value usually comes back through
-  // a store (Dexie), so for a moment `idx` is behind idxRef: resetting idxRef from every render would drop quick key presses.
+  // Indices this dial reported (onChange, or onCommit) that the `value` prop has not echoed yet. The value usually comes back through
+  // a store (Dexie), so for a moment the prop is behind idxRef: resetting idxRef from every render would drop quick key presses.
   const reported = useRef<number[]>([]);
 
-  useEffect(() => {
-    latest.current = { count, values, value, onChange, onDetent, disabled };
+  // A layout effect: a timer that fires right after a render must already see that render's prop index.
+  useLayoutEffect(() => {
+    latest.current = { count, values, value, onChange, onCommit, onDetent, disabled, propIdx };
   });
   useEffect(() => {
-    const k = reported.current.indexOf(idx);
+    const k = reported.current.indexOf(propIdx);
     if (k >= 0) {
       // An echo of one of our own reports. Newer reports may still be in flight: leave idxRef where it is until the last one lands.
       reported.current.splice(0, k + 1);
-      if (reported.current.length === 0) idxRef.current = idx;
+      if (reported.current.length === 0 && !openRef.current) idxRef.current = propIdx;
       return;
     }
     reported.current = [];
-    idxRef.current = idx;
-  }, [idx]);
+    // An outside change (sync) must not yank the dial away mid-turn.
+    if (!openRef.current) idxRef.current = propIdx;
+  }, [propIdx]);
+
+  /** Stop showing the dial's own position once nothing is open and the prop has not followed (a write that failed). */
+  function armEcho() {
+    window.clearTimeout(echoTimer.current);
+    echoTimer.current = window.setTimeout(() => setTurn((t) => (t && !t.open ? null : t)), ECHO_MS);
+  }
+
+  /** Close the turn. In commit mode this reports the value once; otherwise the detents already reported themselves. */
+  function settle() {
+    window.clearTimeout(stepTimer.current);
+    const cur = latest.current;
+    openRef.current = false;
+    setTurn((t) => (t ? { ...t, open: false, base: cur.propIdx } : t));
+    armEcho();
+    const to = pending.current;
+    if (to === null) return;
+    pending.current = null;
+    if (to !== cur.propIdx) reported.current.push(to);
+    cur.onCommit?.(cur.values[to]!);
+  }
+  useFlushOnLeave(() => {
+    if (pending.current !== null) settle();
+  });
+  useImperativeHandle(ref, () => ({ flush: () => pending.current !== null && settle() }));
+  // Declared after useFlushOnLeave so it runs after the unmount flush (which may arm a timer).
+  useEffect(
+    () => () => {
+      window.clearTimeout(stepTimer.current);
+      window.clearTimeout(echoTimer.current);
+    },
+    [],
+  );
 
   /** Move by `delta` detents from the current index. Rotation past either end is thrown away and bumps. */
   function moveBy(delta: number, source: Source) {
@@ -127,9 +181,19 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
     if (moved > 0) {
       idxRef.current = to;
       setTween(source === "step");
-      if (source === "drag") setDragIdx(to);
+      const open = Boolean(cur.onCommit) || source === "drag";
+      openRef.current = open;
+      setTurn({ idx: to, base: cur.propIdx, open });
+      window.clearTimeout(echoTimer.current);
       for (let i = 0; i < moved; i++) cur.onDetent?.(dir);
-      reported.current.push(to);
+      if (cur.onCommit) {
+        pending.current = to;
+        window.clearTimeout(stepTimer.current);
+        if (source === "step") stepTimer.current = window.setTimeout(settle, STEP_COMMIT_MS);
+      } else {
+        reported.current.push(to);
+        if (source === "step") armEcho();
+      }
       cur.onChange(cur.values[to]!);
     }
     if (Math.abs(delta) > moved) setBump((b) => ({ dir, n: (b?.n ?? 0) + 1 }));
@@ -166,7 +230,11 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
     const d = { id: e.pointerId, cx: r.left + r.width / 2, cy: r.top + r.height / 2, last: 0, acc: 0 };
     d.last = angleOf(e, d);
     drag.current = d;
-    setDragIdx(idxRef.current);
+    openRef.current = true;
+    window.clearTimeout(stepTimer.current);
+    window.clearTimeout(echoTimer.current);
+    setTurn({ idx: idxRef.current, base: propIdx, open: true });
+    setDragging(true);
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {
@@ -198,12 +266,13 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
-    setDragIdx(null);
+    setDragging(false);
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
       // Already released.
     }
+    settle(); // the release is the commit
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -217,7 +286,7 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
   }
 
   const ticks = useMemo(() => ticksFor(detentDeg), [detentDeg]);
-  const spoken = value === null ? "Not set" : valueText(values[propIdx]!);
+  const spoken = value === null && !turn ? "Not set" : valueText(values[idx]!);
   const style = {
     "--dial-rim": tokenColor(rim ?? "color-primary"),
     "--dial-ink": tokenColor(ink ?? "color-primary-content"),
@@ -246,13 +315,14 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
         disabled={disabled}
         aria-disabled={disabled ? true : undefined}
         onKeyDown={onKeyDown}
+        onBlur={() => pending.current !== null && settle()}
         // Assistive tech (VoiceOver swipe up/down, TalkBack volume keys) changes the range directly.
         onChange={(e) => moveBy(Number(e.target.value) - idxRef.current, "step")}
       />
       <div
         ref={faceRef}
         className="dial__face"
-        data-dragging={dragIdx !== null ? "true" : undefined}
+        data-dragging={dragging ? "true" : undefined}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -300,4 +370,4 @@ export function Dial({ label, labelHint, values, value, onChange, valueText, rim
       </div>
     </div>
   );
-}
+});

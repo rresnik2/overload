@@ -3,14 +3,19 @@
 // long tasks (> 50 ms) during the drag. Directions alternate so the weight stays near where it started.
 import { expect, test } from "@playwright/test";
 import {
+  browserMetrics,
+  countIndexedDb,
   discardWorkout,
   flushVitals,
   installProbe,
+  installWorkCounters,
   longTaskStats,
   readProbe,
+  readWork,
   REPS,
   report,
   resetProbe,
+  resetWork,
   signInDemo,
   startWorkoutWithExercise,
   summarize,
@@ -26,6 +31,7 @@ const MOVES = 24;
 const MOVE_GAP_MS = 16;
 
 test("dial drag: 10 detents", async ({ page }) => {
+  await countIndexedDb(page);
   await signInDemo(page);
   await startWorkoutWithExercise(page, "barbell bench press", EXERCISE);
   const face = page.locator(".dial__face").first();
@@ -36,11 +42,27 @@ test("dial drag: 10 detents", async ({ page }) => {
   await page.waitForTimeout(1000);
 
   await installProbe(page, { mutationRoot: ".wk-panel__read", mutationFilter: ".wk-readout__num" });
-  const samples: { rep: number; dir: number; settleMs: number; lagMs: number; changes: number; longTasks: ReturnType<typeof longTaskStats>; detents: number }[] = [];
+  await installWorkCounters(page);
+  await cdp.send("Performance.enable");
+  const samples: {
+    rep: number;
+    dir: number;
+    settleMs: number;
+    lagMs: number;
+    changes: number;
+    longTasks: ReturnType<typeof longTaskStats>;
+    detents: number;
+    work: Awaited<ReturnType<typeof readWork>>;
+    layouts: number;
+    recalcs: number;
+    scriptMs: number;
+  }[] = [];
 
   for (let rep = 1; rep <= REPS; rep++) {
     const dir = rep % 2 === 1 ? 1 : -1; // clockwise raises the weight
     await resetProbe(page);
+    await resetWork(page);
+    const before = await browserMetrics(cdp);
     const box = (await face.boundingBox())!;
     const cx = box.x + box.width / 2;
     const cy = box.y + box.height / 2;
@@ -60,6 +82,8 @@ test("dial drag: 10 detents", async ({ page }) => {
     await touch("touchEnd", dir * sweep);
     await page.waitForTimeout(800); // let the Dexie write, the live query and the sync trigger finish
 
+    const after = await browserMetrics(cdp);
+    const work = await readWork(page);
     const p = await readProbe(page);
     const down = p.input.find((i) => i.type === "pointerdown")?.t ?? 0;
     const moves = p.input.filter((i) => i.type === "pointermove");
@@ -74,6 +98,10 @@ test("dial drag: 10 detents", async ({ page }) => {
       changes: p.mutations.length,
       longTasks: longTaskStats(p.longTasks, down),
       detents: endIdx - startIdx,
+      work,
+      layouts: (after.LayoutCount ?? 0) - (before.LayoutCount ?? 0),
+      recalcs: (after.RecalcStyleCount ?? 0) - (before.RecalcStyleCount ?? 0),
+      scriptMs: Math.round(((after.ScriptDuration ?? 0) - (before.ScriptDuration ?? 0)) * 1000),
     });
   }
 
@@ -88,6 +116,13 @@ test("dial drag: 10 detents", async ({ page }) => {
     { metric: "drag: long tasks > 50 ms", unit: "n", summary: summarize(samples.map((s) => s.longTasks.count)) },
     { metric: "drag: longest task", unit: "ms", summary: summarize(samples.map((s) => s.longTasks.maxMs)) },
     { metric: "drag: blocking time (sum over 50 ms)", unit: "ms", summary: summarize(samples.map((s) => s.longTasks.blockingMs)) },
+    { metric: "drag: IndexedDB read-write transactions", unit: "n", summary: summarize(samples.map((s) => s.work.rw)) },
+    { metric: "drag: IndexedDB read-only transactions", unit: "n", summary: summarize(samples.map((s) => s.work.ro)) },
+    { metric: "drag: DOM mutation batches under .wk-active (about one per commit)", unit: "n", summary: summarize(samples.map((s) => s.work.batches)) },
+    { metric: "drag: DOM mutation records under .wk-active", unit: "n", summary: summarize(samples.map((s) => s.work.records)) },
+    { metric: "drag: style recalculations", unit: "n", summary: summarize(samples.map((s) => s.recalcs)) },
+    { metric: "drag: layouts", unit: "n", summary: summarize(samples.map((s) => s.layouts)) },
+    { metric: "drag: script time", unit: "ms", summary: summarize(samples.map((s) => s.scriptMs)) },
   ];
   const inp = vitals.filter((v) => v.name === "INP").at(-1);
   rows.push({ metric: "INP (vitals)", unit: "ms", summary: inp ? summarize([inp.value]) : null, note: inp?.rating });

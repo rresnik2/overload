@@ -35,6 +35,7 @@ import {
   parsePatch,
   readTx,
   tombstone,
+  writeScope,
   writeTx,
   type AnyRow,
   type RowOf,
@@ -76,6 +77,7 @@ function todayLocal(): string {
 
 function entityRepo<E extends EntityName>(getDb: GetDb, entity: E): EntityRepo<E> {
   type Row = RowOf<E>;
+  const scope = writeScope(entity);
   return {
     async get(id) {
       const row = (await findRow(getDb(), entity, id)) as AnyRow | undefined;
@@ -109,7 +111,7 @@ function entityRepo<E extends EntityName>(getDb: GetDb, entity: E): EntityRepo<E
         await db.entityTable(entity).add(row);
         await enqueue(db, entity, id, fields, fieldHlc);
         return row as unknown as Row;
-      });
+      }, scope);
     },
 
     async update(id, patch) {
@@ -123,7 +125,7 @@ function entityRepo<E extends EntityName>(getDb: GetDb, entity: E): EntityRepo<E
         if (Object.keys(effective).length === 0) return row as unknown as Row;
         await checkRefs(db, entity, effective);
         return (await applyPatch(db, entity, row, effective)) as unknown as Row;
-      });
+      }, scope);
     },
 
     async remove(id) {
@@ -133,7 +135,7 @@ function entityRepo<E extends EntityName>(getDb: GetDb, entity: E): EntityRepo<E
         const row = await findRow(db, entity, id);
         if (!row || row.deletedAt) return; // idempotent
         await tombstone(db, entity, row);
-      });
+      }, scope);
     },
   };
 }
@@ -148,6 +150,7 @@ export function createRepo(getDb: GetDb): Repo {
   const workoutExercises = entityRepo(getDb, "workoutExercise");
   const sets = entityRepo(getDb, "workoutSet");
   const favorites = entityRepo(getDb, "exerciseFavorite");
+  const FAVORITE_SCOPE = writeScope("exerciseFavorite");
 
   /** Most recently started workouts first (alive only). */
   const recentWorkouts = async (db: OverloadDb): Promise<WorkoutRow[]> => alive(await db.workout.orderBy("startedAt").reverse().toArray());
@@ -193,7 +196,7 @@ export function createRepo(getDb: GetDb): Repo {
             }
           }
           return out;
-        });
+        }, ["workout", "workoutExercise", "exercise", "catalog"]);
       },
     },
 
@@ -208,7 +211,7 @@ export function createRepo(getDb: GetDb): Repo {
             if (exercise && !exercise.deletedAt) out.push(exercise);
           }
           return out;
-        });
+        }, ["exerciseFavorite", "exercise", "catalog"]);
       },
       async ids() {
         return favoriteExerciseIds(getDb());
@@ -234,7 +237,7 @@ export function createRepo(getDb: GetDb): Repo {
             await favorites.create({ exerciseId, position: appendPosition(last?.position) }, { id });
           }
           return true;
-        });
+        }, FAVORITE_SCOPE);
       },
     },
 
@@ -255,7 +258,7 @@ export function createRepo(getDb: GetDb): Repo {
             if (profile && !profile.deletedAt) return profile as MachineProfileRow;
           }
           return undefined;
-        });
+        }, ["workout", "workoutExercise", "machineProfile"]);
       },
       async gear(equipment, gymName) {
         // The table is small and null cannot be a Dexie key, so scan rather than index (see pickGear for the per-gym fallback).
@@ -321,7 +324,7 @@ export function createRepo(getDb: GetDb): Repo {
           const out: WorkoutSetRow[] = [];
           for (const we of wes) out.push(...(await repo.sets.forWorkoutExercise(we.id)));
           return out;
-        });
+        }, ["workoutExercise", "workoutSet"]);
       },
       async forSeries(key) {
         return alive(await getDb().workoutSet.where("seriesKey").equals(key).toArray()) as WorkoutSetRow[];
@@ -355,10 +358,11 @@ export function createRepo(getDb: GetDb): Repo {
           await db.catalog.clear();
           await db.catalog.bulkPut(catalog.exercises);
           await setMeta(db, META_KEYS.catalogVersion, catalog.version);
-        });
+        }, ["catalog", "meta"]);
       },
     },
 
+    // Callers decide what they touch (the interface is frozen), so a transaction opened here covers every table.
     async transact(fn) {
       const db = getDb();
       return writeTx(db, () => fn(repo));

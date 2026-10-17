@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WorkoutSetRow } from "@/contracts/entities";
 import type { LoadType, TrackingType } from "@/contracts/enums";
-import { useRestTimer } from "./hooks";
+import { useRestClock, useRestTimer } from "./hooks";
 import { REST_STORAGE_KEY } from "./rest";
-import { RestTimer } from "./RestTimer";
+import { RestTimerView } from "./RestTimer";
 import { SetRow, type SetRowExercise } from "./SetRow";
 import { StartWorkoutCard } from "./StartWorkoutCard";
 
@@ -124,17 +124,17 @@ describe("SetRow load-type labelling", () => {
   });
 });
 
-describe("RestTimer", () => {
+describe("RestTimerView", () => {
   const props = { durationSec: 90, onStart: noop, onPause: noop, onResume: noop, onAdjust: noop, onClear: noop };
   it("renders idle, running, paused and done", () => {
-    const { rerender } = render(<RestTimer {...props} status="idle" remainingMs={0} />);
+    const { rerender } = render(<RestTimerView {...props} status="idle" remainingMs={0} />);
     expect(screen.getByRole("region", { name: "Rest timer" })).toHaveAttribute("data-status", "idle");
-    rerender(<RestTimer {...props} status="running" remainingMs={65_000} />);
+    rerender(<RestTimerView {...props} status="running" remainingMs={65_000} />);
     expect(screen.getByTestId("rest-clock")).toHaveTextContent("1:05");
     expect(screen.getByRole("button", { name: "Pause rest" })).toBeInTheDocument();
-    rerender(<RestTimer {...props} status="paused" remainingMs={40_000} />);
+    rerender(<RestTimerView {...props} status="paused" remainingMs={40_000} />);
     expect(screen.getByRole("button", { name: "Resume rest" })).toBeInTheDocument();
-    rerender(<RestTimer {...props} status="done" remainingMs={0} />);
+    rerender(<RestTimerView {...props} status="done" remainingMs={0} />);
     expect(screen.getByRole("button", { name: "Dismiss rest timer" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Rest timer" })).toHaveAttribute("data-status", "done");
   });
@@ -149,13 +149,17 @@ describe("useRestTimer (absolute restEndsAt survives a reload)", () => {
 
   it("counts against the clock, persists, and a remounted hook finds the same end time", () => {
     vi.setSystemTime(new Date("2026-10-14T18:00:00.000Z"));
-    const first = renderHook(() => useRestTimer("w1"));
+    const useBoth = () => {
+      const timer = useRestTimer("w1");
+      return { ...timer, ...useRestClock(timer.state) };
+    };
+    const first = renderHook(useBoth);
     act(() => first.result.current.start(90));
     expect(first.result.current.status).toBe("running");
     expect(JSON.parse(localStorage.getItem(REST_STORAGE_KEY) as string).endsAt).toBe(Date.parse("2026-10-14T18:01:30.000Z"));
     first.unmount(); // "reload": the page is gone, only localStorage remains
     vi.setSystemTime(new Date("2026-10-14T18:00:50.000Z")); // timers did not run while backgrounded
-    const second = renderHook(() => useRestTimer("w1"));
+    const second = renderHook(useBoth);
     act(() => void vi.advanceTimersByTime(250));
     expect(second.result.current.status).toBe("running");
     expect(second.result.current.remainingMs).toBe(39_750) // 40 s left at the reload, minus the 250 ms just ticked;
